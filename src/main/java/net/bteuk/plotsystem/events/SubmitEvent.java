@@ -18,7 +18,7 @@ public class SubmitEvent {
         if (event[1].equals("plot")) {
 
             //Convert the string id to int id.
-            int id = Integer.parseInt(event[2]);
+            int plotID = Integer.parseInt(event[2]);
 
             //Check if the player can submit a plot at this point in time.
             long lCoolDown = PlotSystem.getInstance().getConfig().getInt("submit_cooldown") * 60L * 1000L;
@@ -49,19 +49,19 @@ public class SubmitEvent {
 
             } else {
 
-                //Check if plot is claimed.
-                if (PlotSystem.getInstance().plotSQL.hasRow("SELECT id FROM plot_data WHERE id=" + id + " AND status='claimed';")) {
+                // Check if plot is claimed.
+                if (PlotSystem.getInstance().plotSQL.hasRow("SELECT id FROM plot_data WHERE id=" + plotID + " AND status='claimed';")) {
 
-                    //Set plot status to submitted.
-                    PlotHelper.updatePlotStatus(id, PlotStatus.SUBMITTED);
+                    // Create new submitted plot key.
+                    PlotSystem.getInstance().plotSQL.update("INSERT INTO plot_submission(plot_id,submit_time,status,last_query) VALUES(" + plotID + "," + Time.currentTime() + ",'submitted'," + Time.currentTime() + ");");
 
-                    //Create new submitted plot key.
-                    PlotSystem.getInstance().plotSQL.update("INSERT INTO plot_submissions(id,submit_time,last_query) VALUES(" + id + "," + Time.currentTime() + "," + Time.currentTime() + ");");
+                    // Set plot status to submitted.
+                    PlotHelper.updatePlotStatus(plotID, PlotStatus.SUBMITTED);
 
                     //Update last submit time in playerdata.
                     PlotSystem.getInstance().globalSQL.update("UPDATE player_data SET last_submit=" + Time.currentTime() + " WHERE uuid='" + uuid + "';");
 
-                    message = ChatUtils.success("Submitted plot %s", String.valueOf(id));
+                    message = ChatUtils.success("Submitted plot %s", String.valueOf(plotID));
 
                     //Get number of submitted plots.
                     int plot_count = PlotSystem.getInstance().plotSQL.getInt("SELECT count(id) FROM plot_data WHERE status='submitted';");

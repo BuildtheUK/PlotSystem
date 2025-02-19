@@ -56,8 +56,8 @@ public class DeleteEvent {
             if (copyWorld == null || pasteWorld == null) {
 
                 //Send error to console.
-                Bukkit.getLogger().severe("Plot delete event failed!");
-                Bukkit.getLogger().severe("Event details:" + Arrays.toString(event));
+                LOGGER.severe("Plot delete event failed!");
+                LOGGER.severe("Event details:" + Arrays.toString(event));
                 return;
 
             }
@@ -97,11 +97,11 @@ public class DeleteEvent {
                     return;
                 }
 
-                //Remove all members of plot in database.
+                // Remove all members of plot in database.
                 plotSQL.update("DELETE FROM plot_members WHERE id=" + id + ";");
 
-                //Remove the submitted plot if it is currently submitted.
-                plotSQL.update("DELETE FROM plot_submissions WHERE id=" + id + ";");
+                // Remove the submitted plot if it is currently submitted.
+                plotSQL.update("DELETE FROM plot_submission WHERE plot_id=" + id + ";");
 
                 //Set plot status to unclaimed.
                 PlotStatus currentStatus = PlotStatus.fromDatabaseValue(plotSQL.getString("SELECT status FROM plot_data WHERE id=" + id + ";"));

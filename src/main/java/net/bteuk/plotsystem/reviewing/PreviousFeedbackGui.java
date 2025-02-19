@@ -118,11 +118,9 @@ public class PreviousFeedbackGui extends Gui {
                         ChatUtils.line("Go back to the review menu.")),
 
                 u -> {
-
                     //Go back to the review gui.
                     u.player.closeInventory();
-                    user.review.reviewGui.open(u);
-
+                    user.getReview().getReviewGui().open(u);
                 }
         );
     }

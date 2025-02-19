@@ -1,62 +1,71 @@
 package net.bteuk.plotsystem.reviewing;
 
 import lombok.Getter;
+import net.bteuk.network.Network;
 import net.bteuk.network.lib.utils.ChatUtils;
+import net.bteuk.network.utils.NetworkUser;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.User;
 import org.bukkit.Material;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 
 public class Review {
 
-    private final ItemStack[] inventory;
+    // User instance.
+    private final User user;
 
-    //User instance.
+    // Plot id.
     @Getter
-    private final User u;
+    private final int plotID;
 
-    //Review Gui and Listener.
-    public final ReviewGui reviewGui;
+    @Getter
+    private final ReviewMode mode;
+
+    private final ItemStack[] initialInventory;
+
+    // Review Gui and Listener.
+    @Getter
+    private final ReviewGui reviewGui;
     private final ReviewHotbar hotbarListener;
 
-    //Accept Gui and accept data.
+    // Accept Gui and accept data.
     public AcceptGui acceptGui;
 
-    //Previous feedback Gui.
+    // Previous feedback Gui.
     public PreviousFeedbackGui previousFeedbackGui;
 
-    //Plot id.
-    public final int plot;
+    @Getter
+    private final EditableBook feedbackBook;
 
-    //Feedback book
-    public final ItemStack book;
-    public BookMeta bookMeta;
-    public final EditBook editBook;
+    /**
+     * Constructor to create a new review.
+     *
+     * @param plotID the plot to review
+     * @param user the reviewer
+     * @param mode the review mode
+     */
+    public Review(int plotID, User user, ReviewMode mode) {
 
-    public Review(int plot, User u) {
+        this.user = user;
+        this.plotID = plotID;
+        this.mode = mode;
 
-        this.u = u;
-        this.plot = plot;
+        // Save the users hotbar to revert to after reviewing.
+        // Then clear their inventory and set it up for reviewing.
+        initialInventory = user.player.getInventory().getContents();
+        user.player.getInventory().clear();
 
-        //Save the users hotbar to revert to after reviewing.
-        //Then clear their inventory and set it up for reviewing.
-        inventory = u.player.getInventory().getContents();
-        u.player.getInventory().clear();
+        // Create the review gui.
+        reviewGui = new ReviewGui(user, plotID);
 
-        //Set review gui.
-        reviewGui = new ReviewGui(u, plot);
+        // Create the feedback book.
+        feedbackBook = createFeedbackBook();
 
-        //Create listener for review gui button in slot 1 of hotbar.
-        hotbarListener = new ReviewHotbar(PlotSystem.getInstance(), u);
+        // Setup the hotbar for the reviewer.
+        hotbarListener = new ReviewHotbar(PlotSystem.getInstance(), user);
 
-        //Feedback book details.
-        book = new ItemStack(Material.WRITABLE_BOOK);
-        bookMeta = (BookMeta) book.getItemMeta();
-        bookMeta.displayName(ChatUtils.success("Feedback"));
-        book.setItemMeta(bookMeta);
-        editBook = new EditBook(PlotSystem.getInstance(), this);
+
 
     }
 
@@ -64,7 +73,7 @@ public class Review {
 
         //Unregister Listeners
         hotbarListener.unregister();
-        editBook.unregister();
+        feedbackBook.unregister();
 
         //Remove any existing guis.
         if (reviewGui != null) {
@@ -78,14 +87,27 @@ public class Review {
         }
 
         //Convert inventory back to how it was pre-review.
-        u.player.getInventory().setContents(inventory);
+        user.player.getInventory().setContents(initialInventory);
 
         //Set review to null.
-        u.review = null;
+        user.setReview(null);
 
     }
 
-    public boolean isSamePlayer(Player p) {
-        return p.equals(u.player);
+    public void openReviewGui() {
+        NetworkUser networkUser = Network.getInstance().getUser(user.player);
+        if (networkUser != null) {
+            networkUser.player.closeInventory();
+            reviewGui.open(networkUser);
+        }
+    }
+
+    private EditableBook createFeedbackBook() {
+        // Feedback book details.
+        ItemStack reviewBook = new ItemStack(Material.WRITABLE_BOOK);
+        BookMeta reviewBookMeta = (BookMeta) reviewBook.getItemMeta();
+        reviewBookMeta.displayName(ChatUtils.success("Feedback"));
+        reviewBook.setItemMeta(reviewBookMeta);
+        return new EditableBook(PlotSystem.getInstance(), user.player, reviewBook);
     }
 }

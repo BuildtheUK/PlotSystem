@@ -42,11 +42,14 @@ public class AcceptGui extends Gui {
 
     private final User user;
 
-    public AcceptGui(User user) {
+    private final int plotID;
+
+    public AcceptGui(User user, int plotID) {
 
         super(54, Component.text("Review Menu", NamedTextColor.AQUA, TextDecoration.BOLD));
 
         this.user = user;
+        this.plotID = plotID;
 
         //Set default values;
         accuracy = 1;
@@ -154,10 +157,10 @@ public class AcceptGui extends Gui {
                     PlotSQL plotSQL = Network.getInstance().getPlotSQL();
 
                     //Get plot owner.
-                    String plotOwner = plotSQL.getString("SELECT uuid FROM plot_members WHERE id=" + user.review.plot + " AND is_owner=1;");
+                    String plotOwner = plotSQL.getString("SELECT uuid FROM plot_members WHERE id=" + plotID + " AND is_owner=1;");
 
                     //Get world of plot.
-                    World world = Bukkit.getWorld(plotSQL.getString("SELECT location FROM plot_data WHERE id=" + user.review.plot + ";"));
+                    World world = Bukkit.getWorld(plotSQL.getString("SELECT location FROM plot_data WHERE id=" + plotID + ";"));
 
                     if (world == null) {
                         LOGGER.warning("World of plot is null!!!");
@@ -181,10 +184,10 @@ public class AcceptGui extends Gui {
                     u.player.closeInventory();
 
                     //Check if there is feedback.
-                    if (user.review.editBook.isEdited) {
+                    if (user.getReview().getFeedbackBook().isEdited()) {
 
                         //Get the feedback written in the book.
-                        List<Component> book = user.review.bookMeta.pages();
+                        List<Component> book = user.getReview().getFeedbackBook().getBookPages();
                         //Create new book id.
                         bookID = 1 + plotSQL.getInt("SELECT id FROM book_data ORDER BY id DESC;");
 
@@ -210,7 +213,7 @@ public class AcceptGui extends Gui {
 
                     //Add to accept data.
                     if (!plotSQL.update("INSERT INTO accept_data(id,uuid,reviewer,book_id,accuracy,quality,accept_time) VALUES(" +
-                            user.review.plot + ",'" + plotOwner + "','" + u.player.getUniqueId() + "'," + bookID + "," +
+                            plotID + ",'" + plotOwner + "','" + u.player.getUniqueId() + "'," + bookID + "," +
                             accuracy + "," + quality + "," + Time.currentTime() + ");")) {
 
                         LOGGER.severe("An error occurred while inserting to accept_data.");
@@ -219,17 +222,18 @@ public class AcceptGui extends Gui {
 
                     //Send message to plot owner.
                     DirectMessage directMessage = new DirectMessage("global", plotOwner, "server",
-                            ChatUtils.success("Plot %s has been accepted.", String.valueOf(user.review.plot)), true);
+                            ChatUtils.success("Plot %s has been accepted.", String.valueOf(plotID)), true);
                     Network.getInstance().getChat().sendSocketMesage(directMessage);
 
                     //Remove plot members.
-                    plotSQL.update("DELETE FROM plot_members WHERE id=" + user.review.plot + ";");
+                    plotSQL.update("DELETE FROM plot_members WHERE id=" + plotID + ";");
 
                     //Set plot to completed.
-                    PlotHelper.updatePlotStatus(user.review.plot, PlotStatus.COMPLETED);
+                    PlotHelper.updatePlotStatus(plotID, PlotStatus.COMPLETED);
 
-                    //Remove submitted plot entry.
-                    plotSQL.update("DELETE FROM plot_submissions WHERE id=" + user.review.plot + ";");
+                    // Remove submitted plot entry.
+                    // TODO: Possible verification.
+                    plotSQL.update("DELETE FROM plot_submission WHERE plot_id=" + plotID + ";");
 
                     //Add points to player.
                     //By referencing network plugin.
@@ -243,7 +247,7 @@ public class AcceptGui extends Gui {
                     List<BlockVector2> copyVector;
 
                     try {
-                        copyVector = WorldGuardFunctions.getPoints(String.valueOf(user.review.plot), world);
+                        copyVector = WorldGuardFunctions.getPoints(String.valueOf(plotID), world);
                     } catch (RegionManagerNotFoundException | RegionNotFoundException e) {
                         u.player.sendMessage(ChatUtils.error("An error occurred in the plot accepting process, please contact an admin."));
                         e.printStackTrace();
@@ -262,11 +266,11 @@ public class AcceptGui extends Gui {
                     Bukkit.getScheduler().runTaskAsynchronously(PlotSystem.getInstance(), () -> {
                         WorldEditor.updateWorld(copyVector, pasteVector, world, saveWorld);
 
-                        LOGGER.info("Plot " + user.review.plot + " successfully saved.");
+                        LOGGER.info("Plot " + plotID + " successfully saved.");
 
                         //Remove plot from worldguard.
                         try {
-                            WorldGuardFunctions.delete(String.valueOf(user.review.plot), world);
+                            WorldGuardFunctions.delete(String.valueOf(plotID), world);
                         } catch (RegionManagerNotFoundException e) {
                             u.player.sendMessage(ChatUtils.error("An error occurred while removing the plot, please contact an admin."));
                             e.printStackTrace();
@@ -275,7 +279,7 @@ public class AcceptGui extends Gui {
 
                         //Send feedback in chat and console.
                         u.player.sendMessage(ChatUtils.success("Plot ")
-                                .append(Component.text(user.review.plot, NamedTextColor.DARK_AQUA))
+                                .append(Component.text(plotID, NamedTextColor.DARK_AQUA))
                                 .append(ChatUtils.success(" accepted.")));
 
                         //Get number of submitted plots.
@@ -288,7 +292,7 @@ public class AcceptGui extends Gui {
                         Network.getInstance().getChat().sendSocketMesage(chatMessage);
 
                         //Get the plot difficulty and player role.
-                        int difficulty = plotSQL.getInt("SELECT difficulty FROM plot_data WHERE id=" + user.review.plot + ";");
+                        int difficulty = plotSQL.getInt("SELECT difficulty FROM plot_data WHERE id=" + plotID + ";");
                         String builderRole = Roles.builderRole(plotOwner).join();
                         LOGGER.info(String.format("Plot owner %s has builder role %s", plotOwner, builderRole));
 
@@ -296,7 +300,7 @@ public class AcceptGui extends Gui {
                         String newRole = getNewRole(difficulty, builderRole);
 
                         //Send a message to the plot owner letting them know their plot has been accepted.
-                        String discordMessage = "Plot " + user.review.plot + " has been accepted.";
+                        String discordMessage = "Plot " + plotID + " has been accepted.";
                         if (newRole != null) {
                             Role role = Roles.getRoles().stream().filter(r -> r.getId().equals(newRole)).findFirst().orElse(null);
                             if (role != null) {
@@ -317,9 +321,14 @@ public class AcceptGui extends Gui {
                         DiscordDirectMessage discordDirectMessage = new DiscordDirectMessage(plotOwner, discordMessage);
                         Network.getInstance().getChat().sendSocketMesage(discordDirectMessage);
 
-                        //Close gui and clear review.
+                        //Close gui and clear review if exists.
                         //Run it sync.
-                        Bukkit.getScheduler().runTask(PlotSystem.getInstance(), () -> user.review.closeReview());
+                        Bukkit.getScheduler().runTask(PlotSystem.getInstance(), () -> {
+                            Review review = user.getReview();
+                            if (review != null) {
+                                review.closeReview();
+                            }
+                        });
                     });
                 }
         );
@@ -332,7 +341,7 @@ public class AcceptGui extends Gui {
 
                     //Go back to the review gui.
                     u.player.closeInventory();
-                    user.review.reviewGui.open(u);
+                    user.getReview().getReviewGui().open(u);
 
                 }
         );

@@ -3,6 +3,7 @@ package net.bteuk.plotsystem.utils;
 import lombok.Setter;
 import net.bteuk.network.sql.PlotSQL;
 import net.bteuk.network.utils.enums.PlotStatus;
+import net.bteuk.network.utils.enums.SubmittedStatus;
 import net.bteuk.plotsystem.PlotSystem;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -30,11 +31,34 @@ public class PlotHelper {
     }
 
     /**
-     * Update the status of a plot, will update any relevant holograms.
-     * @param id        the plot id
-     * @param status    the plot status
+     * Update the submitted status of a plot, will update any relevant holograms.
+     * @param id                the plot id
+     * @param submittedStatus   the submitted status
      */
-    public static boolean updatePlotStatus(int id, PlotStatus status) {
+    public static boolean updateSubmittedStatus(int id, SubmittedStatus submittedStatus) {
+        return updatePlotStatus(id, PlotStatus.SUBMITTED, submittedStatus);
+    }
+
+    /**
+     * Update the status of a plot, will update any relevant holograms.
+     * @param id            the plot id
+     * @param plotStatus    the plot status
+     */
+    public static boolean updatePlotStatus(int id, PlotStatus plotStatus) {
+        SubmittedStatus submittedStatus = null;
+        if (plotStatus == PlotStatus.SUBMITTED) {
+            submittedStatus = SubmittedStatus.SUBMITTED;
+        }
+        return updatePlotStatus(id, plotStatus, submittedStatus);
+    }
+
+    /**
+     * Update the status of a plot, will update any relevant holograms.
+     * @param id                the plot id
+     * @param status            the plot status
+     * @param submittedStatus   the submitted status of the plot, if status is submitted
+     */
+    private static boolean updatePlotStatus(int id, PlotStatus status, SubmittedStatus submittedStatus) {
         if (!plotSQL.update("UPDATE plot_data SET status='" + status.database_value + "' WHERE id=" + id + ";")) {
             return false;
         }
@@ -44,7 +68,7 @@ public class PlotHelper {
             // Update the hologram status.
             List<PlotHologram> hologramsToRemove = new ArrayList<>();
             holograms.stream().filter(hologram -> hologram.getPlot() == id).forEach(hologram -> {
-                hologram.updatePlotStatus(status);
+                hologram.updatePlotStatus(status, submittedStatus);
                 // If the hologram is empty, add it to the list of holograms to remove.
                 if (hologram.isEmpty()) {
                     hologramsToRemove.add(hologram);

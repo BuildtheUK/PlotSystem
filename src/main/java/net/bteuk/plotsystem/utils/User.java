@@ -27,7 +27,9 @@ public class User {
     public int inPlot = 0;
     public int inZone = 0;
 
-    public Review review = null;
+    @Getter
+    @Setter
+    private Review review;
 
     public final GlobalSQL globalSQL;
     public final PlotSQL plotSQL;

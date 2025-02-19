@@ -27,8 +27,8 @@ public class RetractEvent {
                 //Set plot status to claimed.
                 PlotHelper.updatePlotStatus(id, PlotStatus.CLAIMED);
 
-                //Remove submitted plot entry.
-                PlotSystem.getInstance().plotSQL.update("DELETE FROM plot_submissions WHERE id=" + id + ";");
+                // Remove submitted plot entry.
+                PlotSystem.getInstance().plotSQL.update("DELETE FROM plot_submission WHERE plot_id=" + id + ";");
 
                 message = ChatUtils.success("Retracted submission for Plot %s", String.valueOf(id));
 
