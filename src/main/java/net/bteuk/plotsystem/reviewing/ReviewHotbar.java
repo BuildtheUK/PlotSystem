@@ -25,51 +25,39 @@ import java.util.List;
 public class ReviewHotbar implements Listener {
 
     // PlotSystem instance.
-    private final PlotSystem plotSystem;
+    private final PlotSystem instance;
 
     // User.
     private final User user;
 
     // Review gui item.
-    private final ItemStack reviewGuiItem;
+    private final ItemStack reviewGui;
 
     private final List<ItemStack> requiredItems = new ArrayList<>();
 
-    public ReviewHotbar(PlotSystem plotSystem, User user) {
+    public ReviewHotbar(PlotSystem instance, User user) {
 
-        //Set plotsystem.
-        this.plotSystem = plotSystem;
+        // Set plotsystem.
+        this.instance = instance;
 
-        //Set user.
+        // Set user.
         this.user = user;
 
-        //Create review gui item.
-        reviewGuiItem = Utils.createItem(Material.EMERALD, 1, ChatUtils.title("Review Menu"), ChatUtils.line("Click to open review menu."));
+        // Create the review gui item.
+        reviewGui = Utils.createItem(Material.EMERALD, 1, ChatUtils.title("Review Menu"), ChatUtils.line("Click to open review menu."));
+
+        // Create the review book item.
+
         initReviewItems();
 
-        //Register listeners.
-        Bukkit.getServer().getPluginManager().registerEvents(this, plotSystem);
+        // Register listeners.
+        Bukkit.getServer().getPluginManager().registerEvents(this, instance);
 
     }
 
-    @EventHandler
-    public void onClick(InventoryClickEvent e) {
-        e.setCancelled(cancelEvent(e.getWhoClicked(), e.getCurrentItem()) || cancelEvent(e.getWhoClicked(), e.getCursor()));
-
-        // If item is review gui then open the gui.
-        if (reviewGuiItem.equals(e.getCurrentItem())) {
-            Bukkit.getScheduler().runTaskLater(plotSystem, () -> user.getReview().openReviewGui(), 1);
-        }
-    }
-
-    @EventHandler
-    public void interactEvent(PlayerInteractEvent e) {
-        e.setCancelled(cancelEvent(e.getPlayer(), e.getItem()));
-
-        //If item is review gui then open the gui.
-        if (reviewGuiItem.equals(e.getItem())) {
-            Bukkit.getScheduler().runTaskLater(plotSystem, () -> user.getReview().openReviewGui(), 1);
-        }
+    public void setReviewBookSlot(ItemStack itemStack) {
+        requiredItems.set(1, itemStack);
+        user.player.getInventory().setItem(1, itemStack);
     }
 
     public void unregister() {
@@ -84,6 +72,26 @@ public class ReviewHotbar implements Listener {
 
         //Send feedback in the console.
         PlotSystem.LOGGER.info("Reset reviewing hotbar and unregistered listeners");
+    }
+
+    @EventHandler
+    public void onClick(InventoryClickEvent e) {
+        e.setCancelled(cancelEvent(e.getWhoClicked(), e.getCurrentItem()) || cancelEvent(e.getWhoClicked(), e.getCursor()));
+
+        // If item is review gui then open the gui.
+        if (reviewGui.equals(e.getCurrentItem())) {
+            Bukkit.getScheduler().runTaskLater(instance, () -> user.getReview().openReviewGui(), 1);
+        }
+    }
+
+    @EventHandler
+    public void interactEvent(PlayerInteractEvent e) {
+        e.setCancelled(cancelEvent(e.getPlayer(), e.getItem()));
+
+        // If item is review gui then open the gui.
+        if (reviewGui.equals(e.getItem())) {
+            Bukkit.getScheduler().runTaskLater(instance, () -> user.getReview().openReviewGui(), 1);
+        }
     }
 
     @EventHandler
@@ -108,18 +116,17 @@ public class ReviewHotbar implements Listener {
         e.setCancelled(cancelEvent(e.getWhoClicked(), e.getOldCursor()) || cancelEvent(e.getWhoClicked(), e.getCursor()));
     }
 
-    public boolean cancelEvent(HumanEntity humanEntity, ItemStack item) {
+    private boolean cancelEvent(HumanEntity humanEntity, ItemStack item) {
         // Check if player is the reviewer and the item is one of the required items.
         return item != null && (user.player.equals(humanEntity) && requiredItems.stream().anyMatch(item::equals));
     }
 
     private void initReviewItems() {
-        requiredItems.add(reviewGuiItem);
-        requiredItems.add(user.getReview().getFeedbackBook().getEditableBook());
+        requiredItems.add(reviewGui);
 
         // Set the hotbar items in the player's inventory.
-        user.player.getInventory().setItem(0, reviewGuiItem);
-        user.player.getInventory().setItem(1, user.getReview().getFeedbackBook().getEditableBook());
+        user.player.getInventory().setItem(0, reviewGui);
+
         user.player.getInventory().setItem(2, new ItemStack(Material.WOODEN_AXE));
         user.player.getInventory().setItem(3, new ItemStack(Material.ORANGE_CONCRETE));
     }

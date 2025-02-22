@@ -4,11 +4,13 @@ import io.papermc.lib.PaperLib;
 import net.bteuk.network.Network;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.sql.PlotSQL;
+import net.bteuk.network.utils.enums.SubmittedStatus;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
 import net.bteuk.plotsystem.reviewing.Review;
 import net.bteuk.plotsystem.reviewing.ReviewMode;
+import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.User;
 import net.bteuk.plotsystem.utils.plugins.WorldGuardFunctions;
 import net.kyori.adventure.text.Component;
@@ -64,10 +66,10 @@ public class ReviewEvent {
             if (plotSQL.hasRow("SELECT id FROM plot_data WHERE status='submitted';")) {
 
                 //Set the plot to under review.
-                // TODO: Set status of plot submission.
+                PlotHelper.updateSubmittedStatus(id, SubmittedStatus.UNDER_REVIEW);
 
                 //Create new review instance for user.
-                user.setReview(new Review(id, user, ReviewMode.REVIEWING));
+                user.setReview(new Review(PlotSystem.getInstance(), id, user, ReviewMode.REVIEWING));
 
                 //Add the reviewer to the plot.
                 try {

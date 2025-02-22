@@ -21,23 +21,38 @@ public class EditableBook implements Listener {
 	@Getter
 	private final ItemStack editableBook;
 
-	private BookMeta editableBookData;
+	private final BookSignAction bookSignAction;
 
+
+	private BookMeta editableBookData;
 	@Getter
 	private boolean edited;
 	
-	public EditableBook(PlotSystem plotSystem, Player bookEditor, ItemStack editableBook) {
+	public EditableBook(PlotSystem instance, Player bookEditor, ItemStack editableBook, BookSignAction bookSignAction) {
 
 		if (editableBook.getType() != Material.WRITABLE_BOOK) {
 			throw new IllegalArgumentException("ItemStack must be a WRITABLE_BOOK");
 		}
 
 		// Register listener.
-		Bukkit.getServer().getPluginManager().registerEvents(this, plotSystem);
+		Bukkit.getServer().getPluginManager().registerEvents(this, instance);
 
 		this.bookEditor = bookEditor;
 		this.editableBook = editableBook;
+		this.bookSignAction = bookSignAction;
 		editableBookData = (BookMeta) editableBook.getItemMeta();
+	}
+
+	public void unregister() {
+		PlayerEditBookEvent.getHandlerList().unregister(this);
+	}
+
+	public void open() {
+		bookEditor.openBook(editableBookData);
+	}
+
+	public List<Component> getBookPages() {
+		return editableBookData.pages();
 	}
 
 	@EventHandler
@@ -46,11 +61,6 @@ public class EditableBook implements Listener {
 		// Check if the player is the editor.
 		if (!bookEditor.equals(e.getPlayer())) {
 			return;
-		}
-
-		// Don't allow the player to sign the book.
-		if (e.isSigning()) {
-			e.getPlayer().closeInventory();
 		}
 
 		// Check if the player has edited this book.
@@ -62,13 +72,15 @@ public class EditableBook implements Listener {
 
 			edited = true;
 		}
-	}
-	
-	public void unregister() {
-		PlayerEditBookEvent.getHandlerList().unregister(this);
+
+		// Perform the book sign action on signing the book.
+		if (e.isSigning()) {
+			bookSignAction.onBookSign();
+		}
 	}
 
-	public List<Component> getBookPages() {
-		return editableBookData.pages();
+	@FunctionalInterface
+	public interface BookSignAction {
+		void onBookSign();
 	}
 }

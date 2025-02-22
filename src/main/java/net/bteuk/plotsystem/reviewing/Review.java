@@ -36,16 +36,17 @@ public class Review {
     public PreviousFeedbackGui previousFeedbackGui;
 
     @Getter
-    private final EditableBook feedbackBook;
+    private final ReviewBook reviewBook;
 
     /**
      * Constructor to create a new review.
      *
+     * @param instance instance of the plugin
      * @param plotID the plot to review
      * @param user the reviewer
      * @param mode the review mode
      */
-    public Review(int plotID, User user, ReviewMode mode) {
+    public Review(PlotSystem instance, int plotID, User user, ReviewMode mode) {
 
         this.user = user;
         this.plotID = plotID;
@@ -59,13 +60,11 @@ public class Review {
         // Create the review gui.
         reviewGui = new ReviewGui(user, plotID);
 
-        // Create the feedback book.
-        feedbackBook = createFeedbackBook();
-
         // Setup the hotbar for the reviewer.
         hotbarListener = new ReviewHotbar(PlotSystem.getInstance(), user);
 
-
+        // Create the review book.
+        reviewBook = new ReviewBook(instance, user.player, hotbarListener);
 
     }
 
@@ -73,7 +72,7 @@ public class Review {
 
         //Unregister Listeners
         hotbarListener.unregister();
-        feedbackBook.unregister();
+        reviewBook.unregister();
 
         //Remove any existing guis.
         if (reviewGui != null) {
@@ -100,14 +99,5 @@ public class Review {
             networkUser.player.closeInventory();
             reviewGui.open(networkUser);
         }
-    }
-
-    private EditableBook createFeedbackBook() {
-        // Feedback book details.
-        ItemStack reviewBook = new ItemStack(Material.WRITABLE_BOOK);
-        BookMeta reviewBookMeta = (BookMeta) reviewBook.getItemMeta();
-        reviewBookMeta.displayName(ChatUtils.success("Feedback"));
-        reviewBook.setItemMeta(reviewBookMeta);
-        return new EditableBook(PlotSystem.getInstance(), user.player, reviewBook);
     }
 }
