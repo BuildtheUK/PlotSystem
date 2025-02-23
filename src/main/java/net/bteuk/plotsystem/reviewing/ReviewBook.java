@@ -1,6 +1,7 @@
 package net.bteuk.plotsystem.reviewing;
 
 import net.bteuk.network.lib.utils.ChatUtils;
+import net.bteuk.network.sql.PlotSQL;
 import net.bteuk.plotsystem.PlotSystem;
 import net.kyori.adventure.inventory.Book;
 import net.kyori.adventure.text.Component;
@@ -8,6 +9,7 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.HumanEntity;
@@ -22,6 +24,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ReviewBook implements Listener {
@@ -31,6 +34,8 @@ public class ReviewBook implements Listener {
     private static final Component EDIT_FEEDBACK = Component.text("[+]", NamedTextColor.GRAY).hoverEvent(HoverEvent.showText(Component.text("Edit Category Feedback")));
 
     private static final ItemStack REVIEW_BOOK = createReviewBook();
+
+    private final PlotSQL plotSQL = PlotSystem.getInstance().plotSQL;
 
     private final HashMap<ReviewCategory, ReviewSelection> reviewCategorySelection = new LinkedHashMap<>();
 
@@ -63,7 +68,8 @@ public class ReviewBook implements Listener {
             categoryFeedbackBook.unregister();
         }
         // Unregister the listeners for the review book.
-
+        InventoryClickEvent.getHandlerList().unregister(this);
+        PlayerInteractEvent.getHandlerList().unregister(this);
     }
 
     /**
@@ -89,6 +95,9 @@ public class ReviewBook implements Listener {
             reviewCategoryFeedback.put(category, categoryFeedback);
         }
 
+        // Set the book in the inventory of the player.
+        reviewHotbar.setReviewBookSlot(categoryFeedback.getEditableBook());
+
         // Open the book.
         categoryFeedback.open();
     }
@@ -105,6 +114,14 @@ public class ReviewBook implements Listener {
 
         // Open the book again with the updated contents.
         player.openBook(book);
+    }
+
+    public void saveFeedback(int reviewId) {
+        for (Map.Entry<ReviewCategory, ReviewSelection> entry : reviewCategorySelection.entrySet()) {
+            // Check if there is a feedback to save for the category.
+            EditableBook book = reviewCategoryFeedback.get(entry.getKey());
+            saveCategoryFeedback(reviewId, entry.getKey(), entry.getValue(), book);
+        }
     }
 
     @EventHandler
@@ -182,6 +199,39 @@ public class ReviewBook implements Listener {
             open();
         };
     }
+
+    private void saveCategoryFeedback(int reviewId, ReviewCategory category, ReviewSelection selection, EditableBook book) {
+        int bookId = 0;
+        if (book != null && book.isEdited()) {
+            bookId = saveBook(book);
+        }
+        plotSQL.savePlotReviewCategoryFeedback(reviewId, category.name(), selection.name(), bookId);
+    }
+
+    private int saveBook(EditableBook book) {
+
+        // Get the feedback written in the book.
+        List<Component> pages = book.getBookPages();
+
+        // TODO: Don't save the book if there is no content.
+
+        // Create new book id.
+        int bookId = 1 + plotSQL.getInt("SELECT id FROM book_data ORDER BY id DESC;");
+
+        // Iterate through all pages and store them in database.
+        int i = 1;
+
+        for (Component page : pages) {
+            String stringPage = PlainTextComponentSerializer.plainText().serialize(page);
+            if (!stringPage.isBlank()) {
+                plotSQL.update("INSERT INTO book_data(id,page,contents) VALUES(" + bookId + "," + i + ",'" + stringPage.replace("'", "\\'") + "');");
+                i++;
+            }
+        }
+
+        return bookId;
+    }
+
 
     @NotNull
     private static Component getReviewSelectionLine(Map.Entry<ReviewCategory, ReviewSelection> entry) {

@@ -10,6 +10,7 @@ import net.bteuk.network.sql.GlobalSQL;
 import net.bteuk.network.sql.PlotSQL;
 import net.bteuk.plotsystem.commands.ClaimCommand;
 import net.bteuk.plotsystem.commands.PlotSystemCommand;
+import net.bteuk.plotsystem.commands.ReviewCommand;
 import net.bteuk.plotsystem.commands.ToggleOutlines;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
@@ -40,33 +41,33 @@ import java.util.logging.Logger;
 
 public class PlotSystem extends JavaPlugin {
 
-    //Logger
+    // Logger
     public static Logger LOGGER;
 
-    //SQL Classes.
+    // SQL Classes.
     public GlobalSQL globalSQL;
     public PlotSQL plotSQL;
 
     public Timers timers;
 
-    //Items
+    // Items
     public static ItemStack selectionTool;
 
-    //Returns an instance of the plugin.
+    // Returns an instance of the plugin.
     @Getter
     static PlotSystem instance;
     static FileConfiguration config;
 
-    //Returns the User ArrayList.
+    // Returns the User ArrayList.
     @Getter
     private ArrayList<User> users;
 
     public static ItemStack gui;
 
-    //Server Name
+    // Server Name
     public static String SERVER_NAME;
 
-    //Listeners
+    // Listeners
     public ClaimEnter claimEnter;
 
     //Outline manager.
@@ -78,7 +79,7 @@ public class PlotSystem extends JavaPlugin {
 
         LOGGER = getLogger();
 
-        //Config Setup
+        // Config Setup
         PlotSystem.instance = this;
         PlotSystem.config = this.getConfig();
 
@@ -96,15 +97,15 @@ public class PlotSystem extends JavaPlugin {
         globalSQL = Network.getInstance().getGlobalSQL();
         plotSQL = Network.getInstance().getPlotSQL();
 
-        //Set the server name from config.
+        // Set the server name from config.
         SERVER_NAME = config.getString("server_name");
 
-        //If the server is in the database.
+        // If the server is in the database.
         if (globalSQL.hasRow("SELECT name FROM server_data WHERE name='" + SERVER_NAME + "';")) {
 
-            //Add save world if it does not yet exist.
-            //Save world name is in config.
-            //This implies first launch with plugin.
+            // Add save world if it does not yet exist.
+            // Save world name is in config.
+            // This implies first launch with plugin.
             if (!Multiverse.hasWorld(config.getString("save_world"))) {
                 //Create save world.
                 if (!Multiverse.createVoidWorld(config.getString("save_world"))) {
@@ -134,45 +135,45 @@ public class PlotSystem extends JavaPlugin {
         // Initialise the plot helper.
         PlotHelper.init(plotSQL);
 
-        //General Setup
-        //Create list of users.
+        // General Setup
+        // Create list of users.
         users = new ArrayList<>();
 
         //Remove all plots 'under review' on this server.
         plotSQL.update("UPDATE plot_data AS pd INNER JOIN location_data AS ld ON ld.name=pd.location SET pd.status='submitted' WHERE pd.status='reviewing' AND ld.server='" + SERVER_NAME + "';");
 
-        //Create gui item
+        // Create gui item
         gui = new ItemStack(Material.NETHER_STAR);
         ItemMeta meta2 = gui.getItemMeta();
         meta2.displayName(ChatUtils.title("Building Menu"));
         gui.setItemMeta(meta2);
 
-        //Outlines, this will be accessed from other classes, so it must have a getter and setter.
+        // Outlines, this will be accessed from other classes, so it must have a getter and setter.
         outlines = new Outlines();
 
-        //Setup Timers
+        // Setup Timers
         timers = new Timers(this, globalSQL);
         timers.startTimers();
 
-        //Create bungeecord channel
+        // Create bungeecord channel
         this.getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
 
-        //Create selection tool item
+        // Create selection tool item
         selectionTool = new ItemStack(Material.BLAZE_ROD);
         ItemMeta meta = selectionTool.getItemMeta();
         meta.displayName(ChatUtils.success("Selection Tool"));
         selectionTool.setItemMeta(meta);
 
-        //Listeners
+        // Listeners
         new JoinServer(this, globalSQL, plotSQL);
         new QuitServer(this);
         new PlayerInteract(instance, plotSQL);
         new CloseInventory(this);
 
-        //Deals with tracking where players are in relation to plots.
+        // Deals with tracking where players are in relation to plots.
         claimEnter = new ClaimEnter(this, plotSQL, globalSQL);
 
-        //Commands
+        // Commands
         LifecycleEventManager<Plugin> manager = instance.getLifecycleManager();
         manager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             final Commands commands = event.registrar();
@@ -180,6 +181,7 @@ public class PlotSystem extends JavaPlugin {
             commands.register("plotsystem", "Deals will all plotsystem related commands.", List.of("ps"), new PlotSystemCommand(globalSQL, plotSQL));
             commands.register("claim", "Used to claim the plot you're standing in.", List.of("claim"), new ClaimCommand(plotSQL));
             commands.register("toggleoutlines", "Toggles the visibility of outlines.", new ToggleOutlines(this));
+            commands.register("review", "Command for editing selections to reviewing categories during the reviewing process.", new ReviewCommand(this));
 
         });
 
@@ -190,46 +192,38 @@ public class PlotSystem extends JavaPlugin {
 
     public void onDisable() {
 
-        //Remove all players who are in review.
-        //If users is not empty.
+        // Remove all players who are in review.
+        // If users is not empty.
         if (!users.isEmpty()) {
-            for (User u : users) {
+            for (User user : users) {
 
-                //Set tutorialStage in PlayData.
-                //tutorialData.updateValues(u);
+                // If the player is in a review, cancel it.
+                if (user.getReview() != null) {
 
-                //Update the last online time of player.
-                //playerData.updateTime(u.uuid);
-
-                //If the player is in a review, cancel it.
-                if (u.review != null) {
-
-                    PlotSQL plotSQL = PlotSystem.getInstance().plotSQL;
-
-                    //Remove the reviewer from the plot.
+                    // Remove the reviewer from the plot.
                     try {
-                        WorldGuardFunctions.removeMember(String.valueOf(u.review.plot), u.uuid, Bukkit.getWorld(plotSQL.getString("SELECT location FROM plot_data WHERE id=" + u.review.plot + ";")));
+                        WorldGuardFunctions.removeMember(String.valueOf(user.getReview().getPlotID()), user.uuid, Bukkit.getWorld(plotSQL.getString("SELECT location FROM plot_data WHERE id=" + user.getReview().getPlotID() + ";")));
                     } catch (RegionManagerNotFoundException | RegionNotFoundException e) {
                         e.printStackTrace();
                     }
 
-                    //Set status back to 'submitted'.
-                    plotSQL.update("UPDATE plot_data SET status='submitted' WHERE id=" + u.review.plot + ";");
+                    // Set status of the submitted plot back to 'submitted'.
+                    plotSQL.update("UPDATE plot_submission SET status='submitted' WHERE plot_id=" + user.getReview().getPlotID() + ";");
 
-                    //Close review.
-                    u.review.closeReview();
+                    // Close review.
+                    user.getReview().closeReview();
 
                 }
             }
         }
 
-        //Disable bungeecord channel.
+        // Disable bungeecord channel.
         this.getServer().getMessenger().unregisterOutgoingPluginChannel(this);
 
-        LOGGER.info("Disabled PublicBuilds");
+        LOGGER.info("Disabled PlotSystem");
     }
 
-    //Returns the specific user based on Player instance.
+    // Returns the specific user based on Player instance.
     public User getUser(Player p) {
         for (User u : users) {
             if (u.player.equals(p)) {
@@ -239,12 +233,12 @@ public class PlotSystem extends JavaPlugin {
         return null;
     }
 
-    //Add user to list.
+    // Add user to list.
     public void addUser(User u) {
         users.add(u);
     }
 
-    //Get user from player.
+    // Get user from player.
     public void removeUser(User u) {
         users.remove(u);
     }
