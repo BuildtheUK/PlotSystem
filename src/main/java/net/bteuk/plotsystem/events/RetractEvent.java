@@ -1,8 +1,8 @@
 package net.bteuk.plotsystem.events;
 
 import net.bteuk.network.Network;
-import net.bteuk.network.lib.dto.ChatMessage;
 import net.bteuk.network.lib.dto.DirectMessage;
+import net.bteuk.network.lib.dto.PlotMessage;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.utils.enums.PlotStatus;
 import net.bteuk.plotsystem.PlotSystem;
@@ -32,14 +32,9 @@ public class RetractEvent {
 
                 message = ChatUtils.success("Retracted submission for Plot %s", String.valueOf(id));
 
-                //Get number of submitted plots.
-                int plot_count = PlotSystem.getInstance().plotSQL.getInt("SELECT count(id) FROM plot_data WHERE status='submitted';");
-
                 //Send message to reviewers that a plot submission has been retracted.
-                ChatMessage chatMessage = new ChatMessage("reviewer", "server",
-                        ChatUtils.success("A submitted plot has been retracted, there " + (plot_count == 1 ? "is" : "are") + " %s submitted " + (plot_count == 1 ? "plot" : "plots") + ".", String.valueOf(plot_count))
-                );
-                Network.getInstance().getChat().sendSocketMesage(chatMessage);
+                PlotMessage plotMessage = new PlotMessage("A submitted plot has been retracted, there %s %d submitted %s.");
+                Network.getInstance().getChat().sendSocketMesage(plotMessage);
 
             } else {
 

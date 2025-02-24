@@ -1,8 +1,8 @@
 package net.bteuk.plotsystem.events;
 
 import net.bteuk.network.Network;
-import net.bteuk.network.lib.dto.ChatMessage;
 import net.bteuk.network.lib.dto.DirectMessage;
+import net.bteuk.network.lib.dto.PlotMessage;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.utils.Time;
 import net.bteuk.network.utils.enums.PlotStatus;
@@ -63,14 +63,9 @@ public class SubmitEvent {
 
                     message = ChatUtils.success("Submitted plot %s", String.valueOf(plotID));
 
-                    //Get number of submitted plots.
-                    int plot_count = PlotSystem.getInstance().plotSQL.getInt("SELECT count(id) FROM plot_data WHERE status='submitted';");
-
                     //Send message to reviewers that a plot has been submitted.
-                    ChatMessage chatMessage = new ChatMessage("reviewer", "server",
-                            ChatUtils.success("A plot has been submitted, there " + (plot_count == 1 ? "is" : "are") + " %s submitted " + (plot_count == 1 ? "plot" : "plots") + ".", String.valueOf(plot_count))
-                    );
-                    Network.getInstance().getChat().sendSocketMesage(chatMessage);
+                    PlotMessage plotMessage = new PlotMessage("A plot has been submitted, there  %s %d submitted %s.");
+                    Network.getInstance().getChat().sendSocketMesage(plotMessage);
 
                 } else {
 

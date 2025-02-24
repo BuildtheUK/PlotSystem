@@ -2,8 +2,8 @@ package net.bteuk.plotsystem.events;
 
 import com.sk89q.worldedit.math.BlockVector2;
 import net.bteuk.network.Network;
-import net.bteuk.network.lib.dto.ChatMessage;
 import net.bteuk.network.lib.dto.DirectMessage;
+import net.bteuk.network.lib.dto.PlotMessage;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.sql.PlotSQL;
 import net.bteuk.network.utils.enums.PlotStatus;
@@ -126,14 +126,9 @@ public class DeleteEvent {
 
                 // If the plot was submitted, before deleting, send a message to reviewers letting them know it's no longer submitted.
                 if (currentStatus == PlotStatus.SUBMITTED) {
-                    //Get number of submitted plots.
-                    int plot_count = PlotSystem.getInstance().plotSQL.getInt("SELECT count(id) FROM plot_data WHERE status='submitted';");
-
                     //Send message to reviewers that a plot submission has been deleted.
-                    ChatMessage chatMessage = new ChatMessage("reviewer", "server",
-                            ChatUtils.success("A submitted plot has been deleted, there " + (plot_count == 1 ? "is" : "are") + " %s submitted " + (plot_count == 1 ? "plot" : "plots") + ".", String.valueOf(plot_count))
-                    );
-                    Network.getInstance().getChat().sendSocketMesage(chatMessage);
+                    PlotMessage plotMessage = new PlotMessage("A submitted plot has been deleted, there %s %d submitted %s.");
+                    Network.getInstance().getChat().sendSocketMesage(plotMessage);
                 }
             });
         } else if (event[1].equals("zone")) {

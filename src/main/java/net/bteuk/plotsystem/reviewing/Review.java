@@ -5,7 +5,9 @@ import lombok.Getter;
 import net.bteuk.network.Network;
 import net.bteuk.network.lib.dto.ChatMessage;
 import net.bteuk.network.lib.dto.DirectMessage;
+import net.bteuk.network.lib.dto.PlotMessage;
 import net.bteuk.network.lib.utils.ChatUtils;
+import net.bteuk.network.lib.utils.Reviewing;
 import net.bteuk.network.sql.PlotSQL;
 import net.bteuk.network.utils.NetworkUser;
 import net.bteuk.network.utils.Role;
@@ -30,6 +32,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.ArrayList;
 import java.util.List;
 
+import static net.bteuk.network.lib.enums.ChatChannels.REVIEWER;
 import static net.bteuk.plotsystem.PlotSystem.LOGGER;
 
 public class Review {
@@ -97,11 +100,11 @@ public class Review {
 
     public void closeReview() {
 
-        //Unregister Listeners
+        // Unregister Listeners
         hotbarListener.unregister();
         reviewBook.unregister();
 
-        //Remove any existing guis.
+        // Remove any existing guis.
         if (reviewGui != null) {
             reviewGui.delete();
         }
@@ -109,10 +112,10 @@ public class Review {
             previousFeedbackGui.delete();
         }
 
-        //Convert inventory back to how it was pre-review.
+        // Convert inventory back to how it was pre-review.
         user.player.getInventory().setContents(initialInventory);
 
-        //Set review to null.
+        // Set review to null.
         user.setReview(null);
     }
 
@@ -147,11 +150,11 @@ public class Review {
      */
     public void save(boolean accept) {
 
-        // TODO: Determine whether this review requires verification.
-        boolean requiresVerification = false;
+        double verificationChance = Reviewing.getReassessmentChance(plotSQL.getReviewerReputation(user.uuid));
+        boolean requiresVerification = (Math.random() * 10) < verificationChance;
 
         // Create a review entry in the database.
-        int reviewId = PlotSystem.getInstance().plotSQL.createReview(plotID, plotOwner, user.uuid, accept, !requiresVerification);
+        int reviewId = plotSQL.createReview(plotID, plotOwner, user.uuid, accept, !requiresVerification);
 
         // Save feedback for each category.
         reviewBook.saveFeedback(reviewId);
@@ -161,15 +164,34 @@ public class Review {
         } else {
             completeReview(accept);
         }
+
+        sendReviewerMessage(accept);
+
+        // Close gui and clear review if exists.
+        this.closeReview();
+    }
+
+    private void sendReviewerMessage(boolean accept) {
+        if (accept) {
+            user.player.sendMessage(ChatUtils.success("Plot ")
+                    .append(Component.text(plotID, NamedTextColor.DARK_AQUA))
+                    .append(ChatUtils.success(" accepted.")));
+        } else {
+            user.player.sendMessage(ChatUtils.success("Plot ")
+                    .append(Component.text(plotID, NamedTextColor.DARK_AQUA))
+                    .append(ChatUtils.success(" has been denied.")));
+        }
     }
 
     private void setAwaitingVerification() {
         // Update the submitted status of the plot to 'awaiting verification'.
         plotSQL.update("UPDATE plot_submission WHERE status='" + SubmittedStatus.AWAITING_VERIFICATION.database_value + "';");
 
-        // TODO: Send a message to the reviewer.
+        notifyReviewers();
 
-        // TODO: Notify reviewer that a plot is awaiting verification.
+        ChatMessage chatMessage = new ChatMessage(REVIEWER.getChannelName(), "server",
+                ChatUtils.success("A submitted plot has been reviewed is awaiting verification."));
+        Network.getInstance().getChat().sendSocketMesage(chatMessage);
     }
 
     private void completeReview(boolean accept) {
@@ -198,7 +220,7 @@ public class Review {
         // Remove plot members.
         plotSQL.update("DELETE FROM plot_members WHERE id=" + plotID + ";");
 
-        // Set plot to completed.
+        // Set plot to 'completed'.
         PlotHelper.updatePlotStatus(plotID, PlotStatus.COMPLETED);
 
         // Copy the plot to the save world.
@@ -213,17 +235,10 @@ public class Review {
             return;
         }
 
-        user.player.sendMessage(ChatUtils.success("Plot ")
-                .append(Component.text(plotID, NamedTextColor.DARK_AQUA))
-                .append(ChatUtils.success(" accepted.")));
-
         updateRole();
 
         notifyPlotOwnerAccepted();
-        notifyReviewersAccepted();
-
-        // Close gui and clear review if exists.
-        this.closeReview();
+        notifyReviewers();
     }
 
     private void savePlot(World plotWorld) {
@@ -289,11 +304,7 @@ public class Review {
                 .append(ChatUtils.success(" has been denied.")));
 
         notifyPlotOwnerDenied();
-        notifyReviewersDenied();
-
-        // Close review.
-        user.getReview().closeReview();
-
+        notifyReviewers();
     }
 
     private void updateRole() {
@@ -350,28 +361,10 @@ public class Review {
 //        Network.getInstance().getChat().sendSocketMesage(discordDirectMessage);
     }
 
-    private void notifyReviewersAccepted() {
-        // TODO: Notify reviewers individually through the proxy.
-        // Get number of submitted plots.
-        int plot_count = plotSQL.getInt("SELECT count(id) FROM plot_data WHERE status='submitted';");
-
+    private static void notifyReviewers() {
         // Send message to reviewers that a plot has been reviewed.
-        ChatMessage chatMessage = new ChatMessage("reviewer", "server",
-                ChatUtils.success("A plot has been reviewed, there " + (plot_count == 1 ? "is" : "are") + " %s submitted " + (plot_count == 1 ? "plot" : "plots") + ".", String.valueOf(plot_count))
-        );
-        Network.getInstance().getChat().sendSocketMesage(chatMessage);
-    }
-
-    private void notifyReviewersDenied() {
-        // TODO: Notify reviewers individually through the proxy.
-        //Get number of submitted plots.
-        int plot_count = plotSQL.getInt("SELECT count(id) FROM plot_data WHERE status='submitted';");
-
-        // Send message to reviewers that a plot has been reviewed.
-        ChatMessage chatMessage = new ChatMessage("reviewer", "server",
-                ChatUtils.success("A plot has been reviewed, there " + (plot_count == 1 ? "is" : "are") + " %s submitted " + (plot_count == 1 ? "plot" : "plots") + ".", String.valueOf(plot_count))
-        );
-        Network.getInstance().getChat().sendSocketMesage(chatMessage);
+        PlotMessage plotMessage = new PlotMessage("A plot has been reviewed, there %s %d submitted %s.");
+        Network.getInstance().getChat().sendSocketMesage(plotMessage);
     }
 
     private static String getNewRole(int difficulty, String role) {
