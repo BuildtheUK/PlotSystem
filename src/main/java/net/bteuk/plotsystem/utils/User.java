@@ -8,7 +8,7 @@ import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.gui.ClaimGui;
 import net.bteuk.plotsystem.gui.CreatePlotGui;
 import net.bteuk.plotsystem.gui.CreateZoneGui;
-import net.bteuk.plotsystem.reviewing.Review;
+import net.bteuk.plotsystem.reviewing.ReviewAction;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
@@ -29,7 +29,7 @@ public class User {
 
     @Getter
     @Setter
-    private Review review;
+    private ReviewAction review;
 
     public final GlobalSQL globalSQL;
     public final PlotSQL plotSQL;

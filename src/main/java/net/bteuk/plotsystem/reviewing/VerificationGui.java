@@ -11,40 +11,41 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
 
-public class ReviewGui extends Gui {
+public class VerificationGui extends Gui {
 
-    private final Review review;
+    private final Verification verification;
 
     private final GlobalSQL globalSQL;
     private final PlotSQL plotSQL;
+    public VerificationGui(Verification verification) {
+        super(27, Component.text("Verification Menu", NamedTextColor.AQUA, TextDecoration.BOLD));
 
-    public ReviewGui(Review review) {
-        super(27, Component.text("Review Menu", NamedTextColor.AQUA, TextDecoration.BOLD));
-
-        this.review = review;
+        this.verification = verification;
 
         globalSQL = Network.getInstance().getGlobalSQL();
         plotSQL = Network.getInstance().getPlotSQL();
 
         createGui();
+
     }
 
     private void createGui() {
 
         setItem(4, Utils.createItem(Material.BOOK, 1,
                 ChatUtils.title("Plot Info"),
-                ChatUtils.line("Plot ID: " + review.getPlotID()),
-                ChatUtils.line("Plot Owner: " + globalSQL.getString("SELECT name FROM player_data WHERE uuid='" + review.getPlotOwner() + "';"))));
+                ChatUtils.line("Plot ID: " + verification.getPlotID()),
+                ChatUtils.line("Plot Owner: " + globalSQL.getString("SELECT name FROM player_data WHERE uuid='" + verification.getPlotOwner() + "';")),
+                ChatUtils.line("Plot Reviewer: " /*TODO: get plot reviewer*/)));
 
         setItem(12, Utils.createItem(Material.GRASS_BLOCK, 1,
                         ChatUtils.title("Before View"),
                         ChatUtils.line("Teleport to the plot before it was claimed.")),
-                u -> review.toBeforeView());
+                u -> verification.toBeforeView());
 
         setItem(14, Utils.createItem(Material.STONE_BRICKS, 1,
                         ChatUtils.title("Current View"),
                         ChatUtils.line("Teleport to the current view of the plot.")),
-                u -> review.toCurrentView());
+                u -> verification.toCurrentView());
 
         setItem(10, Utils.createItem(Material.LIME_CONCRETE, 1,
                         ChatUtils.title("Accept Plot"),
@@ -53,7 +54,7 @@ public class ReviewGui extends Gui {
                     // TODO: Check if the plot can be accepted with the current feedback settings.
 
                     // Accept the plot.
-                    review.save(true);
+                    verification.save(true);
 
                     u.player.closeInventory();
                 });
@@ -65,14 +66,14 @@ public class ReviewGui extends Gui {
 
                     // TODO: Check if the plot has feedback for all categories that are not sufficient.
 
-                    review.save(false);
+                    verification.save(false);
 
                     u.player.closeInventory();
 
                 });
 
-        // View previous feedback, if it exists.
-        if (plotSQL.hasRow("SELECT id FROM deny_data WHERE uuid='" + review.getPlotOwner() + "' AND id=" + review.getPlotID() + ";")) {
+        //View previous feedback, if it exists.
+        if (plotSQL.hasRow("SELECT id FROM deny_data WHERE uuid='" + verification.getPlotOwner() + "' AND id=" + verification.getPlotID() + ";")) {
 
             setItem(18, Utils.createItem(Material.LECTERN, 1,
                             ChatUtils.title("Previous Feedback"),
@@ -81,15 +82,15 @@ public class ReviewGui extends Gui {
                             ChatUtils.line("while building this plot.")),
                     u -> {
                         // Open the previous feedback menu.
-                        review.openPreviousFeedbackGui();
+                        verification.openPreviousFeedbackGui();
                     });
         }
 
-        // Cancel review.
+        //Cancel review.
         setItem(26, Utils.createItem(Material.BARRIER, 1,
-                        ChatUtils.title("Cancel Review"),
-                        ChatUtils.line("Stop reviewing this plot.")),
-                u -> review.cancel());
+                        ChatUtils.title("Cancel Verification"),
+                        ChatUtils.line("Stop verifying this plot.")),
+                u -> verification.cancel());
     }
 
     public void refresh() {

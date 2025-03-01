@@ -1,14 +1,7 @@
 package net.bteuk.plotsystem.listeners;
 
-import net.bteuk.network.Network;
-import net.bteuk.network.sql.PlotSQL;
-import net.bteuk.network.utils.enums.SubmittedStatus;
 import net.bteuk.plotsystem.PlotSystem;
-import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
-import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
-import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.User;
-import net.bteuk.plotsystem.utils.plugins.WorldGuardFunctions;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -36,27 +29,9 @@ public class QuitServer implements Listener {
             return;
         }
 
-        //If the player is in a review, cancel it.
+        // If the player is in a review, cancel it.
         if (user.getReview() != null) {
-
-            PlotSQL plotSQL = Network.getInstance().getPlotSQL();
-
-            //Remove the reviewer from the plot.
-            try {
-                WorldGuardFunctions.removeMember(String.valueOf(user.getReview().getPlotID()), user.uuid, Bukkit.getWorld(plotSQL.getString("SELECT location FROM plot_data WHERE id=" + user.getReview().getPlotID() + ";")));
-            } catch (RegionManagerNotFoundException | RegionNotFoundException ex) {
-                ex.printStackTrace();
-            }
-
-            // Set submitted status back to the previous status.
-            switch (user.getReview().getMode()) {
-                case REVIEWING -> PlotHelper.updateSubmittedStatus(user.getReview().getPlotID(), SubmittedStatus.SUBMITTED);
-                case VERIFYING -> PlotHelper.updateSubmittedStatus(user.getReview().getPlotID(), SubmittedStatus.AWAITING_VERIFICATION);
-            }
-
-            //Close review.
-            user.getReview().closeReview();
-
+            user.getReview().cancel();
         }
 
         //If the player has a claim or create gui delete it.

@@ -80,7 +80,7 @@ public class ReviewHotbar implements Listener {
 
         // If item is review gui then open the gui.
         if (reviewGui.equals(e.getCurrentItem())) {
-            Bukkit.getScheduler().runTaskLater(instance, () -> user.getReview().openReviewGui(), 1);
+            Bukkit.getScheduler().runTaskLater(instance, () -> user.getReview().openReviewActionGui(), 1);
         }
     }
 
@@ -90,7 +90,7 @@ public class ReviewHotbar implements Listener {
 
         // If item is review gui then open the gui.
         if (reviewGui.equals(e.getItem())) {
-            Bukkit.getScheduler().runTaskLater(instance, () -> user.getReview().openReviewGui(), 1);
+            Bukkit.getScheduler().runTaskLater(instance, () -> user.getReview().openReviewActionGui(), 1);
         }
     }
 

@@ -12,8 +12,6 @@ import net.bteuk.plotsystem.commands.ClaimCommand;
 import net.bteuk.plotsystem.commands.PlotSystemCommand;
 import net.bteuk.plotsystem.commands.ReviewCommand;
 import net.bteuk.plotsystem.commands.ToggleOutlines;
-import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
-import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
 import net.bteuk.plotsystem.listeners.ClaimEnter;
 import net.bteuk.plotsystem.listeners.CloseInventory;
 import net.bteuk.plotsystem.listeners.HologramClickEvent;
@@ -25,8 +23,6 @@ import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.PlotHologram;
 import net.bteuk.plotsystem.utils.User;
 import net.bteuk.plotsystem.utils.plugins.Multiverse;
-import net.bteuk.plotsystem.utils.plugins.WorldGuardFunctions;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -199,20 +195,7 @@ public class PlotSystem extends JavaPlugin {
 
                 // If the player is in a review, cancel it.
                 if (user.getReview() != null) {
-
-                    // Remove the reviewer from the plot.
-                    try {
-                        WorldGuardFunctions.removeMember(String.valueOf(user.getReview().getPlotID()), user.uuid, Bukkit.getWorld(plotSQL.getString("SELECT location FROM plot_data WHERE id=" + user.getReview().getPlotID() + ";")));
-                    } catch (RegionManagerNotFoundException | RegionNotFoundException e) {
-                        e.printStackTrace();
-                    }
-
-                    // Set status of the submitted plot back to 'submitted'.
-                    plotSQL.update("UPDATE plot_submission SET status='submitted' WHERE plot_id=" + user.getReview().getPlotID() + ";");
-
-                    // Close review.
-                    user.getReview().closeReview();
-
+                    user.getReview().cancel();
                 }
             }
         }

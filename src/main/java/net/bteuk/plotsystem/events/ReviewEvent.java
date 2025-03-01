@@ -9,7 +9,6 @@ import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
 import net.bteuk.plotsystem.reviewing.Review;
-import net.bteuk.plotsystem.reviewing.ReviewMode;
 import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.User;
 import net.bteuk.plotsystem.utils.plugins.WorldGuardFunctions;
@@ -49,7 +48,7 @@ public class ReviewEvent {
 
             // If the user is already reviewing, prevent this was happening.
             if (user.getReview() != null) {
-                user.player.sendMessage(ChatUtils.error("You are already reviewing a plot, please complete this one first!"));
+                user.player.sendMessage(ChatUtils.error("You are already reviewing/verifying a plot, please complete this first!"));
                 return;
             }
 
@@ -69,7 +68,7 @@ public class ReviewEvent {
                 PlotHelper.updateSubmittedStatus(id, SubmittedStatus.UNDER_REVIEW);
 
                 //Create new review instance for user.
-                user.setReview(new Review(PlotSystem.getInstance(), id, user, ReviewMode.REVIEWING));
+                user.setReview(new Review(PlotSystem.getInstance(), id, user));
 
                 //Add the reviewer to the plot.
                 try {

@@ -120,7 +120,7 @@ public class PreviousFeedbackGui extends Gui {
                 u -> {
                     //Go back to the review gui.
                     u.player.closeInventory();
-                    user.getReview().getReviewGui().open(u);
+                    user.getReview().getReviewActionGui().open(u);
                 }
         );
     }
