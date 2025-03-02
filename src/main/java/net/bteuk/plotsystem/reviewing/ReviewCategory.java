@@ -4,6 +4,7 @@ import lombok.Getter;
 
 @Getter
 public enum ReviewCategory {
+    GENERAL("General"),
     OUTLINES("Outlines"),
     FEATURES("Features"),
     ROOF("Roof"),

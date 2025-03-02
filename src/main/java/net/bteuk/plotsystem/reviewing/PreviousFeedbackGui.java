@@ -126,9 +126,7 @@ public class PreviousFeedbackGui extends Gui {
     }
 
     public void refresh() {
-
         this.clearGui();
         createGui();
-
     }
 }

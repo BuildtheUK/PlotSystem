@@ -59,25 +59,33 @@ public class PlotHelper {
      * @param submittedStatus   the submitted status of the plot, if status is submitted
      */
     private static boolean updatePlotStatus(int id, PlotStatus status, SubmittedStatus submittedStatus) {
-        if (!plotSQL.update("UPDATE plot_data SET status='" + status.database_value + "' WHERE id=" + id + ";")) {
-            return false;
+        boolean hasChanged = false;
+        if (!plotSQL.hasRow("SELECT 1 FROM plot_data WHERE id=" + id + " AND status='" + status.database_value + "'")) {
+            plotSQL.update("UPDATE plot_data SET status='" + status.database_value + "' WHERE id=" + id + ";");
+            hasChanged = true;
+        }
+        if (!plotSQL.hasRow("SELECT 1 FROM plot_submission WHERE plot_id=" + id + " AND status='" + submittedStatus.database_value + "'")) {
+            plotSQL.hasRow("UPDATE plot_submission SET status='" + submittedStatus.database_value + "' WHERE plot_id=" + id + ";");
+            hasChanged = true;
         }
         // Delay the hologram update until the plot has been completely updated.
-        Bukkit.getScheduler().runTask(PlotSystem.getInstance(), () -> {
+        if (hasChanged) {
+            Bukkit.getScheduler().runTask(PlotSystem.getInstance(), () -> {
 
-            // Update the hologram status.
-            List<PlotHologram> hologramsToRemove = new ArrayList<>();
-            holograms.stream().filter(hologram -> hologram.getPlot() == id).forEach(hologram -> {
-                hologram.updatePlotStatus(status, submittedStatus);
-                // If the hologram is empty, add it to the list of holograms to remove.
-                if (hologram.isEmpty()) {
-                    hologramsToRemove.add(hologram);
-                }
+                // Update the hologram status.
+                List<PlotHologram> hologramsToRemove = new ArrayList<>();
+                holograms.stream().filter(hologram -> hologram.getPlot() == id).forEach(hologram -> {
+                    hologram.updatePlotStatus(status, submittedStatus);
+                    // If the hologram is empty, add it to the list of holograms to remove.
+                    if (hologram.isEmpty()) {
+                        hologramsToRemove.add(hologram);
+                    }
+                });
+                // Remove any empty holograms.
+                holograms.removeAll(hologramsToRemove);
             });
-            // Remove any empty holograms.
-            holograms.removeAll(hologramsToRemove);
-        });
-        return true;
+        }
+        return hasChanged;
     }
 
     public static void addPlotHologram(PlotHologram plotHologram) {
