@@ -22,6 +22,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -70,6 +72,21 @@ public class ReviewBook implements Listener {
         // Unregister the listeners for the review book.
         InventoryClickEvent.getHandlerList().unregister(this);
         PlayerInteractEvent.getHandlerList().unregister(this);
+    }
+
+    public void initReviewBook(Collection<ReviewCategoryFeedback> initialReviewCategoryFeedback) {
+        for (ReviewCategoryFeedback categoryFeedback : initialReviewCategoryFeedback) {
+            reviewCategorySelection.put(categoryFeedback.category(), categoryFeedback.selection());
+            if (categoryFeedback.bookId() != 0) {
+                // Get the pages of the book.
+                ArrayList<String> sPages = plotSQL.getStringList("SELECT contents FROM book_data WHERE id=" + categoryFeedback.bookId() + " ORDER BY page ASC;");
+
+                //Create a list of components from the list of strings.
+                Component[] pages = sPages.stream().map(Component::text).toArray(Component[]::new);
+                reviewCategoryFeedback.put(categoryFeedback.category(), createCategoryFeedback(categoryFeedback.category(), pages));
+            }
+        }
+        updateReviewBook();
     }
 
     /**
@@ -124,6 +141,26 @@ public class ReviewBook implements Listener {
         }
     }
 
+    public Map<ReviewCategory, ReviewCategoryFeedback> updateFeedback(int reviewId, Map<ReviewCategory, ReviewCategoryFeedback> previousReviewFeedback) {
+        Map<ReviewCategory, ReviewCategoryFeedback> updatedReviewFeedback = new HashMap<>();
+        for (ReviewCategoryFeedback previousCategoryFeedback : previousReviewFeedback.values()) {
+            // Check if the feedback has changed.
+            ReviewCategory category = previousCategoryFeedback.category();
+            ReviewSelection newSelection = reviewCategorySelection.get(category);
+            if (isEdited(previousCategoryFeedback, newSelection)) {
+                // Update the feedback.
+                int bookId = previousCategoryFeedback.bookId();
+                EditableBook newBook = reviewCategoryFeedback.get(category);
+                if (isEdited(newBook)) {
+                    bookId = saveBook(newBook);
+                }
+                plotSQL.update("UPDATE plot_category_feedback SET selection='" + newSelection.name() + "', book_id=" + bookId + " WHERE review_id=" + reviewId + " AND category='" + category.name());
+                updatedReviewFeedback.put(category, new ReviewCategoryFeedback(category, newSelection, bookId));
+            }
+        }
+        return updatedReviewFeedback;
+    }
+
     @EventHandler
     public void onClick(InventoryClickEvent e) {
         e.setCancelled(cancelEvent(e.getWhoClicked(), e.getCurrentItem()) || cancelEvent(e.getWhoClicked(), e.getCursor()));
@@ -166,6 +203,11 @@ public class ReviewBook implements Listener {
         reviewCategorySelection.put(ReviewCategory.DETAILS, ReviewSelection.NONE);
     }
 
+    private boolean isEdited(ReviewCategoryFeedback previousCategoryFeedback, ReviewSelection currentSelection) {
+        return !previousCategoryFeedback.selection().equals(currentSelection) ||
+                isEdited(reviewCategoryFeedback.get(previousCategoryFeedback.category()));
+    }
+
     private void updateReviewBook() {
 
         // Title
@@ -181,13 +223,14 @@ public class ReviewBook implements Listener {
         this.book = Book.book(REVIEW_BOOK_TITLE, ChatUtils.line(player.getName()), page);
     }
 
-    private EditableBook createCategoryFeedback(ReviewCategory category) {
+    private EditableBook createCategoryFeedback(ReviewCategory category, Component... pages) {
         ItemStack categoryFeedback = new ItemStack(Material.WRITABLE_BOOK);
         BookMeta categoryFeedbackBookMeta = (BookMeta) categoryFeedback.getItemMeta();
         categoryFeedbackBookMeta.displayName(ChatUtils.title(category.getDisplayName() + " Feedback"));
+        categoryFeedbackBookMeta.addPages(pages);
         categoryFeedback.setItemMeta(categoryFeedbackBookMeta);
 
-        return  new EditableBook(instance, player, categoryFeedback, createCategoryFeedbackSignAction());
+        return new EditableBook(instance, player, categoryFeedback, createCategoryFeedbackSignAction());
     }
 
     private EditableBook.BookSignAction createCategoryFeedbackSignAction() {
@@ -200,9 +243,13 @@ public class ReviewBook implements Listener {
         };
     }
 
+    private boolean isEdited(EditableBook book) {
+        return book != null && book.isEdited();
+    }
+
     private void saveCategoryFeedback(int reviewId, ReviewCategory category, ReviewSelection selection, EditableBook book) {
         int bookId = 0;
-        if (book != null && book.isEdited()) {
+        if (isEdited(book)) {
             bookId = saveBook(book);
         }
         plotSQL.savePlotReviewCategoryFeedback(reviewId, category.name(), selection.name(), bookId);

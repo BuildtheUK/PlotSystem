@@ -5,7 +5,6 @@ import lombok.Getter;
 import net.bteuk.network.Network;
 import net.bteuk.network.gui.Gui;
 import net.bteuk.network.lib.dto.DirectMessage;
-import net.bteuk.network.lib.dto.PlotMessage;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.sql.PlotSQL;
 import net.bteuk.network.utils.NetworkUser;
@@ -88,6 +87,8 @@ public abstract class ReviewAction {
     public abstract void save(boolean accept);
 
     public abstract Gui getReviewActionGui();
+
+    protected abstract void notifyReviewers();
 
     /**
      * Closes the review action.
@@ -186,10 +187,6 @@ public abstract class ReviewAction {
             networkUser.player.closeInventory();
             previousFeedbackGui.open(Network.getInstance().getUser(user.player));
         }
-    }
-
-    public void saveFeedback(int reviewId) {
-        reviewBook.saveFeedback(reviewId);
     }
 
     protected void completeReview(boolean accept) {
@@ -377,12 +374,6 @@ public abstract class ReviewAction {
 //        String discordMessage = "Plot " + plotID + " has been denied.\nFeedback: " + String.join(" ", pages);
 //        DiscordDirectMessage discordDirectMessage = new DiscordDirectMessage(plotOwner, discordMessage);
 //        Network.getInstance().getChat().sendSocketMesage(discordDirectMessage);
-    }
-
-    protected static void notifyReviewers() {
-        // Send message to reviewers that a plot has been reviewed.
-        PlotMessage plotMessage = new PlotMessage("A plot has been reviewed, there %s %d submitted %s.");
-        Network.getInstance().getChat().sendSocketMesage(plotMessage);
     }
 
     private static String getNewRole(int difficulty, String role) {

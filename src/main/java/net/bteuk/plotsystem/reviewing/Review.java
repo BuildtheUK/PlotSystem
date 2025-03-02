@@ -3,6 +3,7 @@ package net.bteuk.plotsystem.reviewing;
 import lombok.Getter;
 import net.bteuk.network.Network;
 import net.bteuk.network.lib.dto.ChatMessage;
+import net.bteuk.network.lib.dto.PlotMessage;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.lib.utils.Reviewing;
 import net.bteuk.network.utils.enums.SubmittedStatus;
@@ -73,6 +74,17 @@ public class Review extends ReviewAction {
 
         // Close gui and clear review if exists.
         this.closeReviewAction();
+    }
+
+    @Override
+    protected void notifyReviewers() {
+        // Send message to reviewers that a plot has been reviewed.
+        PlotMessage plotMessage = new PlotMessage("A plot has been reviewed, there %s %d submitted %s.", false);
+        Network.getInstance().getChat().sendSocketMesage(plotMessage);
+    }
+
+    private void saveFeedback(int reviewId) {
+        getReviewBook().saveFeedback(reviewId);
     }
 
     private void setAwaitingVerification(boolean accept) {
