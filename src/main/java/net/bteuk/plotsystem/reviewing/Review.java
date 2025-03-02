@@ -2,7 +2,6 @@ package net.bteuk.plotsystem.reviewing;
 
 import lombok.Getter;
 import net.bteuk.network.Network;
-import net.bteuk.network.lib.dto.ChatMessage;
 import net.bteuk.network.lib.dto.PlotMessage;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.lib.utils.Reviewing;
@@ -12,8 +11,6 @@ import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.User;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-
-import static net.bteuk.network.lib.enums.ChatChannels.REVIEWER;
 
 @Getter
 public class Review extends ReviewAction {
@@ -93,9 +90,9 @@ public class Review extends ReviewAction {
 
         notifyReviewers();
 
-        ChatMessage chatMessage = new ChatMessage(REVIEWER.getChannelName(), "server",
-                ChatUtils.success("A submitted plot has been reviewed and is awaiting verification."));
-        Network.getInstance().getChat().sendSocketMesage(chatMessage);
+        // Send message to reviewers that a plot has been verified.
+        PlotMessage plotMessage = new PlotMessage("A plot has been reviewed and is awaiting verification, there %s %d %s awaiting verification.", true);
+        Network.getInstance().getChat().sendSocketMesage(plotMessage);
 
         sendReviewerVerificationMessage(accept);
     }

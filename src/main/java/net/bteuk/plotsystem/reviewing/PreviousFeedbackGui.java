@@ -46,7 +46,7 @@ public class PreviousFeedbackGui extends Gui {
         String uuid = plotSQL.getString("SELECT uuid FROM plot_members WHERE id=" + plotID + " AND is_owner=1;");
 
         //Get the number of times the plot was denied for the current plot owner.
-        int deniedCount = plotSQL.getInt("SELECT COUNT(attempt) FROM deny_data WHERE id=" + plotID + " AND uuid='" + uuid + "';");
+        int deniedCount = plotSQL.getInt("SELECT COUNT(attempt) FROM plot_review WHERE plot_id=" + plotID + " AND uuid='" + uuid + "' AND accepted=0;");
 
         //Slot count.
         int slot = 10;
@@ -70,7 +70,7 @@ public class PreviousFeedbackGui extends Gui {
                             ChatUtils.line("Click to view feedback for this submission."),
                             ChatUtils.line("Reviewed by ")
                                     .append(Component.text(globalSQL.getString("SELECT name FROM player_data WHERE uuid='"
-                                            + plotSQL.getString("SELECT reviewer FROM deny_data WHERE id=" + plotID + " AND uuid='" + uuid + "' AND attempt=" + i + ";") + "';"), NamedTextColor.GRAY))),
+                                            + plotSQL.getString("SELECT reviewer FROM plot_review WHERE plot_id=" + plotID + " AND uuid='" + uuid + "' AND attempt=" + i + ";") + "';"), NamedTextColor.GRAY))),
 
                     u ->
 
@@ -79,14 +79,14 @@ public class PreviousFeedbackGui extends Gui {
                         //Close inventory.
                         u.player.closeInventory();
 
-                        //Create book.
+                        //TODO: Create book.
                         Component title = ChatUtils.title("Plot " + plotID + " Attempt " + finalI);
                         Component author = ChatUtils.line(globalSQL.getString("SELECT name FROM player_data WHERE uuid='" +
-                                plotSQL.getString("SELECT reviewer FROM deny_data WHERE id=" + plotID + " AND uuid='" + uuid + "' AND attempt=" + finalI + ";") + "';"));
+                                plotSQL.getString("SELECT reviewer FROM plot_review WHERE plot_id=" + plotID + " AND uuid='" + uuid + "' AND attempt=" + finalI + ";") + "';"));
 
                         //Get pages of the book.
                         ArrayList<String> sPages = plotSQL.getStringList("SELECT contents FROM book_data WHERE id="
-                                + plotSQL.getInt("SELECT book_id FROM deny_data WHERE id=" + plotID + " AND uuid='" + uuid + "' AND attempt=" + finalI + ";") + ";");
+                                + plotSQL.getInt("SELECT book_id FROM plot_review WHERE plot_id=" + plotID + " AND uuid='" + uuid + "' AND attempt=" + finalI + ";") + ";");
 
                         //Create a list of components from the list of strings.
                         ArrayList<Component> pages = new ArrayList<>();
