@@ -64,7 +64,7 @@ public class PlotHelper {
             plotSQL.update("UPDATE plot_data SET status='" + status.database_value + "' WHERE id=" + id + ";");
             hasChanged = true;
         }
-        if (!plotSQL.hasRow("SELECT 1 FROM plot_submission WHERE plot_id=" + id + " AND status='" + submittedStatus.database_value + "'")) {
+        if (submittedStatus != null && !plotSQL.hasRow("SELECT 1 FROM plot_submission WHERE plot_id=" + id + " AND status='" + submittedStatus.database_value + "'")) {
             plotSQL.hasRow("UPDATE plot_submission SET status='" + submittedStatus.database_value + "' WHERE plot_id=" + id + ";");
             hasChanged = true;
         }

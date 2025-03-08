@@ -25,7 +25,6 @@ public class TeleportEvent {
     public static void event(String uuid, String[] event) {
 
         // Events for teleporting
-        // TODO: Allow teleporting to completed plots.
         if (event[1].equals("plot")) {
 
             //Get the user.

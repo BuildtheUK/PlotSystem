@@ -90,15 +90,18 @@ public class PlotHologram {
                             }
                         }
 
-                        case UNDER_REVIEW -> {
+                        case UNDER_REVIEW, UNDER_VERIFICATION -> {
                             User u = PlotSystem.getInstance().getUser(p);
                             if (u != null && u.getReview() != null &&  u.getReview().getPlotID() == plot) {
                                 showType = PlotHologramType.REVIEWER;
                             }
                         }
 
-                        case AWAITING_VERIFICATION -> //TODO
-                        case UNDER_VERIFICATION -> //TODO
+                        case AWAITING_VERIFICATION -> {
+                            if (Network.getInstance().getPlotSQL().canVerifyPlot(plot, p.getUniqueId().toString(), p.hasPermission("group.reviewer"))) {
+                                showType = PlotHologramType.REVIEWER;
+                            }
+                        }
                     }
                 }
             }
@@ -158,9 +161,11 @@ public class PlotHologram {
                         case SUBMITTED ->
                                 holograms.put(PlotHologramType.REVIEWER, createClaimedHologram("&fThis plot is submitted", "SUBMITTED"));
                         case UNDER_REVIEW ->
-                                holograms.put(PlotHologramType.REVIEWER, createClaimedHologram("&fYou are reviewing this plot", "REVIEWER"));
-                        case AWAITING_VERIFICATION -> //TODO
-                        case UNDER_VERIFICATION -> //TODO
+                                holograms.put(PlotHologramType.REVIEWER, createClaimedHologram("&fYou are reviewing this plot", "UNDER_REVIEW"));
+                        case AWAITING_VERIFICATION ->
+                                holograms.put(PlotHologramType.REVIEWER, createClaimedHologram("&fThis plot is awaiting verification", "AWAITING_VERIFICATION"));
+                        case UNDER_VERIFICATION ->
+                                holograms.put(PlotHologramType.REVIEWER, createClaimedHologram("&fYou are verifying this plot", "UNDER_VERIFICATION"));
                     }
                 }
                 // Create a hologram for the remaining players.

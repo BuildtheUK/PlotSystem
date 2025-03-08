@@ -3,9 +3,9 @@ package net.bteuk.plotsystem.commands;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import net.bteuk.network.commands.AbstractCommand;
 import net.bteuk.network.lib.utils.ChatUtils;
+import net.bteuk.network.utils.plotsystem.ReviewCategory;
+import net.bteuk.network.utils.plotsystem.ReviewSelection;
 import net.bteuk.plotsystem.PlotSystem;
-import net.bteuk.plotsystem.reviewing.ReviewCategory;
-import net.bteuk.plotsystem.reviewing.ReviewSelection;
 import net.bteuk.plotsystem.utils.User;
 import org.bukkit.entity.Player;
 

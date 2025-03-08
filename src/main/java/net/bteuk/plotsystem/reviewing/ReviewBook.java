@@ -2,12 +2,16 @@ package net.bteuk.plotsystem.reviewing;
 
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.sql.PlotSQL;
+import net.bteuk.network.utils.plotsystem.ReviewCategory;
+import net.bteuk.network.utils.plotsystem.ReviewCategoryFeedback;
+import net.bteuk.network.utils.plotsystem.ReviewSelection;
 import net.bteuk.plotsystem.PlotSystem;
 import net.kyori.adventure.inventory.Book;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.Style;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
@@ -211,12 +215,14 @@ public class ReviewBook implements Listener {
     private void updateReviewBook() {
 
         // Title
-        Component page = Component.text("Feedback").decorate(TextDecoration.UNDERLINED).decorate(TextDecoration.BOLD);
+        Component page = Component.empty();
+        page = page.append(Component.text("Feedback").decorate(TextDecoration.UNDERLINED).decorate(TextDecoration.BOLD));
         page = page.appendNewline();
 
         // Add a line for each category.
         for (Map.Entry<ReviewCategory, ReviewSelection> entry : reviewCategorySelection.entrySet()) {
             Component line = getReviewSelectionLine(entry);
+            page = page.appendNewline();
             page = page.append(line);
         }
 
@@ -282,10 +288,11 @@ public class ReviewBook implements Listener {
 
     @NotNull
     private static Component getReviewSelectionLine(Map.Entry<ReviewCategory, ReviewSelection> entry) {
-        Component line = Component.text(entry.getKey().getDisplayName());
+        Component line = Component.empty();
+        line = line.append(Component.text(entry.getKey().getDisplayName(), Style.style(TextDecoration.BOLD)));
         line = line.appendSpace();
         for (ReviewSelection selection : ReviewSelection.values()) {
-            Component option = selection.getDisplayComponent();
+            Component option = selection.getAbbreviatedComponent();
             if (selection == entry.getValue()) {
                 option = option.decorate(TextDecoration.BOLD);
             } else {

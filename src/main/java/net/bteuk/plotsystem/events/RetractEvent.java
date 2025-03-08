@@ -33,7 +33,7 @@ public class RetractEvent {
                 message = ChatUtils.success("Retracted submission for Plot %s", String.valueOf(id));
 
                 //Send message to reviewers that a plot submission has been retracted.
-                PlotMessage plotMessage = new PlotMessage("A submitted plot has been retracted, there %s %d submitted %s.");
+                PlotMessage plotMessage = new PlotMessage("A submitted plot has been retracted, there %s %d submitted %s.", false);
                 Network.getInstance().getChat().sendSocketMesage(plotMessage);
 
             } else {
