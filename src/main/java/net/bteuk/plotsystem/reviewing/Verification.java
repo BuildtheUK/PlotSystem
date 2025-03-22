@@ -69,6 +69,11 @@ public class Verification extends ReviewAction {
     }
 
     @Override
+    public boolean canSave(boolean accept) {
+        return true;
+    }
+
+    @Override
     public void cancel() {
         // Set the plot back to 'awaiting verification'.
         PlotHelper.updateSubmittedStatus(plotID, SubmittedStatus.AWAITING_VERIFICATION);
@@ -105,7 +110,7 @@ public class Verification extends ReviewAction {
     @Override
     protected void notifyReviewers() {
         // Send message to reviewers that a plot has been verified.
-        PlotMessage plotMessage = new PlotMessage("A plot has been verified, there %s %d %s awaiting verification.", true);
+        PlotMessage plotMessage = new PlotMessage("A plot has been verified, there %s %s %s awaiting verification.", true);
         Network.getInstance().getChat().sendSocketMesage(plotMessage);
     }
 }

@@ -64,6 +64,8 @@ public class ReviewBook implements Listener {
         initReviewCategorySelection();
         updateReviewBook();
 
+        reviewHotbar.setReviewBookSlot(REVIEW_BOOK);
+
         // Register listeners.
         Bukkit.getServer().getPluginManager().registerEvents(this, instance);
     }
@@ -186,7 +188,7 @@ public class ReviewBook implements Listener {
     }
 
     private static ItemStack createReviewBook() {
-        ItemStack reviewBook = new ItemStack(Material.BOOK);
+        ItemStack reviewBook = new ItemStack(Material.WRITABLE_BOOK);
         BookMeta categoryFeedbackBookMeta = (BookMeta) reviewBook.getItemMeta();
         categoryFeedbackBookMeta.displayName(REVIEW_BOOK_TITLE);
         reviewBook.setItemMeta(categoryFeedbackBookMeta);
@@ -241,11 +243,11 @@ public class ReviewBook implements Listener {
 
     private EditableBook.BookSignAction createCategoryFeedbackSignAction() {
         return () -> {
-            // Reset the hotbar slot to the review book.
-            reviewHotbar.setReviewBookSlot(REVIEW_BOOK);
-
             // Open the review book.
             open();
+
+            // Reset the hotbar slot to the review book.
+            Bukkit.getScheduler().runTaskLater(instance, () -> reviewHotbar.setReviewBookSlot(REVIEW_BOOK), 1L);
         };
     }
 
@@ -266,8 +268,6 @@ public class ReviewBook implements Listener {
         // Get the feedback written in the book.
         List<Component> pages = book.getBookPages();
 
-        // TODO: Don't save the book if there is no content.
-
         // Create new book id.
         int bookId = 1 + plotSQL.getInt("SELECT id FROM book_data ORDER BY id DESC;");
 
@@ -285,12 +285,13 @@ public class ReviewBook implements Listener {
         return bookId;
     }
 
-
     @NotNull
     private static Component getReviewSelectionLine(Map.Entry<ReviewCategory, ReviewSelection> entry) {
         Component line = Component.empty();
         line = line.append(Component.text(entry.getKey().getDisplayName(), Style.style(TextDecoration.BOLD)));
         line = line.appendSpace();
+        line = line.append(EDIT_FEEDBACK.clickEvent(getEditFeedbackClickEvent(entry.getKey())));
+        line = line.appendNewline();
         for (ReviewSelection selection : ReviewSelection.values()) {
             Component option = selection.getAbbreviatedComponent();
             if (selection == entry.getValue()) {
@@ -300,8 +301,6 @@ public class ReviewBook implements Listener {
             }
             line = line.append(option);
         }
-        line = line.appendSpace();
-        line = line.append(EDIT_FEEDBACK.clickEvent(getEditFeedbackClickEvent(entry.getKey())));
         return line;
     }
 

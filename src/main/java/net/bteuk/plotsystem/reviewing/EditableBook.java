@@ -48,7 +48,7 @@ public class EditableBook implements Listener {
 	}
 
 	public void open() {
-		bookEditor.openBook(editableBookData);
+		bookEditor.openBook(editableBook);
 	}
 
 	public List<Component> getBookPages() {
@@ -68,13 +68,13 @@ public class EditableBook implements Listener {
 
 			// Save editing of book.
 			editableBookData = e.getNewBookMeta();
-			editableBook.setItemMeta(editableBookData);
 
 			edited = true;
 		}
 
 		// Perform the book sign action on signing the book.
 		if (e.isSigning()) {
+			e.setCancelled(true);
 			bookSignAction.onBookSign();
 		}
 	}

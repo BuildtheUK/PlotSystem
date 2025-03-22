@@ -65,11 +65,12 @@ public class PlotHelper {
             hasChanged = true;
         }
         if (submittedStatus != null && !plotSQL.hasRow("SELECT 1 FROM plot_submission WHERE plot_id=" + id + " AND status='" + submittedStatus.database_value + "'")) {
-            plotSQL.hasRow("UPDATE plot_submission SET status='" + submittedStatus.database_value + "' WHERE plot_id=" + id + ";");
+            plotSQL.update("UPDATE plot_submission SET status='" + submittedStatus.database_value + "' WHERE plot_id=" + id + ";");
             hasChanged = true;
         }
         // Delay the hologram update until the plot has been completely updated.
         if (hasChanged) {
+            // TODO: Don't run this if the server is closing?
             Bukkit.getScheduler().runTask(PlotSystem.getInstance(), () -> {
 
                 // Update the hologram status.

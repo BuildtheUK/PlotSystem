@@ -86,6 +86,8 @@ public abstract class ReviewAction {
 
     public abstract void save(boolean accept);
 
+    public abstract boolean canSave(boolean accept);
+
     public abstract Gui getReviewActionGui();
 
     protected abstract void notifyReviewers();
@@ -259,11 +261,6 @@ public abstract class ReviewAction {
         } catch (RegionNotFoundException | RegionManagerNotFoundException e) {
             user.player.sendMessage(ChatUtils.error("Unable to remove you from the plot, please notify an admin."));
         }
-
-        //Send feedback.
-        user.player.sendMessage(ChatUtils.success("Plot ")
-                .append(Component.text(plotID, NamedTextColor.DARK_AQUA))
-                .append(ChatUtils.success(" has been denied.")));
 
         notifyPlotOwnerDenied();
         notifyReviewers();

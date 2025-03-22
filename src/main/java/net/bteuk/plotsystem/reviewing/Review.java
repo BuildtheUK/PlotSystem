@@ -73,10 +73,15 @@ public class Review extends ReviewAction {
         this.closeReviewAction();
     }
 
+    public boolean canSave(boolean accept) {
+        // TODO: implement this
+        return true;
+    }
+
     @Override
     protected void notifyReviewers() {
         // Send message to reviewers that a plot has been reviewed.
-        PlotMessage plotMessage = new PlotMessage("A plot has been reviewed, there %s %d submitted %s.", false);
+        PlotMessage plotMessage = new PlotMessage("A plot has been reviewed, there %s %s submitted %s.", false);
         Network.getInstance().getChat().sendSocketMesage(plotMessage);
     }
 
@@ -91,7 +96,7 @@ public class Review extends ReviewAction {
         notifyReviewers();
 
         // Send message to reviewers that a plot has been verified.
-        PlotMessage plotMessage = new PlotMessage("A plot has been reviewed and is awaiting verification, there %s %d %s awaiting verification.", true);
+        PlotMessage plotMessage = new PlotMessage("A plot has been reviewed and is awaiting verification, there %s %s %s awaiting verification.", true);
         Network.getInstance().getChat().sendSocketMesage(plotMessage);
 
         sendReviewerVerificationMessage(accept);

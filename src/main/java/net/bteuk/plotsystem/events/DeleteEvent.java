@@ -127,7 +127,7 @@ public class DeleteEvent {
                 // If the plot was submitted, before deleting, send a message to reviewers letting them know it's no longer submitted.
                 if (currentStatus == PlotStatus.SUBMITTED) {
                     //Send message to reviewers that a plot submission has been deleted.
-                    PlotMessage plotMessage = new PlotMessage("A submitted plot has been deleted, there %s %d submitted %s.", false);
+                    PlotMessage plotMessage = new PlotMessage("A submitted plot has been deleted, there %s %s submitted %s.", false);
                     Network.getInstance().getChat().sendSocketMesage(plotMessage);
                 }
             });

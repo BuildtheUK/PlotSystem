@@ -30,10 +30,13 @@ public class RetractEvent {
                 // Remove submitted plot entry.
                 PlotSystem.getInstance().plotSQL.update("DELETE FROM plot_submission WHERE plot_id=" + id + ";");
 
+                // Update last submit time in playerdata so the player doesn't have a cooldown anymore..
+                PlotSystem.getInstance().globalSQL.update("UPDATE player_data SET last_submit=0 WHERE uuid='" + uuid + "';");
+
                 message = ChatUtils.success("Retracted submission for Plot %s", String.valueOf(id));
 
                 //Send message to reviewers that a plot submission has been retracted.
-                PlotMessage plotMessage = new PlotMessage("A submitted plot has been retracted, there %s %d submitted %s.", false);
+                PlotMessage plotMessage = new PlotMessage("A submitted plot has been retracted, there %s %s submitted %s.", false);
                 Network.getInstance().getChat().sendSocketMesage(plotMessage);
 
             } else {

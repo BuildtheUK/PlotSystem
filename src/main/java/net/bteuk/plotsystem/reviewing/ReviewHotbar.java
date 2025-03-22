@@ -22,6 +22,8 @@ import org.bukkit.inventory.ItemStack;
 import java.util.ArrayList;
 import java.util.List;
 
+import static net.bteuk.plotsystem.PlotSystem.LOGGER;
+
 public class ReviewHotbar implements Listener {
 
     // PlotSystem instance.
@@ -46,8 +48,6 @@ public class ReviewHotbar implements Listener {
         // Create the review gui item.
         reviewGui = Utils.createItem(Material.EMERALD, 1, ChatUtils.title("Review Menu"), ChatUtils.line("Click to open review menu."));
 
-        // Create the review book item.
-
         initReviewItems();
 
         // Register listeners.
@@ -56,7 +56,10 @@ public class ReviewHotbar implements Listener {
     }
 
     public void setReviewBookSlot(ItemStack itemStack) {
-        requiredItems.set(1, itemStack);
+        if (requiredItems.size() > 1) {
+            requiredItems.remove(1);
+        }
+        requiredItems.add(1, itemStack);
         user.player.getInventory().setItem(1, itemStack);
     }
 
@@ -71,7 +74,7 @@ public class ReviewHotbar implements Listener {
         PlayerSwapHandItemsEvent.getHandlerList().unregister(this);
 
         //Send feedback in the console.
-        PlotSystem.LOGGER.info("Reset reviewing hotbar and unregistered listeners");
+        LOGGER.info("Reset reviewing hotbar and unregistered listeners");
     }
 
     @EventHandler

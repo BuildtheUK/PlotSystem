@@ -61,8 +61,11 @@ public abstract class ReviewActionGui extends Gui {
                 u -> {
 
                     // TODO: Check if the plot has feedback for all categories that are not sufficient.
-
-                    reviewAction.save(false);
+                    if (reviewAction.canSave(false)) {
+                        reviewAction.save(false);
+                    } else {
+                        // TODO: Let the review know that they have not filled in all the feedback.
+                    }
 
                     u.player.closeInventory();
 

@@ -131,7 +131,12 @@ public class PlotHologram {
      */
     private void createHologram() {
         // Get the plot status.
-        plotStatus = PlotStatus.fromDatabaseValue(Network.getInstance().getPlotSQL().getString("SELECT status FROM plot_data WHERE id=" + plot));
+        plotStatus = PlotStatus.fromDatabaseValue(Network.getInstance().getPlotSQL().getString("SELECT status FROM plot_data WHERE id=" + plot + ";"));
+
+        // If the status is submitted get the submitted status.
+        if (plotStatus == PlotStatus.SUBMITTED) {
+            submittedStatus = SubmittedStatus.fromDatabaseValue(Network.getInstance().getPlotSQL().getString("SELECT status FROM plot_submission WHERE plot_id=" + plot + ";"));
+        }
 
         // Get the location of the hologram.
         int coordinate = Network.getInstance().getPlotSQL().getInt("SELECT coordinate_id FROM plot_data WHERE id=" + plot);
