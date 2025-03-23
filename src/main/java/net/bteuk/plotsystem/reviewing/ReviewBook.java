@@ -13,7 +13,6 @@ import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.Style;
 import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.HumanEntity;
@@ -24,6 +23,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
+import org.bukkit.inventory.meta.WritableBookMeta;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -85,11 +85,9 @@ public class ReviewBook implements Listener {
             reviewCategorySelection.put(categoryFeedback.category(), categoryFeedback.selection());
             if (categoryFeedback.bookId() != 0) {
                 // Get the pages of the book.
-                ArrayList<String> sPages = plotSQL.getStringList("SELECT contents FROM book_data WHERE id=" + categoryFeedback.bookId() + " ORDER BY page ASC;");
+                ArrayList<String> pages = plotSQL.getStringList("SELECT contents FROM book_data WHERE id=" + categoryFeedback.bookId() + " ORDER BY page ASC;");
 
-                //Create a list of components from the list of strings.
-                Component[] pages = sPages.stream().map(Component::text).toArray(Component[]::new);
-                reviewCategoryFeedback.put(categoryFeedback.category(), createCategoryFeedback(categoryFeedback.category(), pages));
+                reviewCategoryFeedback.put(categoryFeedback.category(), createCategoryFeedback(categoryFeedback.category(), pages.toArray(String[]::new)));
             }
         }
         updateReviewBook();
@@ -103,11 +101,11 @@ public class ReviewBook implements Listener {
     }
 
     /**
-     * Open the feedback book for a specific review category.
+     * Switch to a specific review category.
      *
-     * @param category the category to open the feedback for.
+     * @param category the category to switch to.
      */
-    public void openFeedback(ReviewCategory category) {
+    public void switchToCategory(ReviewCategory category) {
 
         // Check if the EditableBook for this feedback already exists.
         EditableBook categoryFeedback = reviewCategoryFeedback.get(category);
@@ -120,9 +118,6 @@ public class ReviewBook implements Listener {
 
         // Set the book in the inventory of the player.
         reviewHotbar.setReviewBookSlot(categoryFeedback.getEditableBook());
-
-        // Open the book.
-        categoryFeedback.open();
     }
 
     /**
@@ -231,11 +226,11 @@ public class ReviewBook implements Listener {
         this.book = Book.book(REVIEW_BOOK_TITLE, ChatUtils.line(player.getName()), page);
     }
 
-    private EditableBook createCategoryFeedback(ReviewCategory category, Component... pages) {
+    private EditableBook createCategoryFeedback(ReviewCategory category, String... pages) {
         ItemStack categoryFeedback = new ItemStack(Material.WRITABLE_BOOK);
-        BookMeta categoryFeedbackBookMeta = (BookMeta) categoryFeedback.getItemMeta();
+        WritableBookMeta categoryFeedbackBookMeta = (WritableBookMeta) categoryFeedback.getItemMeta();
         categoryFeedbackBookMeta.displayName(ChatUtils.title(category.getDisplayName() + " Feedback"));
-        categoryFeedbackBookMeta.addPages(pages);
+        categoryFeedbackBookMeta.setPages(pages);
         categoryFeedback.setItemMeta(categoryFeedbackBookMeta);
 
         return new EditableBook(instance, player, categoryFeedback, createCategoryFeedbackSignAction());
@@ -266,7 +261,7 @@ public class ReviewBook implements Listener {
     private int saveBook(EditableBook book) {
 
         // Get the feedback written in the book.
-        List<Component> pages = book.getBookPages();
+        List<String> pages = book.getBookPages();
 
         // Create new book id.
         int bookId = 1 + plotSQL.getInt("SELECT id FROM book_data ORDER BY id DESC;");
@@ -274,10 +269,9 @@ public class ReviewBook implements Listener {
         // Iterate through all pages and store them in database.
         int i = 1;
 
-        for (Component page : pages) {
-            String stringPage = PlainTextComponentSerializer.plainText().serialize(page);
-            if (!stringPage.isBlank()) {
-                plotSQL.update("INSERT INTO book_data(id,page,contents) VALUES(" + bookId + "," + i + ",'" + stringPage.replace("'", "\\'") + "');");
+        for (String page : pages) {
+            if (!page.isBlank()) {
+                plotSQL.update("INSERT INTO book_data(id,page,contents) VALUES(" + bookId + "," + i + ",'" + page.replace("'", "\\'") + "');");
                 i++;
             }
         }

@@ -70,6 +70,9 @@ public class PlotSystem extends JavaPlugin {
     @Getter
     private Outlines outlines;
 
+    @Getter
+    private boolean isClosing = false;
+
     @Override
     public void onEnable() {
 
@@ -188,15 +191,14 @@ public class PlotSystem extends JavaPlugin {
 
     public void onDisable() {
 
-        // Remove all players who are in review.
-        // If users is not empty.
-        if (!users.isEmpty()) {
-            for (User user : users) {
+        this.isClosing = true;
 
-                // If the player is in a review, cancel it.
-                if (user.getReview() != null) {
-                    user.getReview().cancel();
-                }
+        // Remove all players who are in review.
+        for (User user : users) {
+
+            // If the player is in a review, cancel it.
+            if (user.getReview() != null) {
+                user.getReview().cancel();
             }
         }
 

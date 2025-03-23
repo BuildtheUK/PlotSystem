@@ -69,8 +69,7 @@ public class PlotHelper {
             hasChanged = true;
         }
         // Delay the hologram update until the plot has been completely updated.
-        if (hasChanged) {
-            // TODO: Don't run this if the server is closing?
+        if (hasChanged && !PlotSystem.getInstance().isClosing()) {
             Bukkit.getScheduler().runTask(PlotSystem.getInstance(), () -> {
 
                 // Update the hologram status.

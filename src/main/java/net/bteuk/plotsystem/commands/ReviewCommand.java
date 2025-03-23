@@ -49,7 +49,7 @@ public class ReviewCommand extends AbstractCommand {
         if (args[0].equals("feedback")) {
             try {
                 ReviewCategory reviewCategory = ReviewCategory.valueOf(args[1]);
-                user.getReview().getReviewBook().openFeedback(reviewCategory);
+                user.getReview().getReviewBook().switchToCategory(reviewCategory);
             } catch (IllegalArgumentException e) {
                 // Do nothing, this command should never be used directly by a player.
             }

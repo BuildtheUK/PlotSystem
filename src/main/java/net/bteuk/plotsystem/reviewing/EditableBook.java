@@ -2,7 +2,7 @@ package net.bteuk.plotsystem.reviewing;
 
 import lombok.Getter;
 import net.bteuk.plotsystem.PlotSystem;
-import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -11,6 +11,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerEditBookEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
+import org.bukkit.inventory.meta.WritableBookMeta;
 
 import java.util.List;
 
@@ -23,8 +24,10 @@ public class EditableBook implements Listener {
 
 	private final BookSignAction bookSignAction;
 
+	private final WritableBookMeta editableBookData;
 
-	private BookMeta editableBookData;
+	private BookMeta previousBookMeta;
+
 	@Getter
 	private boolean edited;
 	
@@ -40,35 +43,33 @@ public class EditableBook implements Listener {
 		this.bookEditor = bookEditor;
 		this.editableBook = editableBook;
 		this.bookSignAction = bookSignAction;
-		editableBookData = (BookMeta) editableBook.getItemMeta();
+		editableBookData = (WritableBookMeta) editableBook.getItemMeta();
+		previousBookMeta = (BookMeta) editableBook.getItemMeta();
 	}
 
 	public void unregister() {
 		PlayerEditBookEvent.getHandlerList().unregister(this);
 	}
 
-	public void open() {
-		bookEditor.openBook(editableBook);
-	}
-
-	public List<Component> getBookPages() {
-		return editableBookData.pages();
+	public List<String> getBookPages() {
+		return editableBookData.getPages();
 	}
 
 	@EventHandler
 	public void onBookEdit(PlayerEditBookEvent e) {
 
-		// Check if the player is the editor.
-		if (!bookEditor.equals(e.getPlayer())) {
+		// Check if the player is the editor and that this book was edited.
+		if (!bookEditor.equals(e.getPlayer()) || !e.getPreviousBookMeta().equals(previousBookMeta)) {
 			return;
 		}
 
 		// Check if the player has edited this book.
-		if (editableBookData.equals(e.getPreviousBookMeta())) {
-
-			// Save editing of book.
-			editableBookData = e.getNewBookMeta();
-
+		if (!e.getNewBookMeta().equals(e.getPreviousBookMeta())) {
+			// Add the pages of the book to the book meta.
+			List<String> pages = e.getNewBookMeta().pages().stream().map(page -> PlainTextComponentSerializer.plainText().serialize(page)).toList();
+			editableBookData.setPages(pages);
+			editableBook.setItemMeta(editableBookData);
+			previousBookMeta = (BookMeta) editableBookData;
 			edited = true;
 		}
 
