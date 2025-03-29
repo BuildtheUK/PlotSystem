@@ -12,6 +12,8 @@ import net.bteuk.plotsystem.utils.User;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
+import static net.bteuk.plotsystem.utils.Config.CONFIG;
+
 @Getter
 public class Review extends ReviewAction {
 
@@ -55,7 +57,10 @@ public class Review extends ReviewAction {
     public void save(boolean accept) {
 
         double verificationChance = Reviewing.getReassessmentChance(plotSQL.getReviewerReputation(user.uuid));
-        boolean requiresVerification = Math.random() < verificationChance;
+        boolean requiresVerification = false;
+        if (CONFIG.getBoolean("reviewer_verification", true) || user.player.hasPermission("group.architect")) {
+            requiresVerification = Math.random() < verificationChance;
+        }
 
         // Create a review entry in the database.
         int reviewId = plotSQL.createReview(plotID, plotOwner, user.uuid, accept, !requiresVerification);
