@@ -79,21 +79,25 @@ public class ReviewHotbar implements Listener {
 
     @EventHandler
     public void onClick(InventoryClickEvent e) {
-        e.setCancelled(cancelEvent(e.getWhoClicked(), e.getCurrentItem()) || cancelEvent(e.getWhoClicked(), e.getCursor()));
+        if (cancelEvent(e.getWhoClicked(), e.getCurrentItem()) || cancelEvent(e.getWhoClicked(), e.getCursor())) {
+            e.setCancelled(true);
 
-        // If item is review gui then open the gui.
-        if (reviewGui.equals(e.getCurrentItem())) {
-            Bukkit.getScheduler().runTaskLater(instance, () -> user.getReview().openReviewActionGui(), 1);
+            // If item is review gui then open the gui.
+            if (reviewGui.equals(e.getCurrentItem())) {
+                Bukkit.getScheduler().runTaskLater(instance, () -> user.getReview().openReviewActionGui(), 1);
+            }
         }
     }
 
     @EventHandler
     public void interactEvent(PlayerInteractEvent e) {
-        e.setCancelled(cancelEvent(e.getPlayer(), e.getItem()));
+        if (cancelEvent(e.getPlayer(), e.getItem())) {
+            e.setCancelled(true);
 
-        // If item is review gui then open the gui.
-        if (reviewGui.equals(e.getItem())) {
-            Bukkit.getScheduler().runTaskLater(instance, () -> user.getReview().openReviewActionGui(), 1);
+            // If item is review gui then open the gui.
+            if (reviewGui.equals(e.getItem())) {
+                Bukkit.getScheduler().runTaskLater(instance, () -> user.getReview().openReviewActionGui(), 1);
+            }
         }
     }
 
@@ -130,7 +134,7 @@ public class ReviewHotbar implements Listener {
         // Set the hotbar items in the player's inventory.
         user.player.getInventory().setItem(0, reviewGui);
 
-        user.player.getInventory().setItem(2, new ItemStack(Material.WOODEN_AXE));
-        user.player.getInventory().setItem(3, new ItemStack(Material.ORANGE_CONCRETE));
+        user.player.getInventory().setItem(2, new ItemStack(Material.ORANGE_CONCRETE));
+        user.player.getInventory().setItem(3, new ItemStack(Material.SPRUCE_SIGN));
     }
 }

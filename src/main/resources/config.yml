@@ -1,4 +1,5 @@
 #Server configuration
+version: 1.7.0
 enabled: false
 server_name: plotserver
 
@@ -8,6 +9,17 @@ save_world: saveWorld
 
 #Maximum number of plots a user can have, this includes submitted plots
 plot_maximum: 21
+
+# Thresholds for each reviewing category and difficulty.
+# The format is "category: easy, normal, hard", where the selection can be "GOOD", "OK" or "POOR"
+# Example: OUTLINES: [ ok, ok, good ]
+categories:
+  OUTLINES: [ OK, GOOD, GOOD ]
+  FEATURES: [ OK, OK, GOOD ]
+  ROOF: [ OK, OK, GOOD ]
+  GARDEN: [ OK, OK, OK ]
+  TEXTURES: [ OK, OK, GOOD ]
+  DETAILS: [ OK, OK, OK ]
 
 #Building points
 #Formula is (size+difficulty)*((accuracy+quality)/2)

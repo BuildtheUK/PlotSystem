@@ -46,30 +46,12 @@ public abstract class ReviewActionGui extends Gui {
         setItem(10, Utils.createItem(Material.LIME_CONCRETE, 1,
                         ChatUtils.title("Accept Plot"),
                         ChatUtils.line("Accept the plot.")),
-                u -> {
-                    // TODO: Check if the plot can be accepted with the current feedback settings.
-
-                    // Accept the plot.
-                    reviewAction.save(true);
-
-                    u.player.closeInventory();
-                });
+                u -> reviewAction.saveIfPossible(true));
 
         setItem(16, Utils.createItem(Material.RED_CONCRETE, 1,
                         ChatUtils.title("Deny Plot"),
                         ChatUtils.line("Deny the plot and return it to the plot owner.")),
-                u -> {
-
-                    // TODO: Check if the plot has feedback for all categories that are not sufficient.
-                    if (reviewAction.canSave(false)) {
-                        reviewAction.save(false);
-                    } else {
-                        // TODO: Let the review know that they have not filled in all the feedback.
-                    }
-
-                    u.player.closeInventory();
-
-                });
+                u -> reviewAction.saveIfPossible(false));
 
         //View previous feedback, if it exists.
         if (plotSQL.hasRow("SELECT 1 FROM plot_review WHERE uuid='" + reviewAction.getPlotOwner() + "' AND plot_id=" + reviewAction.getPlotID() + " AND accepted=0;")) {
@@ -79,10 +61,7 @@ public abstract class ReviewActionGui extends Gui {
                             ChatUtils.line("Click to review previous"),
                             ChatUtils.line("feedback this player received"),
                             ChatUtils.line("while building this plot.")),
-                    u -> {
-                        // Open the previous feedback menu.
-                        reviewAction.openPreviousFeedbackGui();
-                    });
+                    u -> reviewAction.openPreviousFeedbackGui());
         }
 
         //Cancel review.

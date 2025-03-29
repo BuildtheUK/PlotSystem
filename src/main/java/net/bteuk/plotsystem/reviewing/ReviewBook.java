@@ -164,22 +164,35 @@ public class ReviewBook implements Listener {
 
     @EventHandler
     public void onClick(InventoryClickEvent e) {
-        e.setCancelled(cancelEvent(e.getWhoClicked(), e.getCurrentItem()) || cancelEvent(e.getWhoClicked(), e.getCursor()));
+        if (cancelEvent(e.getWhoClicked(), e.getCurrentItem()) || cancelEvent(e.getWhoClicked(), e.getCursor())) {
+            e.setCancelled(true);
 
-        // If item is review gui then open the gui.
-        if (REVIEW_BOOK.equals(e.getCurrentItem())) {
-            Bukkit.getScheduler().runTaskLater(instance, this::open, 1);
+            // If item is review gui then open the gui.
+            if (REVIEW_BOOK.equals(e.getCurrentItem())) {
+                Bukkit.getScheduler().runTaskLater(instance, this::open, 1);
+            }
         }
     }
 
     @EventHandler
     public void interactEvent(PlayerInteractEvent e) {
-        e.setCancelled(cancelEvent(e.getPlayer(), e.getItem()));
+        if (cancelEvent(e.getPlayer(), e.getItem())) {
+            e.setCancelled(true);
 
-        // If item is review gui then open the gui.
-        if (REVIEW_BOOK.equals(e.getItem())) {
-            Bukkit.getScheduler().runTaskLater(instance, this::open, 1);
+            // If item is review gui then open the gui.
+            if (REVIEW_BOOK.equals(e.getItem())) {
+                Bukkit.getScheduler().runTaskLater(instance, this::open, 1);
+            }
         }
+    }
+
+    public ReviewSelection getReviewSelectionForCategory(ReviewCategory category) {
+        return reviewCategorySelection.get(category);
+    }
+
+    public boolean hasFeedback(ReviewCategory category) {
+        EditableBook book = reviewCategoryFeedback.get(category);
+        return book != null && book.isEdited();
     }
 
     private static ItemStack createReviewBook() {
@@ -192,16 +205,15 @@ public class ReviewBook implements Listener {
 
     private boolean cancelEvent(HumanEntity humanEntity, ItemStack item) {
         // Check if player is the reviewer and that the item is the review book.
-        return item != null && (player.equals(humanEntity) && REVIEW_BOOK.equals(item));
+        return player.equals(humanEntity) && REVIEW_BOOK.equals(item);
     }
 
     private void initReviewCategorySelection() {
-        reviewCategorySelection.put(ReviewCategory.OUTLINES, ReviewSelection.NONE);
-        reviewCategorySelection.put(ReviewCategory.FEATURES, ReviewSelection.NONE);
-        reviewCategorySelection.put(ReviewCategory.ROOF, ReviewSelection.NONE);
-        reviewCategorySelection.put(ReviewCategory.GARDEN, ReviewSelection.NONE);
-        reviewCategorySelection.put(ReviewCategory.TEXTURES, ReviewSelection.NONE);
-        reviewCategorySelection.put(ReviewCategory.DETAILS, ReviewSelection.NONE);
+        for (ReviewCategory category : ReviewCategory.values()) {
+            if (category.isRequired()) {
+                reviewCategorySelection.put(category, ReviewSelection.NONE);
+            }
+        }
     }
 
     private boolean isEdited(ReviewCategoryFeedback previousCategoryFeedback, ReviewSelection currentSelection) {

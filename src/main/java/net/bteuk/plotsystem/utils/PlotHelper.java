@@ -1,15 +1,25 @@
 package net.bteuk.plotsystem.utils;
 
 import lombok.Setter;
+import net.bteuk.network.lib.enums.PlotDifficulties;
 import net.bteuk.network.sql.PlotSQL;
 import net.bteuk.network.utils.enums.PlotStatus;
 import net.bteuk.network.utils.enums.SubmittedStatus;
+import net.bteuk.network.utils.plotsystem.ReviewCategory;
+import net.bteuk.network.utils.plotsystem.ReviewSelection;
 import net.bteuk.plotsystem.PlotSystem;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static net.bteuk.plotsystem.PlotSystem.LOGGER;
+import static net.bteuk.plotsystem.utils.Config.CONFIG;
 
 /**
  * Helper class for plot-related actions.
@@ -21,6 +31,8 @@ public class PlotHelper {
 
     @Setter
     private static List<PlotHologram> holograms = new ArrayList<>();
+
+    private static Map<PlotDifficulties, ReviewCategoryThreshold> REVIEW_CATEGORY_THRESHOLDS;
 
     /**
      * Initialise the plot helper by setting the relevant variables.
@@ -98,5 +110,70 @@ public class PlotHelper {
 
     public static void addPlayer(Player player) {
         holograms.forEach(hologram -> hologram.setHologramVisibilityForPlayer(player));
+    }
+
+    public static ReviewSelection getReviewCategoryThreshold(PlotDifficulties difficulty, ReviewCategory category) {
+        return REVIEW_CATEGORY_THRESHOLDS.get(difficulty).getThreshold(category);
+    }
+
+    public static boolean reviewCategoryReachedThreshold(PlotDifficulties difficulty, ReviewCategory category, ReviewSelection selection) {
+        if (REVIEW_CATEGORY_THRESHOLDS == null) {
+            loadReviewCategoryThresholds();
+        }
+        ReviewSelection threshold =  getReviewCategoryThreshold(difficulty, category);
+        return switch (selection) {
+            case GOOD -> threshold == ReviewSelection.GOOD || threshold == ReviewSelection.OK || threshold == ReviewSelection.POOR;
+            case OK -> threshold == ReviewSelection.OK || threshold == ReviewSelection.POOR;
+            case POOR -> threshold == ReviewSelection.POOR;
+            default -> false;
+        };
+    }
+
+    private static void loadReviewCategoryThresholds() {
+        ConfigurationSection categories = CONFIG.getConfigurationSection("categories");
+        REVIEW_CATEGORY_THRESHOLDS = new HashMap<>();
+        for (PlotDifficulties difficulty : PlotDifficulties.values()) {
+            REVIEW_CATEGORY_THRESHOLDS.put(difficulty, new ReviewCategoryThreshold());
+        }
+        if (categories != null) {
+            Set<String> categoryKeys = categories.getKeys(false);
+            categoryKeys.forEach(category -> {
+                ReviewCategory categoryEnum;
+                try {
+                    categoryEnum = ReviewCategory.valueOf(category);
+                } catch (IllegalArgumentException e) {
+                    return;
+                }
+                // Get the threshold for the category from the config.
+                List<?> thresholds = categories.getList(category);
+                if (thresholds == null || thresholds.isEmpty() || thresholds.size() < 3 || !(thresholds.getFirst() instanceof String)) {
+                    return;
+                }
+                for (PlotDifficulties difficulty : PlotDifficulties.values()) {
+                    try {
+                        ReviewSelection selection = ReviewSelection.valueOf((String) thresholds.get(difficulty.ordinal()));
+                        REVIEW_CATEGORY_THRESHOLDS.get(difficulty).addThreshold(categoryEnum, selection);
+                    } catch (IllegalArgumentException e) {
+                            // Continue, just ignore this one.
+                    }
+                }
+            });
+        } else {
+            LOGGER.warning("There is no configuration for the reviewing categories!");
+        }
+
+    }
+
+    private static class ReviewCategoryThreshold {
+
+        private final Map<ReviewCategory, ReviewSelection> categoryThresholds = new HashMap<>();
+
+        private void addThreshold(ReviewCategory category, ReviewSelection threshold) {
+            categoryThresholds.put(category, threshold);
+        }
+
+        private ReviewSelection getThreshold(ReviewCategory category) {
+            return categoryThresholds.get(category);
+        }
     }
 }

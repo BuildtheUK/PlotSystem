@@ -5,6 +5,7 @@ import lombok.Getter;
 import net.bteuk.network.Network;
 import net.bteuk.network.gui.Gui;
 import net.bteuk.network.lib.dto.DirectMessage;
+import net.bteuk.network.lib.enums.PlotDifficulties;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.sql.PlotSQL;
 import net.bteuk.network.utils.NetworkUser;
@@ -12,6 +13,8 @@ import net.bteuk.network.utils.Role;
 import net.bteuk.network.utils.Roles;
 import net.bteuk.network.utils.Time;
 import net.bteuk.network.utils.enums.PlotStatus;
+import net.bteuk.network.utils.plotsystem.ReviewCategory;
+import net.bteuk.network.utils.plotsystem.ReviewSelection;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
@@ -60,6 +63,8 @@ public abstract class ReviewAction {
     @Getter
     private final ReviewBook reviewBook;
 
+    private PlotDifficulties plotDifficulty = PlotDifficulties.EASY;
+
     public ReviewAction(PlotSystem instance, int plotID, User user) {
 
         this.user = user;
@@ -82,15 +87,21 @@ public abstract class ReviewAction {
 
         // Create the review book.
         reviewBook = new ReviewBook(instance, user.player, hotbarListener);
+
+        int plotDifficulty = plotSQL.getInt("SELECT difficulty FROM plot_data WHERE id=" + plotID + ";");
+        for (PlotDifficulties difficulty : PlotDifficulties.values()) {
+            if (difficulty.getValue() == plotDifficulty) {
+                this.plotDifficulty = difficulty;
+                break;
+            }
+        }
     }
-
-    public abstract void save(boolean accept);
-
-    public abstract boolean canSave(boolean accept);
 
     public abstract Gui getReviewActionGui();
 
     protected abstract void notifyReviewers();
+
+    protected abstract void save(boolean accept);
 
     /**
      * Closes the review action.
@@ -189,6 +200,54 @@ public abstract class ReviewAction {
             networkUser.player.closeInventory();
             previousFeedbackGui.open(Network.getInstance().getUser(user.player));
         }
+    }
+
+    public void saveIfPossible(boolean accept) {
+        if (canSave(accept)) {
+            save(accept);
+        }
+        user.player.closeInventory();
+    }
+
+    /**
+     * Indicated whether a plot can be accepted/denied with the current feedback settings.
+     * @param accept whether the check should be done for accepting the plot
+     * @return whether the plot can be accepted/denied
+     */
+    private boolean canSave(boolean accept) {
+
+        boolean canSave = true;
+        boolean thresholdsReached = true;
+        for (ReviewCategory category : ReviewCategory.values()) {
+            if (category.isRequired()) {
+
+                ReviewSelection selection = reviewBook.getReviewSelectionForCategory(category);
+                boolean thresholdReached = selection != null && PlotHelper.reviewCategoryReachedThreshold(plotDifficulty, category, selection);
+                thresholdsReached = thresholdsReached && thresholdReached;
+
+                if (accept && !thresholdReached) {
+                    // Notify the reviewer that the plot can not be accepted with this category selection.
+                    ReviewSelection requiredThreshold = PlotHelper.getReviewCategoryThreshold(plotDifficulty, category);
+                    if (requiredThreshold == null) {
+                        user.player.sendMessage(ChatUtils.error("Category %s does not have a configured threshold, please notify an administrator!", category.getDisplayName()));
+                    } else {
+                        user.player.sendMessage(ChatUtils.error("Category %s selection is not sufficient to accept this plot, must be at least ", category.getDisplayName()).append(requiredThreshold.getDisplayComponent()));
+                    }
+                    canSave = false;
+                } else if (!accept && !thresholdReached && !reviewBook.hasFeedback(category)) {
+                    user.player.sendMessage(ChatUtils.error("Category %s must have written feedback to deny this plot.", category.getDisplayName()));
+                    canSave = false;
+                }
+            }
+        }
+
+        // If all the thresholds have been reached, but the plot is being denied, notify the reviewer.
+        if (!accept && thresholdsReached) {
+            user.player.sendMessage(ChatUtils.error("All required categories are sufficient to accept the plot."));
+            canSave = false;
+        }
+
+        return canSave;
     }
 
     protected void completeReview(boolean accept) {

@@ -113,7 +113,7 @@
         <dependency>
             <groupId>com.github.BTEUK</groupId>
             <artifactId>Network</artifactId>
-            <version>5f4e0e159e</version>
+            <version>1c74a4cb6c</version>
             <scope>provided</scope>
         </dependency>
 

@@ -18,13 +18,15 @@ import net.bteuk.plotsystem.listeners.HologramClickEvent;
 import net.bteuk.plotsystem.listeners.JoinServer;
 import net.bteuk.plotsystem.listeners.PlayerInteract;
 import net.bteuk.plotsystem.listeners.QuitServer;
+import net.bteuk.plotsystem.utils.Config;
 import net.bteuk.plotsystem.utils.Outlines;
 import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.PlotHologram;
 import net.bteuk.plotsystem.utils.User;
 import net.bteuk.plotsystem.utils.plugins.Multiverse;
 import org.bukkit.Material;
-import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.serialization.ConfigurationSerializable;
+import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -34,6 +36,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
+
+import static net.bteuk.plotsystem.utils.Config.CONFIG;
 
 public class PlotSystem extends JavaPlugin {
 
@@ -52,7 +56,6 @@ public class PlotSystem extends JavaPlugin {
     // Returns an instance of the plugin.
     @Getter
     static PlotSystem instance;
-    static FileConfiguration config;
 
     // Returns the User ArrayList.
     @Getter
@@ -80,11 +83,18 @@ public class PlotSystem extends JavaPlugin {
 
         // Config Setup
         PlotSystem.instance = this;
-        PlotSystem.config = this.getConfig();
 
+        //Sets the config if the file has not yet been created.
+        ConfigurationSerialization.registerClass(ConfigurationSerializable.class);
         saveDefaultConfig();
 
-        if (!config.getBoolean("enabled")) {
+        //Update the config to the latest version if it's outdated.
+        //It will copy over any keys that remain the same.
+        //This will also set the status variable to access the config project-wide.
+        Config config = new Config();
+        config.updateConfig();
+
+        if (!CONFIG.getBoolean("enabled")) {
 
             LOGGER.warning("The config must be configured before the plugin can be enabled!");
             LOGGER.warning("Please edit the database values in the config, give the server a unique name and then set 'enabled: true'");
@@ -97,7 +107,7 @@ public class PlotSystem extends JavaPlugin {
         plotSQL = Network.getInstance().getPlotSQL();
 
         // Set the server name from config.
-        SERVER_NAME = config.getString("server_name");
+        SERVER_NAME = CONFIG.getString("server_name");
 
         // If the server is in the database.
         if (globalSQL.hasRow("SELECT name FROM server_data WHERE name='" + SERVER_NAME + "';")) {
@@ -105,9 +115,9 @@ public class PlotSystem extends JavaPlugin {
             // Add save world if it does not yet exist.
             // Save world name is in config.
             // This implies first launch with plugin.
-            if (!Multiverse.hasWorld(config.getString("save_world"))) {
+            if (!Multiverse.hasWorld(CONFIG.getString("save_world"))) {
                 //Create save world.
-                if (!Multiverse.createVoidWorld(config.getString("save_world"))) {
+                if (!Multiverse.createVoidWorld(CONFIG.getString("save_world"))) {
 
                     LOGGER.warning("Failed to create save world!");
 

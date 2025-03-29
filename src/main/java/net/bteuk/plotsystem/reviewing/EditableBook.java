@@ -3,6 +3,7 @@ package net.bteuk.plotsystem.reviewing;
 import lombok.Getter;
 import net.bteuk.plotsystem.PlotSystem;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -53,6 +54,14 @@ public class EditableBook implements Listener {
 
 	public List<String> getBookPages() {
 		return editableBookData.getPages();
+	}
+
+	public boolean hasContent() {
+		boolean hasContent = false;
+		for (String page : getBookPages()) {
+			hasContent = hasContent || StringUtils.isNotBlank(page);
+		}
+		return hasContent;
 	}
 
 	@EventHandler
