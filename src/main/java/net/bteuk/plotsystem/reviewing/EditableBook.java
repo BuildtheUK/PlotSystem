@@ -64,6 +64,21 @@ public class EditableBook implements Listener {
 		return hasContent;
 	}
 
+	public boolean hasChanged(List<String> newPages) {
+		if (newPages.size() != getBookPages().size()) {
+			return true;
+		}
+
+		boolean hasChanged = false;
+		for (int i = 0; i < newPages.size(); i++) {
+			if (getBookPages().get(i).trim().equals(newPages.get(i).trim())) {
+				hasChanged = true;
+			}
+		}
+
+		return hasChanged;
+	}
+
 	@EventHandler
 	public void onBookEdit(PlayerEditBookEvent e) {
 
@@ -73,9 +88,9 @@ public class EditableBook implements Listener {
 		}
 
 		// Check if the player has edited this book.
-		if (!e.getNewBookMeta().equals(e.getPreviousBookMeta())) {
+		List<String> pages = e.getNewBookMeta().pages().stream().map(page -> PlainTextComponentSerializer.plainText().serialize(page)).toList();
+		if (hasChanged(pages)) {
 			// Add the pages of the book to the book meta.
-			List<String> pages = e.getNewBookMeta().pages().stream().map(page -> PlainTextComponentSerializer.plainText().serialize(page)).toList();
 			editableBookData.setPages(pages);
 			editableBook.setItemMeta(editableBookData);
 			previousBookMeta = (BookMeta) editableBookData;

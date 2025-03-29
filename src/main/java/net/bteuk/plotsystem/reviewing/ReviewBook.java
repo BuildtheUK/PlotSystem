@@ -196,6 +196,11 @@ public class ReviewBook implements Listener {
 
     public boolean hasFeedback(ReviewCategory category) {
         EditableBook book = reviewCategoryFeedback.get(category);
+        return book != null && book.hasContent();
+    }
+
+    public boolean isEdited(ReviewCategory category) {
+        EditableBook book = reviewCategoryFeedback.get(category);
         return book != null && book.isEdited();
     }
 

@@ -64,7 +64,7 @@ public abstract class ReviewAction {
     @Getter
     private final ReviewBook reviewBook;
 
-    private PlotDifficulties plotDifficulty = PlotDifficulties.EASY;
+    protected PlotDifficulties plotDifficulty = PlotDifficulties.EASY;
 
     public ReviewAction(PlotSystem instance, int plotID, User user) {
 

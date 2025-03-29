@@ -25,7 +25,15 @@ public class Verification extends ReviewAction {
 
     private final int reviewId;
 
+    private final String reviewer;
+
     private final Map<ReviewCategory, ReviewCategoryFeedback> previousReviewFeedback = new HashMap<>();
+
+    private boolean changedOutcome = false;
+
+    private int changedSelection = 0;
+
+    private int changedFeedback = 0;
 
     /**
      * Constructor to create a new review.
@@ -38,6 +46,7 @@ public class Verification extends ReviewAction {
         super(instance, plotID, user);
 
         this.reviewId = plotSQL.getInt("SELECT id FROM plot_review WHERE plot_id=" + plotID + " AND completed=0;");
+        this.reviewer = plotSQL.getString("SELECT reviewer FROM plot_review WHERE id=" + this.reviewId + ";");
 
         // Get the feedback from the reviewer.
         List<String> reviewCategories = plotSQL.getStringList("SELECT category FROM plot_category_feedback WHERE review_id=" + reviewId + ";");
@@ -59,18 +68,19 @@ public class Verification extends ReviewAction {
     @Override
     public void save(boolean accept) {
 
+        // Determine whether changes have been made in the verification.
+        determineChanges(accept);
+
         updateFeedback(reviewId, previousReviewFeedback);
-        plotSQL.update("UPDATE plot_review SET accepted=" + accept + ", completed=1");
+        plotSQL.update("UPDATE plot_review SET accepted=" + accept + ", completed=1 WHERE id=" + reviewId + ";");
 
         completeReview(accept);
 
+        // Update the reviewer reputation.
+        plotSQL.update("UPDATE reviewers SET reputation=" + getReputationChange() + " WHERE uuid='" + reviewer + "';");
+
         // Close gui and clear review if exists.
         this.closeReviewAction();
-    }
-
-    @Override
-    public boolean canSave(boolean accept) {
-        return true;
     }
 
     @Override
@@ -112,5 +122,39 @@ public class Verification extends ReviewAction {
         // Send message to reviewers that a plot has been verified.
         PlotMessage plotMessage = new PlotMessage("A plot has been verified, there %s %s %s awaiting verification.", true);
         Network.getInstance().getChat().sendSocketMesage(plotMessage);
+    }
+
+    private void determineChanges(boolean accept) {
+        // Determine what changes were made to the review.
+        changedOutcome = accept != plotSQL.getBoolean("SELECT accepted WHERE id=" + reviewId + ";");
+
+        for (ReviewCategory category : ReviewCategory.values()) {
+            if (category.isRequired()) {
+                ReviewCategoryFeedback previousCategoryFeedback = previousReviewFeedback.get(category);
+                if (previousCategoryFeedback == null || previousCategoryFeedback.selection() != getReviewBook().getReviewSelectionForCategory(category)) {
+                    changedSelection++;
+                }
+
+                ReviewSelection selection = getReviewBook().getReviewSelectionForCategory(category);
+                boolean thresholdReached = selection != null && PlotHelper.reviewCategoryReachedThreshold(plotDifficulty, category, selection);
+                if (!accept && getReviewBook().isEdited(category) && !thresholdReached) {
+                    changedFeedback++;
+                }
+            }
+        }
+    }
+
+    private double getReputationChange() {
+        double reputation = plotSQL.getReviewerReputation(reviewer);
+
+        if (changedOutcome) {
+            reputation = Math.min(reputation - 1, reputation * 0.75);
+        } else if (changedSelection > 0) {
+            reputation = Math.min(reputation - 0.1 * changedSelection, reputation * (1 - 0.1 * changedSelection));
+        } else if (changedFeedback == 0) {
+            reputation += 1;
+        }
+
+        return reputation;
     }
 }

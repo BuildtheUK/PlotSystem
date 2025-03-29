@@ -55,7 +55,7 @@ public class Review extends ReviewAction {
     public void save(boolean accept) {
 
         double verificationChance = Reviewing.getReassessmentChance(plotSQL.getReviewerReputation(user.uuid));
-        boolean requiresVerification = (Math.random() * 10) < verificationChance;
+        boolean requiresVerification = Math.random() < verificationChance;
 
         // Create a review entry in the database.
         int reviewId = plotSQL.createReview(plotID, plotOwner, user.uuid, accept, !requiresVerification);
@@ -71,11 +71,6 @@ public class Review extends ReviewAction {
 
         // Close gui and clear review if exists.
         this.closeReviewAction();
-    }
-
-    public boolean canSave(boolean accept) {
-        // TODO: implement this
-        return true;
     }
 
     @Override
