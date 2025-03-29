@@ -7,7 +7,7 @@ import java.io.File;
 import java.util.Map;
 import java.util.Objects;
 
-import static net.bteuk.network.utils.Constants.LOGGER;
+import static net.bteuk.plotsystem.PlotSystem.LOGGER;
 
 public class Config {
 

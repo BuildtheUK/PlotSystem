@@ -190,6 +190,10 @@ public class ReviewBook implements Listener {
         return reviewCategorySelection.get(category);
     }
 
+    public List<String> getFeedbackForCategory(ReviewCategory category) {
+        return reviewCategoryFeedback.get(category).getBookPages();
+    }
+
     public boolean hasFeedback(ReviewCategory category) {
         EditableBook book = reviewCategoryFeedback.get(category);
         return book != null && book.isEdited();

@@ -5,6 +5,7 @@ import lombok.Getter;
 import net.bteuk.network.Network;
 import net.bteuk.network.gui.Gui;
 import net.bteuk.network.lib.dto.DirectMessage;
+import net.bteuk.network.lib.dto.DiscordDirectMessage;
 import net.bteuk.network.lib.enums.PlotDifficulties;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.sql.PlotSQL;
@@ -300,10 +301,10 @@ public abstract class ReviewAction {
             user.player.sendMessage(ChatUtils.error("An error occurred while removing the plot, please contact an admin."));
         }
 
-        updateRole();
-
         notifyPlotOwnerAccepted();
         notifyReviewers();
+
+        updateRole();
     }
 
     private void denyPlot(World plotWorld) {
@@ -375,12 +376,11 @@ public abstract class ReviewAction {
         //Calculate the role the player will be promoted to, if any.
         String newRole = getNewRole(difficulty, builderRole);
 
-        //Send a message to the plot owner letting them know their plot has been accepted.
-        String discordMessage = "Plot " + plotID + " has been accepted.";
         if (newRole != null) {
             Role role = Roles.getRoles().stream().filter(r -> r.getId().equals(newRole)).findFirst().orElse(null);
             if (role != null) {
-                discordMessage += "\nYou have been promoted to **" + role.getName() + "**";
+                DiscordDirectMessage discordDirectMessage = new DiscordDirectMessage(plotOwner, "You have been promoted to **" + role.getName() + "**");
+                Network.getInstance().getChat().sendSocketMesage(discordDirectMessage);
             } else {
                 LOGGER.warning(String.format("Role %s could not be found, check the Network roles.yml", newRole));
             }
@@ -411,12 +411,9 @@ public abstract class ReviewAction {
                 ChatUtils.success("Plot %s has been accepted.", String.valueOf(plotID)), true);
         Network.getInstance().getChat().sendSocketMesage(directMessage);
 
-        // TODO: Format the discord message.
-//        if (!pages.isEmpty()) {
-//            discordMessage += "\nFeedback: " + String.join(" ", pages);
-//        }
-//        DiscordDirectMessage discordDirectMessage = new DiscordDirectMessage(plotOwner, discordMessage);
-//        Network.getInstance().getChat().sendSocketMesage(discordDirectMessage);
+        StringBuilder discordMessage = new StringBuilder("Plot " + plotID + " has been accepted");
+        addFeedbackToDiscordMessage(discordMessage);
+        sendDiscordMessage(discordMessage);
     }
 
     private void notifyPlotOwnerDenied() {
@@ -426,10 +423,26 @@ public abstract class ReviewAction {
                                 .clickEvent(ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, String.format("/plot feedback %d", plotID)))), true);
         Network.getInstance().getChat().sendSocketMesage(directMessage);
 
-        // TODO: Format the discord message.
-//        String discordMessage = "Plot " + plotID + " has been denied.\nFeedback: " + String.join(" ", pages);
-//        DiscordDirectMessage discordDirectMessage = new DiscordDirectMessage(plotOwner, discordMessage);
-//        Network.getInstance().getChat().sendSocketMesage(discordDirectMessage);
+        StringBuilder discordMessage = new StringBuilder("Plot " + plotID + " has been denied.");
+        addFeedbackToDiscordMessage(discordMessage);
+        sendDiscordMessage(discordMessage);
+    }
+
+    private void addFeedbackToDiscordMessage(StringBuilder builder) {
+        for (ReviewCategory category : ReviewCategory.values()) {
+            if (reviewBook.hasFeedback(category)) {
+                builder.append("\n\n__**").append(category.getDisplayName()).append(" feedback:**__");
+                builder.append("\n").append(String.join(" ", reviewBook.getFeedbackForCategory(category)));
+            }
+        }
+    }
+
+    private void sendDiscordMessage(StringBuilder builder) {
+        // Split the feedback per 2000 characters if necessary.
+        for (int i = 0; i < builder.length(); i += 2000) {
+            DiscordDirectMessage discordDirectMessage = new DiscordDirectMessage(plotOwner, builder.substring(i, Math.min(i + 2000, builder.length())));
+            Network.getInstance().getChat().sendSocketMesage(discordDirectMessage);
+        }
     }
 
     private static String getNewRole(int difficulty, String role) {
