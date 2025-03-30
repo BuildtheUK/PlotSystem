@@ -132,7 +132,7 @@ public class Verification extends ReviewAction {
                 }
 
                 ReviewSelection selection = getReviewBook().getReviewSelectionForCategory(category);
-                boolean thresholdReached = selection != null && PlotHelper.reviewCategoryReachedThreshold(plotDifficulty, category, selection);
+                boolean thresholdReached = selection != null && PlotHelper.reviewCategoryThresholdReached(plotDifficulty, category, selection);
                 if (!accept && getReviewBook().isEdited(category) && !thresholdReached) {
                     changedFeedback++;
                 }

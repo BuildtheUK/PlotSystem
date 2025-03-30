@@ -223,7 +223,7 @@ public abstract class ReviewAction {
             if (category.isRequired()) {
 
                 ReviewSelection selection = reviewBook.getReviewSelectionForCategory(category);
-                boolean thresholdReached = selection != null && PlotHelper.reviewCategoryReachedThreshold(plotDifficulty, category, selection);
+                boolean thresholdReached = selection != null && PlotHelper.reviewCategoryThresholdReached(plotDifficulty, category, selection);
                 thresholdsReached = thresholdsReached && thresholdReached;
 
                 if (accept && !thresholdReached) {

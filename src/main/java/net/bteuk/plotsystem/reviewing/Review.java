@@ -7,8 +7,11 @@ import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.lib.utils.Reviewing;
 import net.bteuk.network.utils.enums.SubmittedStatus;
 import net.bteuk.plotsystem.PlotSystem;
+import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
+import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
 import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.User;
+import net.bteuk.plotsystem.utils.plugins.WorldGuardFunctions;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
@@ -24,8 +27,8 @@ public class Review extends ReviewAction {
      * Constructor to create a new review.
      *
      * @param instance instance of the plugin
-     * @param plotID the plot to review
-     * @param user the reviewer
+     * @param plotID   the plot to review
+     * @param user     the reviewer
      */
     public Review(PlotSystem instance, int plotID, User user) {
         super(instance, plotID, user);
@@ -90,8 +93,15 @@ public class Review extends ReviewAction {
     }
 
     private void setAwaitingVerification(boolean accept) {
+        // Remove the reviewer from the plot.
+        try {
+            WorldGuardFunctions.removeMember(String.valueOf(plotID), user.player.getUniqueId().toString(), plotWorld);
+        } catch (RegionNotFoundException | RegionManagerNotFoundException e) {
+            user.player.sendMessage(ChatUtils.error("Unable to remove you from the plot, please notify an admin."));
+        }
+
         // Update the submitted status of the plot to 'awaiting verification'.
-        plotSQL.update("UPDATE plot_submission WHERE status='" + SubmittedStatus.AWAITING_VERIFICATION.database_value + "';");
+        plotSQL.update("UPDATE plot_submission SET status='" + SubmittedStatus.AWAITING_VERIFICATION.database_value + "' WHERE plot_id=" + plotID + ";");
 
         notifyReviewers();
 

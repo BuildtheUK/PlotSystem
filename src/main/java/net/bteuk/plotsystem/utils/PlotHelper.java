@@ -116,7 +116,7 @@ public class PlotHelper {
         return REVIEW_CATEGORY_THRESHOLDS.get(difficulty).getThreshold(category);
     }
 
-    public static boolean reviewCategoryReachedThreshold(PlotDifficulties difficulty, ReviewCategory category, ReviewSelection selection) {
+    public static boolean reviewCategoryThresholdReached(PlotDifficulties difficulty, ReviewCategory category, ReviewSelection selection) {
         if (REVIEW_CATEGORY_THRESHOLDS == null) {
             loadReviewCategoryThresholds();
         }
