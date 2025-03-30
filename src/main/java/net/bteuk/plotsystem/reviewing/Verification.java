@@ -39,8 +39,8 @@ public class Verification extends ReviewAction {
      * Constructor to create a new review.
      *
      * @param instance instance of the plugin
-     * @param plotID the plot to review
-     * @param user the reviewer
+     * @param plotID   the plot to review
+     * @param user     the reviewer
      */
     public Verification(PlotSystem instance, int plotID, User user) {
         super(instance, plotID, user);
@@ -71,7 +71,8 @@ public class Verification extends ReviewAction {
         // Determine whether changes have been made in the verification.
         determineChanges(accept);
 
-        updateFeedback(reviewId, previousReviewFeedback);
+        int verificationId = plotSQL.createVerification(reviewId, user.uuid, changedOutcome != accept, accept);
+        updateFeedback(verificationId, reviewId, previousReviewFeedback);
         plotSQL.update("UPDATE plot_review SET accepted=" + accept + ", completed=1 WHERE id=" + reviewId + ";");
 
         completeReview(accept);
@@ -95,12 +96,7 @@ public class Verification extends ReviewAction {
         super.cancel();
     }
 
-    /**
-     * Update the review feedback and return a hashmap of the altered feedback.
-     *
-     * @param previousReviewFeedback the previous review feedback
-     */
-    private void updateFeedback(int reviewId, Map<ReviewCategory, ReviewCategoryFeedback> previousReviewFeedback) {
+    private void updateFeedback(int verificationId, int reviewId, Map<ReviewCategory, ReviewCategoryFeedback> previousReviewFeedback) {
         Map<ReviewCategory, ReviewCategoryFeedback> updatedReviewFeedback = getReviewBook().updateFeedback(reviewId, previousReviewFeedback);
 
         // Store the plot_verification_feedback for each category.
@@ -110,7 +106,7 @@ public class Verification extends ReviewAction {
 
             // Only store the category if there is updated feedback.
             if (updatedCategoryFeedback != null) {
-                plotSQL.savePlotVerificationFeedback(reviewId, categoryFeedback.category().name(), user.uuid,
+                plotSQL.savePlotVerificationCategory(verificationId, categoryFeedback.category().name(),
                         categoryFeedback.selection().name(), updatedCategoryFeedback.selection().name(),
                         categoryFeedback.bookId(), updatedCategoryFeedback.bookId());
             }
@@ -126,7 +122,7 @@ public class Verification extends ReviewAction {
 
     private void determineChanges(boolean accept) {
         // Determine what changes were made to the review.
-        changedOutcome = accept != plotSQL.getBoolean("SELECT accepted WHERE id=" + reviewId + ";");
+        changedOutcome = accept != plotSQL.getBoolean("SELECT accepted FROM plot_review WHERE id=" + reviewId + ";");
 
         for (ReviewCategory category : ReviewCategory.values()) {
             if (category.isRequired()) {
