@@ -151,6 +151,7 @@ public class Verification extends ReviewAction {
             reputation += 1;
         }
 
-        return reputation;
+        // Return the new reputation, the minimum value is 0.
+        return Math.max(reputation, 0);
     }
 }

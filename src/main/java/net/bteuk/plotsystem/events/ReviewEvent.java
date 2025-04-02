@@ -62,7 +62,7 @@ public class ReviewEvent {
             World world = Bukkit.getWorld(plotSQL.getString("SELECT location FROM plot_data WHERE id=" + id + ";"));
 
             // Check if the plot is still submitted.
-            if (plotSQL.hasRow("SELECT id FROM plot_data WHERE status='submitted';")) {
+            if (plotSQL.hasRow("SELECT 1 FROM plot_submission WHERE plot_id=" + id + " AND status='" + SubmittedStatus.SUBMITTED.database_value + "';")) {
 
                 //Set the plot to under review.
                 PlotHelper.updateSubmittedStatus(id, SubmittedStatus.UNDER_REVIEW);

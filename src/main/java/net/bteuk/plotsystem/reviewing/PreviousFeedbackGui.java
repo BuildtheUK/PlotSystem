@@ -44,7 +44,7 @@ public class PreviousFeedbackGui extends Gui {
         String uuid = plotSQL.getString("SELECT uuid FROM plot_members WHERE id=" + plotID + " AND is_owner=1;");
 
         //Get the number of times the plot was denied for the current plot owner.
-        int deniedCount = plotSQL.getInt("SELECT COUNT(attempt) FROM plot_review WHERE plot_id=" + plotID + " AND uuid='" + uuid + "' AND accepted=0;");
+        int deniedCount = plotSQL.getInt("SELECT COUNT(attempt) FROM plot_review WHERE plot_id=" + plotID + " AND uuid='" + uuid + "' AND completed=1 AND accepted=0;");
 
         //Slot count.
         int slot = 10;

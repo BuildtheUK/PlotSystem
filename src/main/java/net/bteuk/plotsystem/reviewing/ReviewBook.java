@@ -33,6 +33,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static net.bteuk.plotsystem.PlotSystem.LOGGER;
+
 public class ReviewBook implements Listener {
 
     private static final Component REVIEW_BOOK_TITLE = ChatUtils.title("Review Book");
@@ -154,8 +156,9 @@ public class ReviewBook implements Listener {
                 EditableBook newBook = reviewCategoryFeedback.get(category);
                 if (isEdited(newBook)) {
                     bookId = saveBook(newBook);
+                    LOGGER.info("Book for category " + category + " has been altered, new book id = " + bookId);
                 }
-                plotSQL.update("UPDATE plot_category_feedback SET selection='" + newSelection.name() + "', book_id=" + bookId + " WHERE review_id=" + reviewId + " AND category='" + category.name());
+                plotSQL.update("UPDATE plot_category_feedback SET selection='" + newSelection.name() + "', book_id=" + bookId + " WHERE review_id=" + reviewId + " AND category='" + category.name() + "';");
                 updatedReviewFeedback.put(category, new ReviewCategoryFeedback(category, newSelection, bookId));
             }
         }
@@ -254,10 +257,10 @@ public class ReviewBook implements Listener {
         categoryFeedbackBookMeta.setPages(pages);
         categoryFeedback.setItemMeta(categoryFeedbackBookMeta);
 
-        return new EditableBook(instance, player, categoryFeedback, createCategoryFeedbackSignAction());
+        return new EditableBook(instance, player, categoryFeedback, createCategoryFeedbackResetAction());
     }
 
-    private EditableBook.BookSignAction createCategoryFeedbackSignAction() {
+    private EditableBook.BookResetAction createCategoryFeedbackResetAction() {
         return () -> {
             // Open the review book.
             open();

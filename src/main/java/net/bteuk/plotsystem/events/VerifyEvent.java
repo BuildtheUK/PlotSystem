@@ -62,7 +62,7 @@ public class VerifyEvent {
             World world = Bukkit.getWorld(plotSQL.getString("SELECT location FROM plot_data WHERE id=" + id + ";"));
 
             // Check if the plot is still awaiting verification.
-            if (plotSQL.hasRow("SELECT 1 FROM plot_data WHERE status='" + SubmittedStatus.AWAITING_VERIFICATION.database_value + "';")) {
+            if (plotSQL.hasRow("SELECT 1 FROM plot_submission WHERE plot_id=" + id + " AND status='" + SubmittedStatus.AWAITING_VERIFICATION.database_value + "';")) {
 
                 // Set the plot to under review.
                 PlotHelper.updateSubmittedStatus(id, SubmittedStatus.UNDER_VERIFICATION);
