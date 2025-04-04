@@ -61,7 +61,7 @@ public class Review extends ReviewAction {
 
         double verificationChance = Reviewing.getReassessmentChance(plotSQL.getReviewerReputation(user.uuid));
         boolean requiresVerification = false;
-        if (CONFIG.getBoolean("reviewer_verification", true) || user.player.hasPermission("group.architect")) {
+        if (CONFIG.getBoolean("reviewer_verification", true) || !user.player.hasPermission("group.reviewer")) {
             requiresVerification = Math.random() < verificationChance;
         }
 

@@ -33,8 +33,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static net.bteuk.plotsystem.PlotSystem.LOGGER;
-
 public class ReviewBook implements Listener {
 
     private static final Component REVIEW_BOOK_TITLE = ChatUtils.title("Review Book");
@@ -138,7 +136,7 @@ public class ReviewBook implements Listener {
 
     public void saveFeedback(int reviewId) {
         for (Map.Entry<ReviewCategory, ReviewSelection> entry : reviewCategorySelection.entrySet()) {
-            // Check if there is a feedback to save for the category.
+            // Check if there is feedback to save for the category.
             EditableBook book = reviewCategoryFeedback.get(entry.getKey());
             saveCategoryFeedback(reviewId, entry.getKey(), entry.getValue(), book);
         }
@@ -156,7 +154,6 @@ public class ReviewBook implements Listener {
                 EditableBook newBook = reviewCategoryFeedback.get(category);
                 if (isEdited(newBook)) {
                     bookId = saveBook(newBook);
-                    LOGGER.info("Book for category " + category + " has been altered, new book id = " + bookId);
                 }
                 plotSQL.update("UPDATE plot_category_feedback SET selection='" + newSelection.name() + "', book_id=" + bookId + " WHERE review_id=" + reviewId + " AND category='" + category.name() + "';");
                 updatedReviewFeedback.put(category, new ReviewCategoryFeedback(category, newSelection, bookId));
@@ -226,6 +223,8 @@ public class ReviewBook implements Listener {
                 reviewCategorySelection.put(category, ReviewSelection.NONE);
             }
         }
+        // Also init the general category.
+        reviewCategorySelection.put(ReviewCategory.GENERAL, ReviewSelection.NONE);
     }
 
     private boolean isEdited(ReviewCategoryFeedback previousCategoryFeedback, ReviewSelection currentSelection) {
@@ -238,6 +237,10 @@ public class ReviewBook implements Listener {
         // Title
         Component page = Component.empty();
         page = page.append(Component.text("Feedback").decorate(TextDecoration.UNDERLINED).decorate(TextDecoration.BOLD));
+
+        // Add the general feedback category.
+        page = page.appendSpace();
+        page = page.append(EDIT_FEEDBACK.clickEvent(getEditFeedbackClickEvent(ReviewCategory.GENERAL)));
         page = page.appendNewline();
 
         // Add a line for each category.
@@ -279,7 +282,11 @@ public class ReviewBook implements Listener {
         if (isEdited(book)) {
             bookId = saveBook(book);
         }
-        plotSQL.savePlotReviewCategoryFeedback(reviewId, category.name(), selection.name(), bookId);
+        // Only save if there is at least a selection or feedback.
+        // The General category can have no selection while having feedback.
+        if (selection != ReviewSelection.NONE || bookId != 0) {
+            plotSQL.savePlotReviewCategoryFeedback(reviewId, category.name(), selection.name(), bookId);
+        }
     }
 
     private int saveBook(EditableBook book) {

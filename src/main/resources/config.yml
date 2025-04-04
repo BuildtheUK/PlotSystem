@@ -19,7 +19,7 @@ categories:
   ROOF: [ OK, OK, GOOD ]
   GARDEN: [ OK, OK, OK ]
   TEXTURES: [ OK, OK, GOOD ]
-  DETAILS: [ OK, OK, OK ]
+  DETAILS: [ POOR, OK, OK ]
 
 # Whether reviewers reviews have a change to require verification.
 reviewer_verification: false
