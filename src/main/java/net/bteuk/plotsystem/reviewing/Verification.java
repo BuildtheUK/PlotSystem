@@ -104,8 +104,8 @@ public class Verification extends ReviewAction {
 
             ReviewCategoryFeedback updatedCategoryFeedback = updatedReviewFeedback.get(categoryFeedback.category());
 
-            // Only store the category if there is updated feedback.
-            if (updatedCategoryFeedback != null) {
+            // Only store the category if there is updated feedback and the category is required.
+            if (updatedCategoryFeedback != null && categoryFeedback.category().isRequired()) {
                 plotSQL.savePlotVerificationCategory(verificationId, categoryFeedback.category().name(),
                         categoryFeedback.selection().name(), updatedCategoryFeedback.selection().name(),
                         categoryFeedback.bookId(), updatedCategoryFeedback.bookId());

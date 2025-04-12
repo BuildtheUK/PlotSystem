@@ -84,15 +84,17 @@ public class EditableBook implements Listener {
             return;
         }
 
-        // Add the pages of the book to the book meta.
         List<String> pages = e.getNewBookMeta().pages().stream().map(page -> PlainTextComponentSerializer.plainText().serialize(page)).toList();
-        editableBookData.setPages(pages);
-        editableBook.setItemMeta(editableBookData);
 
         // Check if the player has edited this book.
         if (hasChanged(pages)) {
             edited = true;
         }
+
+        // Add the pages of the book to the book meta.
+        editableBookData.setPages(pages);
+        editableBook.setItemMeta(editableBookData);
+
 
         // Perform the book sign action on signing the book.
         if (e.isSigning()) {
