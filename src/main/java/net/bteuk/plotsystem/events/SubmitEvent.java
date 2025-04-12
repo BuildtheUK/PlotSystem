@@ -14,13 +14,13 @@ public class SubmitEvent {
 
     public static void event(String uuid, String[] event) {
 
-        //Events for submitting
+        // Events for submitting
         if (event[1].equals("plot")) {
 
-            //Convert the string id to int id.
+            // Convert the string id to int id.
             int plotID = Integer.parseInt(event[2]);
 
-            //Check if the player can submit a plot at this point in time.
+            // Check if the player can submit a plot at this point in time.
             long lCoolDown = PlotSystem.getInstance().getConfig().getInt("submit_cooldown") * 60L * 1000L;
             long lSubmit = PlotSystem.getInstance().globalSQL.getLong("SELECT last_submit FROM player_data WHERE uuid='" + uuid + "';");
 
@@ -53,23 +53,24 @@ public class SubmitEvent {
                 if (PlotSystem.getInstance().plotSQL.hasRow("SELECT id FROM plot_data WHERE id=" + plotID + " AND status='claimed';")) {
 
                     // Create new submitted plot key.
-                    PlotSystem.getInstance().plotSQL.update("INSERT INTO plot_submission(plot_id,submit_time,status,last_query) VALUES(" + plotID + "," + Time.currentTime() + ",'submitted'," + Time.currentTime() + ");");
+                    PlotSystem.getInstance().plotSQL.update(
+                            "INSERT INTO plot_submission(plot_id,submit_time,status,last_query) VALUES(" + plotID + "," + Time.currentTime() + ",'submitted'," + Time.currentTime() + ");");
 
                     // Set plot status to submitted.
                     PlotHelper.updatePlotStatus(plotID, PlotStatus.SUBMITTED);
 
-                    //Update last submit time in playerdata.
+                    // Update last submit time in playerdata.
                     PlotSystem.getInstance().globalSQL.update("UPDATE player_data SET last_submit=" + Time.currentTime() + " WHERE uuid='" + uuid + "';");
 
                     message = ChatUtils.success("Submitted plot %s", String.valueOf(plotID));
 
-                    //Send message to reviewers that a plot has been submitted.
+                    // Send message to reviewers that a plot has been submitted.
                     PlotMessage plotMessage = new PlotMessage("A plot has been submitted, there %s %s submitted %s.", false);
                     Network.getInstance().getChat().sendSocketMesage(plotMessage);
 
                 } else {
 
-                    //If plot is not claimed set the message accordingly.
+                    // If plot is not claimed set the message accordingly.
                     message = ChatUtils.error("Plot can not be submitted");
 
                 }

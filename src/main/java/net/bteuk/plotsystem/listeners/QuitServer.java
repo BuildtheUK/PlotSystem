@@ -17,13 +17,13 @@ public class QuitServer implements Listener {
     @EventHandler
     public void quitEvent(PlayerQuitEvent e) {
 
-        //Get instance of plugin.
+        // Get instance of plugin.
         PlotSystem instance = PlotSystem.getInstance();
 
-        //Get user from the list.
+        // Get user from the list.
         User user = instance.getUser(e.getPlayer());
 
-        //If no user was found print error in console.
+        // If no user was found print error in console.
         if (user == null) {
             PlotSystem.LOGGER.warning("Error: User " + e.getPlayer().getName() + " not found in the list of online users!");
             return;
@@ -34,7 +34,7 @@ public class QuitServer implements Listener {
             user.getReview().cancel();
         }
 
-        //If the player has a claim or create gui delete it.
+        // If the player has a claim or create gui delete it.
         if (user.claimGui != null) {
             user.claimGui.delete();
         }
@@ -47,10 +47,10 @@ public class QuitServer implements Listener {
             user.createZoneGui.delete();
         }
 
-        //Remove player from outlines.
+        // Remove player from outlines.
         PlotSystem.getInstance().getOutlines().removePlayer(e.getPlayer());
 
-        //Remove user from list
+        // Remove user from list
         instance.removeUser(user);
 
     }

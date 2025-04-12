@@ -14,7 +14,7 @@ public class CreateZoneGui extends Gui {
 
     private final User user;
 
-    //This gui handles the plot creation process, and will allow the user to set the parameters of the plot.
+    // This gui handles the plot creation process, and will allow the user to set the parameters of the plot.
     public CreateZoneGui(User user) {
 
         super(27, Component.text("Create Plot Menu", NamedTextColor.AQUA, TextDecoration.BOLD));
@@ -27,7 +27,7 @@ public class CreateZoneGui extends Gui {
 
     private void createGui() {
 
-        //Create zone.
+        // Create zone.
         setItem(13, Utils.createItem(Material.DIAMOND, 1,
                         ChatUtils.title("Create Zone"),
                         ChatUtils.line("Click create a new zone with the settings selected.")),
@@ -37,15 +37,15 @@ public class CreateZoneGui extends Gui {
 
                     User eUser = PlotSystem.getInstance().getUser(u.player);
 
-                    //Close the inventory.
+                    // Close the inventory.
                     u.player.closeInventory();
 
-                    //Create plot with the selection created by the user.
+                    // Create plot with the selection created by the user.
                     eUser.selectionTool.createZone();
 
                 });
 
-        //Set public/private.
+        // Set public/private.
         if (user.selectionTool.is_public) {
 
             setItem(11, Utils.createItem(Material.OAK_DOOR, 1,
@@ -57,10 +57,10 @@ public class CreateZoneGui extends Gui {
 
                     {
 
-                        //Set private.
+                        // Set private.
                         user.selectionTool.is_public = false;
 
-                        //Refresh the gui.
+                        // Refresh the gui.
                         refresh();
                         user.player.getOpenInventory().getTopInventory().setContents(getInventory().getContents());
 
@@ -77,10 +77,10 @@ public class CreateZoneGui extends Gui {
 
                     {
 
-                        //Set private.
+                        // Set private.
                         user.selectionTool.is_public = true;
 
-                        //Refresh the gui.
+                        // Refresh the gui.
                         refresh();
                         user.player.getOpenInventory().getTopInventory().setContents(getInventory().getContents());
 
@@ -88,7 +88,7 @@ public class CreateZoneGui extends Gui {
 
         }
 
-        //Set expiration time.
+        // Set expiration time.
         setItem(15, Utils.createItem(Material.CLOCK, user.selectionTool.hours,
                         ChatUtils.title("Set the zone expiration time."),
                         ChatUtils.line("Click to cycle through expiration times."),
@@ -98,7 +98,7 @@ public class CreateZoneGui extends Gui {
 
                 {
 
-                    //Increase expiration time.
+                    // Increase expiration time.
                     switch (user.selectionTool.hours) {
                         case 2 -> user.selectionTool.hours = 6;
                         case 6 -> user.selectionTool.hours = 24;
@@ -106,16 +106,15 @@ public class CreateZoneGui extends Gui {
                         case 48 -> user.selectionTool.hours = 2;
                     }
 
-                    //Refresh the gui.
+                    // Refresh the gui.
                     refresh();
                     user.player.getOpenInventory().getTopInventory().setContents(getInventory().getContents());
 
                 });
 
-
         for (int i = 0; i <= 26; i++) {
 
-            //Skip the centre.
+            // Skip the centre.
             if (i == 10) {
                 i = 17;
             }

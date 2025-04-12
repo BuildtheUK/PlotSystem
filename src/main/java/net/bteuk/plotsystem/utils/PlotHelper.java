@@ -36,7 +36,8 @@ public class PlotHelper {
 
     /**
      * Initialise the plot helper by setting the relevant variables.
-     * @param plotSQL   {@link PlotSQL}
+     *
+     * @param plotSQL {@link PlotSQL}
      */
     public static void init(PlotSQL plotSQL) {
         setPlotSQL(plotSQL);
@@ -44,8 +45,9 @@ public class PlotHelper {
 
     /**
      * Update the submitted status of a plot, will update any relevant holograms.
-     * @param id                the plot id
-     * @param submittedStatus   the submitted status
+     *
+     * @param id              the plot id
+     * @param submittedStatus the submitted status
      */
     public static boolean updateSubmittedStatus(int id, SubmittedStatus submittedStatus) {
         return updatePlotStatus(id, PlotStatus.SUBMITTED, submittedStatus);
@@ -53,8 +55,9 @@ public class PlotHelper {
 
     /**
      * Update the status of a plot, will update any relevant holograms.
-     * @param id            the plot id
-     * @param plotStatus    the plot status
+     *
+     * @param id         the plot id
+     * @param plotStatus the plot status
      */
     public static boolean updatePlotStatus(int id, PlotStatus plotStatus) {
         SubmittedStatus submittedStatus = null;
@@ -66,9 +69,10 @@ public class PlotHelper {
 
     /**
      * Update the status of a plot, will update any relevant holograms.
-     * @param id                the plot id
-     * @param status            the plot status
-     * @param submittedStatus   the submitted status of the plot, if status is submitted
+     *
+     * @param id              the plot id
+     * @param status          the plot status
+     * @param submittedStatus the submitted status of the plot, if status is submitted
      */
     private static boolean updatePlotStatus(int id, PlotStatus status, SubmittedStatus submittedStatus) {
         boolean hasChanged = false;
@@ -120,7 +124,7 @@ public class PlotHelper {
         if (REVIEW_CATEGORY_THRESHOLDS == null) {
             loadReviewCategoryThresholds();
         }
-        ReviewSelection threshold =  getReviewCategoryThreshold(difficulty, category);
+        ReviewSelection threshold = getReviewCategoryThreshold(difficulty, category);
         return switch (selection) {
             case GOOD -> threshold == ReviewSelection.GOOD || threshold == ReviewSelection.OK || threshold == ReviewSelection.POOR;
             case OK -> threshold == ReviewSelection.OK || threshold == ReviewSelection.POOR;
@@ -154,7 +158,7 @@ public class PlotHelper {
                         ReviewSelection selection = ReviewSelection.valueOf((String) thresholds.get(difficulty.ordinal()));
                         REVIEW_CATEGORY_THRESHOLDS.get(difficulty).addThreshold(categoryEnum, selection);
                     } catch (IllegalArgumentException e) {
-                            // Continue, just ignore this one.
+                        // Continue, just ignore this one.
                     }
                 }
             });

@@ -43,33 +43,24 @@ public class PlotSystem extends JavaPlugin {
 
     // Logger
     public static Logger LOGGER;
-
-    // SQL Classes.
-    public GlobalSQL globalSQL;
-    public PlotSQL plotSQL;
-
-    public Timers timers;
-
     // Items
     public static ItemStack selectionTool;
-
+    public static ItemStack gui;
+    // Server Name
+    public static String SERVER_NAME;
     // Returns an instance of the plugin.
     @Getter
     static PlotSystem instance;
-
+    // SQL Classes.
+    public GlobalSQL globalSQL;
+    public PlotSQL plotSQL;
+    public Timers timers;
+    // Listeners
+    public ClaimEnter claimEnter;
     // Returns the User ArrayList.
     @Getter
     private ArrayList<User> users;
-
-    public static ItemStack gui;
-
-    // Server Name
-    public static String SERVER_NAME;
-
-    // Listeners
-    public ClaimEnter claimEnter;
-
-    //Outline manager.
+    // Outline manager.
     @Getter
     private Outlines outlines;
 
@@ -84,13 +75,13 @@ public class PlotSystem extends JavaPlugin {
         // Config Setup
         PlotSystem.instance = this;
 
-        //Sets the config if the file has not yet been created.
+        // Sets the config if the file has not yet been created.
         ConfigurationSerialization.registerClass(ConfigurationSerializable.class);
         saveDefaultConfig();
 
-        //Update the config to the latest version if it's outdated.
-        //It will copy over any keys that remain the same.
-        //This will also set the status variable to access the config project-wide.
+        // Update the config to the latest version if it's outdated.
+        // It will copy over any keys that remain the same.
+        // This will also set the status variable to access the config project-wide.
         Config config = new Config();
         config.updateConfig();
 
@@ -116,7 +107,7 @@ public class PlotSystem extends JavaPlugin {
             // Save world name is in config.
             // This implies first launch with plugin.
             if (!Multiverse.hasWorld(CONFIG.getString("save_world"))) {
-                //Create save world.
+                // Create save world.
                 if (!Multiverse.createVoidWorld(CONFIG.getString("save_world"))) {
 
                     LOGGER.warning("Failed to create save world!");
@@ -129,13 +120,13 @@ public class PlotSystem extends JavaPlugin {
 
         } else {
 
-            //If the server is not in the database the network plugin was not successful.
+            // If the server is not in the database the network plugin was not successful.
             LOGGER.severe("Server is not in database, check that the Network plugin is working correctly.");
 
         }
     }
 
-    //Server enabling procedure when the config has been set up.
+    // Server enabling procedure when the config has been set up.
     public void enablePlugin() {
 
         // Register hologram click event.
@@ -148,8 +139,9 @@ public class PlotSystem extends JavaPlugin {
         // Create list of users.
         users = new ArrayList<>();
 
-        //Remove all plots 'under review' on this server.
-        plotSQL.update("UPDATE plot_data AS pd INNER JOIN location_data AS ld ON ld.name=pd.location SET pd.status='submitted' WHERE pd.status='reviewing' AND ld.server='" + SERVER_NAME + "';");
+        // Remove all plots 'under review' on this server.
+        plotSQL.update(
+                "UPDATE plot_data AS pd INNER JOIN location_data AS ld ON ld.name=pd.location SET pd.status='submitted' WHERE pd.status='reviewing' AND ld.server='" + SERVER_NAME + "';");
 
         // Create gui item
         gui = new ItemStack(Material.NETHER_STAR);
@@ -195,7 +187,9 @@ public class PlotSystem extends JavaPlugin {
         });
 
         // Get all active plots (unclaimed, claimed, submitted, reviewing) and add holograms.
-        List<Integer> active_plots = plotSQL.getIntList("SELECT pd.id FROM plot_data AS pd INNER JOIN location_data AS ld ON ld.name=pd.location WHERE pd.status IN ('unclaimed','claimed','submitted','reviewing') AND ld.server='" + SERVER_NAME + "';");
+        List<Integer> active_plots = plotSQL.getIntList(
+                "SELECT pd.id FROM plot_data AS pd INNER JOIN location_data AS ld ON ld.name=pd.location WHERE pd.status IN ('unclaimed','claimed','submitted','reviewing') AND " +
+                        "ld.server='" + SERVER_NAME + "';");
         active_plots.forEach(plot -> PlotHelper.addPlotHologram(new PlotHologram(plot)));
     }
 

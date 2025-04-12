@@ -19,6 +19,7 @@ import org.bukkit.entity.Player;
 import java.util.UUID;
 
 import static net.bteuk.network.utils.Constants.SERVER_NAME;
+import static net.bteuk.plotsystem.PlotSystem.LOGGER;
 
 public class TeleportEvent {
 
@@ -27,18 +28,18 @@ public class TeleportEvent {
         // Events for teleporting
         if (event[1].equals("plot")) {
 
-            //Get the user.
+            // Get the user.
             Player p = Bukkit.getPlayer(UUID.fromString(uuid));
 
             if (p == null) {
-                //Send warning to console if player can't be found.
-                Bukkit.getLogger().warning(("Attempting to teleport player with uuid " + uuid + " but they are not on this server."));
+                // Send warning to console if player can't be found.
+                LOGGER.warning(("Attempting to teleport player with uuid " + uuid + " but they are not on this server."));
                 return;
             }
 
             User u = PlotSystem.getInstance().getUser(p);
 
-            //Convert the string id to int id.
+            // Convert the string id to int id.
             int id = Integer.parseInt(event[2]);
 
             // Teleport to specific plot id.
@@ -47,11 +48,11 @@ public class TeleportEvent {
                     + u.plotSQL.getString("SELECT location FROM plot_data WHERE id=" + id + ";")
                     + "';");
 
-            //If the plot is on the current server teleport them directly.
-            //Else teleport them to the correct server and them teleport them to the plot.
+            // If the plot is on the current server teleport them directly.
+            // Else teleport them to the correct server and them teleport them to the plot.
             if (server.equals(SERVER_NAME)) {
 
-                //Get world of plot.
+                // Get world of plot.
                 World world = Bukkit.getWorld(u.plotSQL.getString("SELECT location FROM plot_data WHERE id=" + id + ";"));
 
                 // Get the plot status
@@ -62,7 +63,7 @@ public class TeleportEvent {
                     int sumX = 0;
                     int sumZ = 0;
 
-                    //Find the centre.
+                    // Find the centre.
                     for (int[] corner : corners) {
 
                         sumX += corner[0];
@@ -74,7 +75,7 @@ public class TeleportEvent {
                     Location l = new Location(world, x, Utils.getHighestYAt(world, (int) x, (int) z), z);
                     PaperLib.teleportAsync(u.player, l);
                 } else {
-                    //Get location of plot and teleport the player there.
+                    // Get location of plot and teleport the player there.
                     try {
                         Location l = WorldGuardFunctions.getCurrentLocation(event[2], world);
                         PaperLib.teleportAsync(u.player, l);
@@ -85,46 +86,46 @@ public class TeleportEvent {
                 }
             } else {
 
-                //Set the server join event.
+                // Set the server join event.
                 EventManager.createJoinEvent(u.player.getUniqueId().toString(), "plotsystem", "teleport plot" + id);
 
-                //Teleport them to another server.
+                // Teleport them to another server.
                 SwitchServer.switchServer(u.player, server);
 
             }
         } else if (event[1].equals("zone")) {
 
-            //Get the user.
+            // Get the user.
             Player p = Bukkit.getPlayer(UUID.fromString(uuid));
 
             if (p == null) {
 
-                //Send warning to console if player can't be found.
-                Bukkit.getLogger().warning(("Attempting to teleport player with uuid " + uuid + " but they are not on this server."));
+                // Send warning to console if player can't be found.
+                LOGGER.warning(("Attempting to teleport player with uuid " + uuid + " but they are not on this server."));
                 return;
 
             }
 
             User u = PlotSystem.getInstance().getUser(p);
 
-            //Convert the string id to int id.
+            // Convert the string id to int id.
             int id = Integer.parseInt(event[2]);
             String zoneName = "z" + event[2];
 
-            //Teleport to specific zone id.
-            //Get the server of the zone.
+            // Teleport to specific zone id.
+            // Get the server of the zone.
             String server = u.plotSQL.getString("SELECT server FROM location_data WHERE name='"
                     + u.plotSQL.getString("SELECT location FROM zones WHERE id=" + id + ";")
                     + "';");
 
-            //If the zone is on the current server teleport them directly.
-            //Else teleport them to the correct server and them teleport them to the zone.
+            // If the zone is on the current server teleport them directly.
+            // Else teleport them to the correct server and them teleport them to the zone.
             if (server.equals(SERVER_NAME)) {
 
-                //Get world of zone.
+                // Get world of zone.
                 World world = Bukkit.getWorld(u.plotSQL.getString("SELECT location FROM zones WHERE id=" + id + ";"));
 
-                //Get location of zone and teleport the player there.
+                // Get location of zone and teleport the player there.
                 try {
                     Location l = WorldGuardFunctions.getCurrentLocation(zoneName, world);
                     u.player.teleport(l);
@@ -135,10 +136,10 @@ public class TeleportEvent {
 
             } else {
 
-                //Set the server join event.
+                // Set the server join event.
                 EventManager.createJoinEvent(u.player.getUniqueId().toString(), "plotsystem", "teleport zone" + id);
 
-                //Teleport them to another server.
+                // Teleport them to another server.
                 SwitchServer.switchServer(u.player, server);
 
             }

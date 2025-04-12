@@ -19,7 +19,8 @@ import org.bukkit.entity.Player;
 import java.util.HashMap;
 import java.util.List;
 
-import static net.bteuk.network.utils.Constants.*;
+import static net.bteuk.network.utils.Constants.MAX_Y;
+import static net.bteuk.network.utils.Constants.MIN_Y;
 
 /**
  * This class deals with plot and zone outlines.
@@ -27,8 +28,8 @@ import static net.bteuk.network.utils.Constants.*;
  */
 public class Outlines {
 
-    //List of block locations where outlines should be generated when the outlines are refreshed.
-    //The y-level is calculated when the block is placed, as this could change often.
+    // List of block locations where outlines should be generated when the outlines are refreshed.
+    // The y-level is calculated when the block is placed, as this could change often.
     final HashMap<Player, BlockLocations> outlineBlockLocations;
 
     final WorldGuard wg;
@@ -41,7 +42,7 @@ public class Outlines {
 
     }
 
-    //Add player
+    // Add player
     public BlockLocations addPlayer(Player player) {
         BlockLocations blockLocations = outlineBlockLocations.get(player);
         if (blockLocations == null) {
@@ -51,13 +52,13 @@ public class Outlines {
         return blockLocations;
     }
 
-    //Remove player
+    // Remove player
     public void removePlayer(Player player) {
         outlineBlockLocations.remove(player);
     }
 
     public void addPlotOutlineForPlayer(String plotID, Player player) {
-        BlockLocations blockLocations =  outlineBlockLocations.get(player);
+        BlockLocations blockLocations = outlineBlockLocations.get(player);
         if (blockLocations != null) {
             RegionManager regions = wg.getPlatform().getRegionContainer().get(BukkitAdapter.adapt(player.getWorld()));
             if (regions == null) {
@@ -67,7 +68,7 @@ public class Outlines {
             if (region == null) {
                 return;
             }
-            //Get plot difficulty.
+            // Get plot difficulty.
             int intPlotID = ParseUtils.toInt(plotID);
             if (intPlotID != 0) {
                 int difficulty = PlotSystem.getInstance().plotSQL.getInt("SELECT difficulty FROM plot_data WHERE id=" + intPlotID + ";");
@@ -77,7 +78,7 @@ public class Outlines {
     }
 
     public void removePlotOutlineForPlayer(String plotID, Player player) {
-        BlockLocations blockLocations =  outlineBlockLocations.get(player);
+        BlockLocations blockLocations = outlineBlockLocations.get(player);
         if (blockLocations != null) {
             RegionManager regions = wg.getPlatform().getRegionContainer().get(BukkitAdapter.adapt(player.getWorld()));
             if (regions == null) {
@@ -92,15 +93,15 @@ public class Outlines {
     }
 
     public void removeOutlinesForPlayer(Player player) {
-        BlockLocations blockLocations =  outlineBlockLocations.get(player);
+        BlockLocations blockLocations = outlineBlockLocations.get(player);
         if (blockLocations != null) {
             blockLocations.removeOutlines();
         }
     }
 
-
     /**
      * Refresh outlines for a specific player.
+     *
      * @param player the player to refresh the outlines for
      * @throws NullPointerException if the player has no outlines
      */
@@ -112,16 +113,17 @@ public class Outlines {
      * Get all outlines near the player, remove all existing outlines from the object, but don't bother removing the blocks.
      * This method assumed the actual regions have not changed,
      * only that the player has moved position sufficiently that new outlines need to be drawn.
+     *
      * @param user the user to add outlines for.
      */
     public void addNearbyOutlines(User user) {
         Player player = user.player;
 
-        //If the player does not have a key, add it.
+        // If the player does not have a key, add it.
         BlockLocations locations;
         if (outlineBlockLocations.containsKey(player)) {
             locations = outlineBlockLocations.get(player);
-            //If the world has changed, clear the list.
+            // If the world has changed, clear the list.
             if (!locations.getWorld().equals(player.getWorld())) {
                 locations.clear(true);
                 locations.setWorld(player.getWorld());
@@ -132,18 +134,20 @@ public class Outlines {
             locations = addPlayer(player);
         }
 
-        //Find the nearby regions and add them to the locations.
+        // Find the nearby regions and add them to the locations.
         RegionManager regions = wg.getPlatform().getRegionContainer().get(BukkitAdapter.adapt(player.getWorld()));
 
-        if (regions == null) {return;}
+        if (regions == null) {
+            return;
+        }
 
-        //Get all regions within 100 blocks of the player.
+        // Get all regions within 100 blocks of the player.
         ProtectedRegion region = new ProtectedCuboidRegion("test",
                 BlockVector3.at(player.getLocation().getX() - 100, 1, player.getLocation().getZ() - 100),
                 BlockVector3.at(player.getLocation().getX() + 100, 1, player.getLocation().getZ() + 100));
         ApplicableRegionSet set = regions.getApplicableRegions(region);
 
-        //Iterate through the regions and add the outlines.
+        // Iterate through the regions and add the outlines.
         for (ProtectedRegion protectedRegion : set) {
             // Skip if this region is to be ignored for the player.
             if (user.isDisableOutlines() || user.getSkipOutlines().contains(protectedRegion.getId())) {
@@ -152,14 +156,14 @@ public class Outlines {
 
             int plotID = ParseUtils.toInt(protectedRegion.getId());
 
-            //If plotID is 0, then it's a zone.
+            // If plotID is 0, then it's a zone.
             if (plotID == 0) {
 
                 locations.addOutline(protectedRegion, Material.PURPLE_CONCRETE.createBlockData());
 
             } else {
 
-                //Get plot difficulty.
+                // Get plot difficulty.
                 int difficulty = PlotSystem.getInstance().plotSQL.getInt("SELECT difficulty FROM plot_data WHERE id=" + plotID + ";");
 
                 locations.addOutline(protectedRegion, difficultyMaterial(difficulty));
@@ -167,31 +171,31 @@ public class Outlines {
             }
         }
 
-        //Draw the outlines.
+        // Draw the outlines.
         refreshOutlinesForPlayer(player);
     }
 
-    //Add an outline of a specific region for all nearby players.
+    // Add an outline of a specific region for all nearby players.
     public void addOutline(List<BlockVector2> vector, World world, BlockData block) {
 
-        //Find all nearby players.
+        // Find all nearby players.
         for (Player p : Bukkit.getOnlinePlayers()) {
 
             if (p.getWorld().equals(world)) {
 
-                ProtectedRegion region = new ProtectedPolygonalRegion("test", vector, MIN_Y, (MAX_Y-1));
+                ProtectedRegion region = new ProtectedPolygonalRegion("test", vector, MIN_Y, (MAX_Y - 1));
 
-                //Check if they are within 100 blocks of the region min and max point.
+                // Check if they are within 100 blocks of the region min and max point.
                 if (p.getLocation().getX() > (region.getMinimumPoint().getX() - 100) &&
                         p.getLocation().getZ() > (region.getMinimumPoint().getZ() - 100) &&
                         p.getLocation().getX() < (region.getMaximumPoint().getX() + 100) &&
                         p.getLocation().getZ() < (region.getMaximumPoint().getZ() + 100)) {
 
-                    //If the player does not have a key, add it.
+                    // If the player does not have a key, add it.
                     BlockLocations locations;
                     if (outlineBlockLocations.containsKey(p)) {
                         locations = outlineBlockLocations.get(p);
-                        //If the world has changed, clear the list.
+                        // If the world has changed, clear the list.
                         if (!locations.getWorld().equals(p.getWorld())) {
                             locations.clear(true);
                             locations.setWorld(p.getWorld());
@@ -200,28 +204,28 @@ public class Outlines {
                         locations = addPlayer(p);
                     }
 
-                    //Add points and draw it.
+                    // Add points and draw it.
                     locations.addOutline(region, block);
                 }
             }
         }
     }
 
-    //Remove the outline of a specific region for all nearby players.
+    // Remove the outline of a specific region for all nearby players.
     public void removeOutline(ProtectedRegion region, World world) {
 
-        //Find all nearby players.
+        // Find all nearby players.
         for (Player p : Bukkit.getOnlinePlayers()) {
 
             if (p.getWorld().equals(world)) {
 
-                //Check if they are within 100 blocks of the region min and max point.
+                // Check if they are within 100 blocks of the region min and max point.
                 if (p.getLocation().getX() > (region.getMinimumPoint().getX() - 100) &&
                         p.getLocation().getZ() > (region.getMinimumPoint().getZ() - 100) &&
                         p.getLocation().getX() < (region.getMaximumPoint().getX() + 100) &&
                         p.getLocation().getZ() < (region.getMaximumPoint().getZ() + 100)) {
 
-                    //Remove the outline.
+                    // Remove the outline.
                     if (outlineBlockLocations.containsKey(p)) {
                         BlockLocations locations = outlineBlockLocations.get(p);
                         locations.removeOutline(region);
@@ -237,20 +241,17 @@ public class Outlines {
      * Additionally, this is used to draw the outline of a plot in the before view.
      * This will be drawn in the same colour as the difficulty of the plot.
      *
-     * @param player
-     * the player to draw the outline for
-     * @param vector
-     * the vector that makes up the region
-     * @param block
-     * the block to draw the outline with
+     * @param player the player to draw the outline for
+     * @param vector the vector that makes up the region
+     * @param block  the block to draw the outline with
      */
     public void addOutline(Player player, List<BlockVector2> vector, BlockData block) {
 
-        //If the player does not have a key, add it.
+        // If the player does not have a key, add it.
         BlockLocations locations;
         if (outlineBlockLocations.containsKey(player)) {
             locations = outlineBlockLocations.get(player);
-            //If the world has changed, clear the list.
+            // If the world has changed, clear the list.
             if (!locations.getWorld().equals(player.getWorld())) {
                 locations.clear(true);
                 locations.setWorld(player.getWorld());
@@ -259,20 +260,20 @@ public class Outlines {
             locations = addPlayer(player);
         }
 
-        ProtectedRegion region = new ProtectedPolygonalRegion("test", vector, MIN_Y, (MAX_Y-1));
+        ProtectedRegion region = new ProtectedPolygonalRegion("test", vector, MIN_Y, (MAX_Y - 1));
 
-        //Add points and draw it.
+        // Add points and draw it.
         locations.addTempOutline(region, block);
 
     }
 
-    //Remove the outlines from a list of BlockVector2.
-    //This is for players drawing outlines with the selectiontool.
+    // Remove the outlines from a list of BlockVector2.
+    // This is for players drawing outlines with the selectiontool.
     public void removeOutline(Player player, List<BlockVector2> vector) {
 
-        ProtectedRegion region = new ProtectedPolygonalRegion("test", vector, MIN_Y, (MAX_Y-1));
+        ProtectedRegion region = new ProtectedPolygonalRegion("test", vector, MIN_Y, (MAX_Y - 1));
 
-        //Remove the outline.
+        // Remove the outline.
         if (outlineBlockLocations.containsKey(player)) {
             BlockLocations locations = outlineBlockLocations.get(player);
             locations.removeTempOutline(region);
@@ -282,11 +283,11 @@ public class Outlines {
 
     public void addPoint(Player player, BlockVector2 point, BlockData block) {
 
-        //If the player does not have a key, add it.
+        // If the player does not have a key, add it.
         BlockLocations locations;
         if (outlineBlockLocations.containsKey(player)) {
             locations = outlineBlockLocations.get(player);
-            //If the world has changed, clear the list.
+            // If the world has changed, clear the list.
             if (!locations.getWorld().equals(player.getWorld())) {
                 locations.clear(true);
                 locations.setWorld(player.getWorld());
@@ -295,14 +296,14 @@ public class Outlines {
             locations = addPlayer(player);
         }
 
-        //Add points and draw it.
+        // Add points and draw it.
         locations.addPoint(point, block);
 
     }
 
     public void removePoint(Player player, BlockVector2 point) {
 
-        //If the player does not have a key, add it.
+        // If the player does not have a key, add it.
         BlockLocations locations;
         if (outlineBlockLocations.containsKey(player)) {
             locations = outlineBlockLocations.get(player);
@@ -312,11 +313,11 @@ public class Outlines {
 
     public void addLine(Player player, BlockVector2 pointMin, BlockVector2 pointMax, BlockData block) {
 
-        //If the player does not have a key, add it.
+        // If the player does not have a key, add it.
         BlockLocations locations;
         if (outlineBlockLocations.containsKey(player)) {
             locations = outlineBlockLocations.get(player);
-            //If the world has changed, clear the list.
+            // If the world has changed, clear the list.
             if (!locations.getWorld().equals(player.getWorld())) {
                 locations.clear(true);
                 locations.setWorld(player.getWorld());
@@ -325,14 +326,14 @@ public class Outlines {
             locations = addPlayer(player);
         }
 
-        //Add points and draw it.
+        // Add points and draw it.
         locations.addLine(pointMin, pointMax, block);
 
     }
 
     public void removeLine(Player player, BlockVector2 pointMin, BlockVector2 pointMax) {
 
-        //If the player does not have a key, add it.
+        // If the player does not have a key, add it.
         BlockLocations locations;
         if (outlineBlockLocations.containsKey(player)) {
             locations = outlineBlockLocations.get(player);
@@ -340,9 +341,7 @@ public class Outlines {
         }
     }
 
-
-
-    //Returns the plot difficulty material.
+    // Returns the plot difficulty material.
     public BlockData difficultyMaterial(int difficulty) {
 
         return switch (difficulty) {

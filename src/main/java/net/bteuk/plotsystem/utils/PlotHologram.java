@@ -23,14 +23,10 @@ public class PlotHologram {
 
     @Getter
     private final int plot;
-
-    private PlotStatus plotStatus;
-
-    private SubmittedStatus submittedStatus;
-
-    private Location location;
-
     private final HashMap<PlotHologramType, Hologram> holograms = new HashMap<>();
+    private PlotStatus plotStatus;
+    private SubmittedStatus submittedStatus;
+    private Location location;
 
     public PlotHologram(int plot) {
         this.plot = plot;
@@ -85,14 +81,15 @@ public class PlotHologram {
                 if (plotStatus == PlotStatus.SUBMITTED) {
                     switch (submittedStatus) {
                         case SUBMITTED -> {
-                            if (Network.getInstance().getPlotSQL().canReviewPlot(plot, p.getUniqueId().toString(), p.hasPermission("group.architect"), p.hasPermission("group.reviewer"))) {
+                            if (Network.getInstance().getPlotSQL()
+                                    .canReviewPlot(plot, p.getUniqueId().toString(), p.hasPermission("group.architect"), p.hasPermission("group.reviewer"))) {
                                 showType = PlotHologramType.REVIEWER;
                             }
                         }
 
                         case UNDER_REVIEW, UNDER_VERIFICATION -> {
                             User u = PlotSystem.getInstance().getUser(p);
-                            if (u != null && u.getReview() != null &&  u.getReview().getPlotID() == plot) {
+                            if (u != null && u.getReview() != null && u.getReview().getPlotID() == plot) {
                                 showType = PlotHologramType.REVIEWER;
                             }
                         }
@@ -163,14 +160,11 @@ public class PlotHologram {
                 // Create a hologram for the reviewers.
                 if (plotStatus == PlotStatus.SUBMITTED) {
                     switch (submittedStatus) {
-                        case SUBMITTED ->
-                                holograms.put(PlotHologramType.REVIEWER, createClaimedHologram("&fThis plot is submitted", "SUBMITTED"));
-                        case UNDER_REVIEW ->
-                                holograms.put(PlotHologramType.REVIEWER, createClaimedHologram("&fYou are reviewing this plot", "UNDER_REVIEW"));
+                        case SUBMITTED -> holograms.put(PlotHologramType.REVIEWER, createClaimedHologram("&fThis plot is submitted", "SUBMITTED"));
+                        case UNDER_REVIEW -> holograms.put(PlotHologramType.REVIEWER, createClaimedHologram("&fYou are reviewing this plot", "UNDER_REVIEW"));
                         case AWAITING_VERIFICATION ->
                                 holograms.put(PlotHologramType.REVIEWER, createClaimedHologram("&fThis plot is awaiting verification", "AWAITING_VERIFICATION"));
-                        case UNDER_VERIFICATION ->
-                                holograms.put(PlotHologramType.REVIEWER, createClaimedHologram("&fYou are verifying this plot", "UNDER_VERIFICATION"));
+                        case UNDER_VERIFICATION -> holograms.put(PlotHologramType.REVIEWER, createClaimedHologram("&fYou are verifying this plot", "UNDER_VERIFICATION"));
                     }
                 }
                 // Create a hologram for the remaining players.

@@ -24,10 +24,10 @@ public class PlayerInteract implements Listener {
 
     public PlayerInteract(PlotSystem plugin, PlotSQL plotSQL) {
 
-        //Register the listener.
+        // Register the listener.
         Bukkit.getServer().getPluginManager().registerEvents(this, plugin);
 
-        //Set the reference to the plotSQL.
+        // Set the reference to the plotSQL.
         this.plotSQL = plotSQL;
 
     }
@@ -41,11 +41,11 @@ public class PlayerInteract implements Listener {
             return;
         }
 
-        //Selection tool
+        // Selection tool
         if (u.player.getInventory().getItemInMainHand().equals(PlotSystem.selectionTool)) {
 
-            //You must have this permission to use the plot selection tool.
-            //uknet = uknet plugins, plots = plotserver plugin, select = selection tool.
+            // You must have this permission to use the plot selection tool.
+            // uknet = uknet plugins, plots = plotserver plugin, select = selection tool.
             if (!u.player.hasPermission("uknet.plots.select")) {
 
                 e.setCancelled(true);
@@ -54,12 +54,12 @@ public class PlayerInteract implements Listener {
 
             }
 
-            //If the player left clicks this will (re)start the selection with the first point.
+            // If the player left clicks this will (re)start the selection with the first point.
             if (e.getAction().equals(Action.LEFT_CLICK_BLOCK)) {
 
                 e.setCancelled(true);
 
-                //Check if they are in a world where plots are allowed to be created.
+                // Check if they are in a world where plots are allowed to be created.
                 if (!plotSQL.hasRow("SELECT name FROM location_data WHERE name='" + Objects.requireNonNull(e.getClickedBlock()).getWorld().getName() + "';")) {
 
                     u.player.sendMessage(ChatUtils.error("You can't create plots in this world!"));
@@ -67,7 +67,7 @@ public class PlayerInteract implements Listener {
 
                 }
 
-                //If the selected point is in an existing plot cancel.
+                // If the selected point is in an existing plot cancel.
                 try {
                     if (WorldGuardFunctions.inRegion(e.getClickedBlock())) {
 
@@ -81,19 +81,19 @@ public class PlayerInteract implements Listener {
                     return;
                 }
 
-                //Passed the checks, start a new selection at the clicked block.
+                // Passed the checks, start a new selection at the clicked block.
                 u.selectionTool.startSelection(e.getClickedBlock(), e.getClickedBlock().getWorld().getName());
                 u.player.sendMessage(ChatUtils.success("Started a new selection at ")
                         .append(Component.text(e.getClickedBlock().getX(), NamedTextColor.DARK_AQUA))
                         .append(ChatUtils.success(", "))
                         .append(Component.text(e.getClickedBlock().getZ(), NamedTextColor.DARK_AQUA)));
 
-                //If the player right clicks then add a point to the existing selection.
+                // If the player right clicks then add a point to the existing selection.
             } else if (e.getAction().equals(Action.RIGHT_CLICK_BLOCK) && Objects.equals(e.getHand(), EquipmentSlot.HAND)) {
 
                 e.setCancelled(true);
 
-                //If the player hasn't selected their first point cancel.
+                // If the player hasn't selected their first point cancel.
                 if (u.selectionTool.size() == 0) {
 
                     u.player.sendMessage(ChatUtils.error("You must first start your selection by left-clicking."));
@@ -101,7 +101,7 @@ public class PlayerInteract implements Listener {
 
                 }
 
-                //Check if they are making their plot in the same world as their first point.
+                // Check if they are making their plot in the same world as their first point.
                 if (!Objects.requireNonNull(e.getClickedBlock()).getWorld().equals(u.selectionTool.world())) {
 
                     u.player.sendMessage(ChatUtils.error("You already started a selection in a different world, please create a new selection first."));
@@ -109,7 +109,7 @@ public class PlayerInteract implements Listener {
 
                 }
 
-                //If the selected point is in an existing plot cancel.
+                // If the selected point is in an existing plot cancel.
                 try {
                     if (WorldGuardFunctions.inRegion(e.getClickedBlock())) {
 

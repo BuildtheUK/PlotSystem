@@ -10,6 +10,7 @@ public class ParseUtils {
 
     /**
      * Parse String to int, else 0.
+     *
      * @param text {@link String} to parse
      * @return int value, if not possible 0.
      */

@@ -1,13 +1,14 @@
 package net.bteuk.plotsystem.utils;
 
 import net.bteuk.plotsystem.PlotSystem;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 
+import static net.bteuk.plotsystem.PlotSystem.LOGGER;
+
 public class PlotValues {
 
-    //Returns the plot difficulty name.
+    // Returns the plot difficulty name.
     public static String difficultyName(int difficulty) {
 
         return switch (difficulty) {
@@ -18,7 +19,7 @@ public class PlotValues {
         };
     }
 
-    //Returns the plot size name.
+    // Returns the plot size name.
     public static String sizeName(int size) {
 
         return switch (size) {
@@ -29,7 +30,7 @@ public class PlotValues {
         };
     }
 
-    //Returns the plot size material.
+    // Returns the plot size material.
     public static Material sizeMaterial(int size) {
 
         return switch (size) {
@@ -40,7 +41,7 @@ public class PlotValues {
         };
     }
 
-    //Returns the plot difficulty material.
+    // Returns the plot difficulty material.
     public static Material difficultyMaterial(int difficulty) {
 
         return switch (difficulty) {
@@ -71,7 +72,7 @@ public class PlotValues {
 
         }
 
-        Bukkit.getLogger().warning("Plot size was not in the range of possible values!");
+        LOGGER.warning("Plot size was not in the range of possible values!");
         return 0;
 
     }
@@ -96,7 +97,7 @@ public class PlotValues {
 
         }
 
-        Bukkit.getLogger().warning("Plot difficulty was not in the range of possible values!");
+        LOGGER.warning("Plot difficulty was not in the range of possible values!");
         return 0;
 
     }

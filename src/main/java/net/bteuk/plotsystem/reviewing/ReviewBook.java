@@ -26,12 +26,7 @@ import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.WritableBookMeta;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ReviewBook implements Listener {
 
@@ -68,6 +63,41 @@ public class ReviewBook implements Listener {
 
         // Register listeners.
         Bukkit.getServer().getPluginManager().registerEvents(this, instance);
+    }
+
+    private static ItemStack createReviewBook() {
+        ItemStack reviewBook = new ItemStack(Material.WRITABLE_BOOK);
+        BookMeta categoryFeedbackBookMeta = (BookMeta) reviewBook.getItemMeta();
+        categoryFeedbackBookMeta.displayName(REVIEW_BOOK_TITLE);
+        reviewBook.setItemMeta(categoryFeedbackBookMeta);
+        return reviewBook;
+    }
+
+    @NotNull
+    private static Component getReviewSelectionLine(Map.Entry<ReviewCategory, ReviewSelection> entry) {
+        Component line = Component.empty();
+        line = line.append(Component.text(entry.getKey().getDisplayName(), Style.style(TextDecoration.BOLD)));
+        line = line.appendSpace();
+        line = line.append(EDIT_FEEDBACK.clickEvent(getEditFeedbackClickEvent(entry.getKey())));
+        line = line.appendNewline();
+        for (ReviewSelection selection : ReviewSelection.values()) {
+            Component option = selection.getAbbreviatedComponent();
+            if (selection == entry.getValue()) {
+                option = option.decorate(TextDecoration.BOLD);
+            } else {
+                option = option.clickEvent(getCategorySelectionClickEvent(entry.getKey(), selection));
+            }
+            line = line.append(option);
+        }
+        return line;
+    }
+
+    private static ClickEvent getCategorySelectionClickEvent(ReviewCategory category, ReviewSelection selection) {
+        return ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, String.format("/review %s %s", category, selection));
+    }
+
+    private static ClickEvent getEditFeedbackClickEvent(ReviewCategory category) {
+        return ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, String.format("/review feedback %s", category));
     }
 
     public void unregister() {
@@ -123,7 +153,7 @@ public class ReviewBook implements Listener {
     /**
      * Update the selection of a review category.
      *
-     * @param category the category to change the selection of
+     * @param category  the category to change the selection of
      * @param selection the selection to change it to
      */
     public void updateReviewSelection(ReviewCategory category, ReviewSelection selection) {
@@ -202,14 +232,6 @@ public class ReviewBook implements Listener {
     public boolean isEdited(ReviewCategory category) {
         EditableBook book = reviewCategoryFeedback.get(category);
         return book != null && book.isEdited();
-    }
-
-    private static ItemStack createReviewBook() {
-        ItemStack reviewBook = new ItemStack(Material.WRITABLE_BOOK);
-        BookMeta categoryFeedbackBookMeta = (BookMeta) reviewBook.getItemMeta();
-        categoryFeedbackBookMeta.displayName(REVIEW_BOOK_TITLE);
-        reviewBook.setItemMeta(categoryFeedbackBookMeta);
-        return reviewBook;
     }
 
     private boolean cancelEvent(HumanEntity humanEntity, ItemStack item) {
@@ -308,32 +330,5 @@ public class ReviewBook implements Listener {
         }
 
         return bookId;
-    }
-
-    @NotNull
-    private static Component getReviewSelectionLine(Map.Entry<ReviewCategory, ReviewSelection> entry) {
-        Component line = Component.empty();
-        line = line.append(Component.text(entry.getKey().getDisplayName(), Style.style(TextDecoration.BOLD)));
-        line = line.appendSpace();
-        line = line.append(EDIT_FEEDBACK.clickEvent(getEditFeedbackClickEvent(entry.getKey())));
-        line = line.appendNewline();
-        for (ReviewSelection selection : ReviewSelection.values()) {
-            Component option = selection.getAbbreviatedComponent();
-            if (selection == entry.getValue()) {
-                option = option.decorate(TextDecoration.BOLD);
-            } else {
-                option = option.clickEvent(getCategorySelectionClickEvent(entry.getKey(), selection));
-            }
-            line = line.append(option);
-        }
-        return line;
-    }
-
-    private static ClickEvent getCategorySelectionClickEvent(ReviewCategory category, ReviewSelection selection) {
-        return ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, String.format("/review %s %s", category, selection));
-    }
-
-    private static ClickEvent getEditFeedbackClickEvent(ReviewCategory category) {
-        return ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, String.format("/review feedback %s", category));
     }
 }

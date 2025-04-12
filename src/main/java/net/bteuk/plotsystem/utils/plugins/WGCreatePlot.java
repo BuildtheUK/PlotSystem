@@ -28,28 +28,28 @@ public class WGCreatePlot {
 
     public int plotID;
 
-    //Create a new instance of plots.
+    // Create a new instance of plots.
     public WGCreatePlot() {
     }
 
-    //Create a plot with the current selection.
+    // Create a plot with the current selection.
     public boolean createPlot(Player p, World world, String location, List<BlockVector2> vector, PlotSQL plotSQL, int size, int difficulty) {
 
-        //Get instance of WorldGuard.
+        // Get instance of WorldGuard.
         WorldGuard wg = WorldGuard.getInstance();
 
-        //Get regions.
+        // Get regions.
         RegionManager regions = wg.getPlatform().getRegionContainer().get(BukkitAdapter.adapt(world));
 
-        //Checking if regions isn't null, would indicate that the world doesn't exist.
+        // Checking if regions isn't null, would indicate that the world doesn't exist.
         if (regions == null) {
             return false;
         }
 
-        //Create region to test.
-        ProtectedPolygonalRegion region = new ProtectedPolygonalRegion("test", vector, MIN_Y, (MAX_Y-1));
+        // Create region to test.
+        ProtectedPolygonalRegion region = new ProtectedPolygonalRegion("test", vector, MIN_Y, (MAX_Y - 1));
 
-        //Check whether the region overlaps an existing plot, if true stop the process.
+        // Check whether the region overlaps an existing plot, if true stop the process.
         ApplicableRegionSet set = regions.getApplicableRegions(region);
         if (set.size() > 0) {
 
@@ -69,19 +69,19 @@ public class WGCreatePlot {
             p.sendMessage(ChatUtils.error("To set the marker, go to the plot and run /ps movemarker " + plotID));
         }
 
-        //Create an entry in the database for the plot.
+        // Create an entry in the database for the plot.
         plotID = plotSQL.createPlot(size, difficulty, location, coordinate_id);
 
         // Load the hologram for this plot.
         PlotHelper.addPlotHologram(new PlotHologram(plotID));
 
-        //Create the region with valid name.
-        region = new ProtectedPolygonalRegion(String.valueOf(plotID), vector, MIN_Y, (MAX_Y-1));
+        // Create the region with valid name.
+        region = new ProtectedPolygonalRegion(String.valueOf(plotID), vector, MIN_Y, (MAX_Y - 1));
 
-        //Add the regions to the world
+        // Add the regions to the world
         regions.addRegion(region);
 
-        //Save the new region
+        // Save the new region
         try {
             regions.save();
         } catch (
@@ -92,24 +92,24 @@ public class WGCreatePlot {
         return true;
     }
 
-    //Create a zone with the current selection.
+    // Create a zone with the current selection.
     public boolean createZone(Player p, World world, String location, List<BlockVector2> vector, PlotSQL plotSQL, long expiration, boolean is_public) {
 
-        //Get instance of WorldGuard.
+        // Get instance of WorldGuard.
         WorldGuard wg = WorldGuard.getInstance();
 
-        //Get regions.
+        // Get regions.
         RegionManager regions = wg.getPlatform().getRegionContainer().get(BukkitAdapter.adapt(world));
 
-        //Checking if regions isn't null, would indicate that the world doesn't exist.
+        // Checking if regions isn't null, would indicate that the world doesn't exist.
         if (regions == null) {
             return false;
         }
 
-        //Create region to test.
-        ProtectedPolygonalRegion region = new ProtectedPolygonalRegion("test", vector, MIN_Y, (MAX_Y-1));
+        // Create region to test.
+        ProtectedPolygonalRegion region = new ProtectedPolygonalRegion("test", vector, MIN_Y, (MAX_Y - 1));
 
-        //Check whether the region overlaps an existing plot, if true stop the process.
+        // Check whether the region overlaps an existing plot, if true stop the process.
         ApplicableRegionSet set = regions.getApplicableRegions(region);
         if (set.size() > 0) {
 
@@ -118,19 +118,19 @@ public class WGCreatePlot {
 
         }
 
-        //Create an entry in the database for the plot.
+        // Create an entry in the database for the plot.
         plotID = plotSQL.createZone(location, expiration, is_public);
 
-        //Create the region with valid name.
-        region = new ProtectedPolygonalRegion("z" + plotID, vector, MIN_Y, (MAX_Y-1));
+        // Create the region with valid name.
+        region = new ProtectedPolygonalRegion("z" + plotID, vector, MIN_Y, (MAX_Y - 1));
 
-        //Add the owner to the region.
+        // Add the owner to the region.
         region.getMembers().addPlayer(p.getUniqueId());
 
-        //Add the regions to the world
+        // Add the regions to the world
         regions.addRegion(region);
 
-        //Save the new region
+        // Save the new region
         try {
             regions.save();
         } catch (

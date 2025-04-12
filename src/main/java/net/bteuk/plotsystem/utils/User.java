@@ -17,23 +17,19 @@ import java.util.List;
 
 public class User {
 
-    //Basic information about the player.
+    // Basic information about the player.
     public final Player player;
     public final String uuid;
     public final String name;
 
     public final SelectionTool selectionTool;
-
-    public int inPlot = 0;
-    public int inZone = 0;
-
-    @Getter
-    @Setter
-    private ReviewAction review;
-
     public final GlobalSQL globalSQL;
     public final PlotSQL plotSQL;
-
+    // Skip outlines for these plots.
+    @Getter
+    private final List<String> skipOutlines = new ArrayList<>();
+    public int inPlot = 0;
+    public int inZone = 0;
     // Guis
     public ClaimGui claimGui;
     public CreatePlotGui createPlotGui;
@@ -41,11 +37,9 @@ public class User {
 
     // Store the location of the player on interval, this allows the server to check when to update the outlines.
     public Location lastLocation;
-
-    // Skip outlines for these plots.
     @Getter
-    private final List<String> skipOutlines = new ArrayList<>();
-
+    @Setter
+    private ReviewAction review;
     // Disable outlines for all plots and zones.
     @Getter
     @Setter
@@ -53,21 +47,21 @@ public class User {
 
     public User(Player player, GlobalSQL globalSQL, PlotSQL plotSQL) {
 
-        //Set sql
+        // Set sql
         this.globalSQL = globalSQL;
         this.plotSQL = plotSQL;
 
-        //Set player, uuid and name variable.
+        // Set player, uuid and name variable.
         this.player = player;
         uuid = player.getUniqueId().toString();
         name = player.getName();
 
-        //Set selection tool, only players with the valid roles can use it.
+        // Set selection tool, only players with the valid roles can use it.
         selectionTool = new SelectionTool(this, plotSQL);
 
-        //Set last location to current location.
+        // Set last location to current location.
         lastLocation = player.getLocation();
-        //Set outlines for player.
+        // Set outlines for player.
         PlotSystem.getInstance().getOutlines().addNearbyOutlines(this);
 
     }

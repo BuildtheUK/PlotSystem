@@ -10,7 +10,7 @@ public class EventManager {
 
         LOGGER.info("Event: " + Arrays.toString(event));
 
-        //Start the execution process by looking at the event message structure.
+        // Start the execution process by looking at the event message structure.
         switch (event[0]) {
             case "teleport" -> TeleportEvent.event(uuid, event);
             case "submit" -> SubmitEvent.event(uuid, event);

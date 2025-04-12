@@ -53,17 +53,12 @@ public abstract class ReviewAction {
     protected final String plotOwner;
 
     protected final World plotWorld;
-
-    // Previous feedback Gui.
-    protected PreviousFeedbackGui previousFeedbackGui;
-
     private final ItemStack[] initialInventory;
-
     private final ReviewHotbar hotbarListener;
-
     @Getter
     private final ReviewBook reviewBook;
-
+    // Previous feedback Gui.
+    protected PreviousFeedbackGui previousFeedbackGui;
     protected PlotDifficulties plotDifficulty = PlotDifficulties.EASY;
 
     public ReviewAction(PlotSystem instance, int plotID, User user) {
@@ -96,6 +91,28 @@ public abstract class ReviewAction {
                 break;
             }
         }
+    }
+
+    private static String getNewRole(int difficulty, String role) {
+        String newRole = null;
+        switch (difficulty) {
+            case 1 -> {
+                if (role.equals("applicant")) {
+                    newRole = "apprentice";
+                }
+            }
+            case 2 -> {
+                if (role.equals("applicant") || role.equals("apprentice")) {
+                    newRole = "jrbuilder";
+                }
+            }
+            case 3 -> {
+                if (role.equals("applicant") || role.equals("apprentice") || role.equals("jrbuilder")) {
+                    newRole = "builder";
+                }
+            }
+        }
+        return newRole;
     }
 
     public abstract Gui getReviewActionGui();
@@ -212,6 +229,7 @@ public abstract class ReviewAction {
 
     /**
      * Indicated whether a plot can be accepted/denied with the current feedback settings.
+     *
      * @param accept whether the check should be done for accepting the plot
      * @return whether the plot can be accepted/denied
      */
@@ -443,27 +461,5 @@ public abstract class ReviewAction {
             DiscordDirectMessage discordDirectMessage = new DiscordDirectMessage(plotOwner, builder.substring(i, Math.min(i + 2000, builder.length())));
             Network.getInstance().getChat().sendSocketMesage(discordDirectMessage);
         }
-    }
-
-    private static String getNewRole(int difficulty, String role) {
-        String newRole = null;
-        switch (difficulty) {
-            case 1 -> {
-                if (role.equals("applicant")) {
-                    newRole = "apprentice";
-                }
-            }
-            case 2 -> {
-                if (role.equals("applicant") || role.equals("apprentice")) {
-                    newRole = "jrbuilder";
-                }
-            }
-            case 3 -> {
-                if (role.equals("applicant") || role.equals("apprentice") || role.equals("jrbuilder")) {
-                    newRole = "builder";
-                }
-            }
-        }
-        return newRole;
     }
 }

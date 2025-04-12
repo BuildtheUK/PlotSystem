@@ -13,18 +13,18 @@ public class RetractEvent {
 
     public static void event(String uuid, String[] event) {
 
-        //Events for retracting
+        // Events for retracting
         if (event[1].equals("plot")) {
 
-            //Convert the string id to int id.
+            // Convert the string id to int id.
             int id = Integer.parseInt(event[2]);
 
             Component message;
 
-            //Check if plot is submitted.
+            // Check if plot is submitted.
             if (PlotSystem.getInstance().plotSQL.hasRow("SELECT id FROM plot_data WHERE id=" + id + " AND status='submitted';")) {
 
-                //Set plot status to claimed.
+                // Set plot status to claimed.
                 PlotHelper.updatePlotStatus(id, PlotStatus.CLAIMED);
 
                 // Remove submitted plot entry.
@@ -35,13 +35,13 @@ public class RetractEvent {
 
                 message = ChatUtils.success("Retracted submission for Plot %s", String.valueOf(id));
 
-                //Send message to reviewers that a plot submission has been retracted.
+                // Send message to reviewers that a plot submission has been retracted.
                 PlotMessage plotMessage = new PlotMessage("A submitted plot has been retracted, there %s %s submitted %s.", false);
                 Network.getInstance().getChat().sendSocketMesage(plotMessage);
 
             } else {
 
-                //If plot is not submitted set the message accordingly.
+                // If plot is not submitted set the message accordingly.
                 message = ChatUtils.error("Plot submission can not be retracted as it is not currently submitted.");
 
             }

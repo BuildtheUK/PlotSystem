@@ -11,10 +11,9 @@ import org.bukkit.Material;
 
 public abstract class ReviewActionGui extends Gui {
 
-    protected ReviewAction reviewAction;
-
     protected final GlobalSQL globalSQL;
     protected final PlotSQL plotSQL;
+    protected ReviewAction reviewAction;
 
     public ReviewActionGui(Component title, ReviewAction reviewAction) {
         super(27, title);
