@@ -324,7 +324,7 @@ public class ReviewBook implements Listener {
 
         for (String page : pages) {
             if (!page.isBlank()) {
-                plotSQL.update("INSERT INTO book_data(id,page,contents) VALUES(" + bookId + "," + i + ",'" + page.replace("'", "\\'") + "');");
+                plotSQL.saveBook(bookId, i, page);
                 i++;
             }
         }
