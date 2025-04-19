@@ -20,4 +20,13 @@ public class ReviewGui extends ReviewActionGui {
                 ChatUtils.line("Plot ID: " + reviewAction.getPlotID()),
                 ChatUtils.line("Plot Owner: " + globalSQL.getString("SELECT name FROM player_data WHERE uuid='" + reviewAction.getPlotOwner() + "';"))));
     }
+
+    @Override
+    protected void createCancelReviewActionItem() {
+        //Cancel review.
+        setItem(26, Utils.createItem(Material.BARRIER, 1,
+                        ChatUtils.title("Cancel Review"),
+                        ChatUtils.line("Stop reviewing this plot.")),
+                u -> reviewAction.cancel());
+    }
 }

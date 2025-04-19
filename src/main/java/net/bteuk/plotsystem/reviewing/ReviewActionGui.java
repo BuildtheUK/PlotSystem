@@ -28,6 +28,8 @@ public abstract class ReviewActionGui extends Gui {
 
     protected abstract void createGuiInfoItem();
 
+    protected abstract void createCancelReviewActionItem();
+
     private void createGui() {
 
         createGuiInfoItem();
@@ -63,11 +65,8 @@ public abstract class ReviewActionGui extends Gui {
                     u -> reviewAction.openPreviousFeedbackGui());
         }
 
-        //Cancel review.
-        setItem(26, Utils.createItem(Material.BARRIER, 1,
-                        ChatUtils.title("Cancel Verification"),
-                        ChatUtils.line("Stop verifying this plot.")),
-                u -> reviewAction.cancel());
+        // Cancel review action.
+        createCancelReviewActionItem();
     }
 
     public void refresh() {

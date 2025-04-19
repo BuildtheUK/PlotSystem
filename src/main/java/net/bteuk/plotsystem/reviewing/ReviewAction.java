@@ -241,27 +241,36 @@ public abstract class ReviewAction {
             if (category.isRequired()) {
 
                 ReviewSelection selection = reviewBook.getReviewSelectionForCategory(category);
-                boolean thresholdReached = selection != null && PlotHelper.reviewCategoryThresholdReached(plotDifficulty, category, selection);
-                thresholdsReached = thresholdsReached && thresholdReached;
 
-                if (accept && !thresholdReached) {
-                    // Notify the reviewer that the plot can not be accepted with this category selection.
-                    ReviewSelection requiredThreshold = PlotHelper.getReviewCategoryThreshold(plotDifficulty, category);
-                    if (requiredThreshold == null) {
-                        user.player.sendMessage(ChatUtils.error("Category %s does not have a configured threshold, please notify an administrator!", category.getDisplayName()));
-                    } else {
-                        user.player.sendMessage(ChatUtils.error("Category %s selection is not sufficient to accept this plot, must be at least ", category.getDisplayName()).append(requiredThreshold.getDisplayComponent()));
+                // If selection is NONE let the reviewer know, all required categories require a selection.
+                if (selection == null || selection == ReviewSelection.NONE) {
+                    user.player.sendMessage(ChatUtils.error("Category %s must have a selection.", category.getDisplayName()));
+                    canSave = false;
+                } else {
+                    boolean thresholdReached = PlotHelper.reviewCategoryThresholdReached(plotDifficulty, category, selection);
+                    thresholdsReached = thresholdsReached && thresholdReached;
+
+                    if (accept && !thresholdReached) {
+                        // Notify the reviewer that the plot can not be accepted with this category selection.
+                        ReviewSelection requiredThreshold = PlotHelper.getReviewCategoryThreshold(plotDifficulty, category);
+                        if (requiredThreshold == null) {
+                            user.player.sendMessage(
+                                    ChatUtils.error("Category %s does not have a configured threshold, please notify an administrator!", category.getDisplayName()));
+                        } else {
+                            user.player.sendMessage(ChatUtils.error("Category %s selection is not sufficient to accept this plot, must be at least ", category.getDisplayName())
+                                    .append(requiredThreshold.getDisplayComponent()));
+                        }
+                        canSave = false;
+                    } else if (!accept && !thresholdReached && !reviewBook.hasFeedback(category)) {
+                        user.player.sendMessage(ChatUtils.error("Category %s must have written feedback to deny this plot.", category.getDisplayName()));
+                        canSave = false;
                     }
-                    canSave = false;
-                } else if (!accept && !thresholdReached && !reviewBook.hasFeedback(category)) {
-                    user.player.sendMessage(ChatUtils.error("Category %s must have written feedback to deny this plot.", category.getDisplayName()));
-                    canSave = false;
                 }
             }
         }
 
         // If all the thresholds have been reached, but the plot is being denied, notify the reviewer.
-        if (!accept && thresholdsReached) {
+        if (!accept && thresholdsReached && canSave) {
             user.player.sendMessage(ChatUtils.error("All required categories are sufficient to accept the plot."));
             canSave = false;
         }

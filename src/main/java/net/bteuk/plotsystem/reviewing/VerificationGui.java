@@ -23,4 +23,13 @@ public class VerificationGui extends ReviewActionGui {
                                 plotSQL.getBoolean("SELECT accepted FROM plot_review WHERE plot_id=" + reviewAction.getPlotID() + " AND completed=0;") ? "accepted" : "denied"))
                         .append(ChatUtils.line(" this plot."))));
     }
+
+    @Override
+    protected void createCancelReviewActionItem() {
+        //Cancel review.
+        setItem(26, Utils.createItem(Material.BARRIER, 1,
+                        ChatUtils.title("Cancel Verification"),
+                        ChatUtils.line("Stop verifying this plot.")),
+                u -> reviewAction.cancel());
+    }
 }
