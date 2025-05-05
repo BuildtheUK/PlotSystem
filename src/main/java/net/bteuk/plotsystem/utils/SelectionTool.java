@@ -252,14 +252,15 @@ public class SelectionTool extends WGCreatePlot {
         // Create the plot.
         if (createPlot(u.player, world, location, vector, plotSQL, size, difficulty)) {
 
-            // Store plot bounds.
+            int xTransform = plotSQL.getInt("SELECT xTransform FROM location_data WHERE name='" + location + "';");
+            int zTransform = plotSQL.getInt("SELECT zTransform FROM location_data WHERE name='" + location + "';");
+
+            // Store the plot corners with coordinate transform.
             int i = 1;
             for (BlockVector2 point : vector) {
-
                 plotSQL.update("INSERT INTO plot_corners(id,corner,x,z) VALUES(" +
-                        plotID + "," + i + "," + point.getX() + "," + point.getZ() + ");");
+                        plotID + "," + i + "," + (point.getX() - xTransform) + "," + (point.getZ() - zTransform) + ");");
                 i++;
-
             }
 
             // Send feedback.

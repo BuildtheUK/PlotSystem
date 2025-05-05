@@ -260,7 +260,7 @@ public class CreateCommand {
 
                     Bukkit.getScheduler().runTaskAsynchronously(PlotSystem.getInstance(), () -> {
 
-                        if (!WorldEditor.largeCopy(regionFormat.minPoint, regionFormat.maxPoint, regionFormat.pasteMinPoint, copy, paste)) {
+                        if (!WorldEditor.largeCopy(regionFormat.minPoint(), regionFormat.maxPoint(), regionFormat.pasteMinPoint(), copy, paste)) {
                             sender.sendMessage(ChatUtils.error("An error occured while transferring the terrain."));
                         } else {
                             regions.remove(regionFormat);

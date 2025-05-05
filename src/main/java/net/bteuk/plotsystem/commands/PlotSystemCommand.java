@@ -54,6 +54,9 @@ public class PlotSystemCommand extends AbstractCommand {
                 DeleteCommand deleteCommand = new DeleteCommand(globalSQL, plotSQL);
                 deleteCommand.delete(sender, args);
             }
+            case "update" -> {
+                UpdateCommand.update(sender, args);
+            }
             case "help" -> help(sender);
             case "setalias" -> {
 

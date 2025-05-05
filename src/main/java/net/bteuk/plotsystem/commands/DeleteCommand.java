@@ -27,10 +27,8 @@ public class DeleteCommand {
     private final PlotSQL plotSQL;
 
     public DeleteCommand(GlobalSQL globalSQL, PlotSQL plotSQL) {
-
         this.globalSQL = globalSQL;
         this.plotSQL = plotSQL;
-
     }
 
     public void delete(CommandSender sender, String[] args) {
@@ -63,7 +61,6 @@ public class DeleteCommand {
                 sender.sendMessage(ChatUtils.error("/plotsystem delete [plot, location, zone]"));
 
         }
-
     }
 
     private void deletePlot(CommandSender sender, String[] args) {
@@ -167,12 +164,10 @@ public class DeleteCommand {
 
         // If sender is a player, check for permission.
         if (sender instanceof Player p) {
-
             if (!(p.hasPermission("uknet.plots.delete.location"))) {
                 p.sendMessage(ChatUtils.error("You do not have permission to use this command."));
                 return;
             }
-
         }
 
         // Check arg count.
