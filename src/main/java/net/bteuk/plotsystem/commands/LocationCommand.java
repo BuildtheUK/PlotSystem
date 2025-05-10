@@ -6,6 +6,7 @@ import net.bteuk.network.eventing.events.EventManager;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.sql.GlobalSQL;
 import net.bteuk.network.sql.PlotSQL;
+import net.bteuk.network.utils.Utils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.CopyRegionFormat;
 import net.bteuk.plotsystem.utils.plugins.Multiverse;
@@ -127,7 +128,8 @@ public final class LocationCommand {
 
             // Add the location to the database.
             if (plotSQL.update("INSERT INTO location_data(name, alias, server, coordMin, coordMax, xTransform, zTransform) VALUES('"
-                    + commandArguments.location() + "','" + commandArguments.location() + "','" + PlotSystem.SERVER_NAME + "'," + coordMin + "," + coordMax + "," + xTransform + "," + zTransform + ");")) {
+                    + commandArguments.location() + "','" + commandArguments.location() + "','" + PlotSystem.SERVER_NAME + "'," + coordMin + "," + coordMax + "," + xTransform +
+                    "," + zTransform + ");")) {
 
                 sender.sendMessage(ChatUtils.success("Created new location ")
                         .append(Component.text(commandArguments.location(), NamedTextColor.DARK_AQUA)));
@@ -145,7 +147,8 @@ public final class LocationCommand {
                                 "'region set plotsystem " + region + "');");
 
                         // Add region to database.
-                        plotSQL.update("INSERT INTO regions(region,server,location) VALUES('" + region + "','" + PlotSystem.SERVER_NAME + "','" + commandArguments.location() + "');");
+                        plotSQL.update(
+                                "INSERT INTO regions(region,server,location) VALUES('" + region + "','" + PlotSystem.SERVER_NAME + "','" + commandArguments.location() + "');");
 
                     }
                 }
@@ -242,7 +245,8 @@ public final class LocationCommand {
             int maxCoordinateId = globalSQL.getInt("SELECT coordMax FROM location_data WHERE name='" + commandArguments.location() + "';");
 
             globalSQL.updateCoordinate(minCoordinateId, new Location(Bukkit.getWorld(commandArguments.location()), (regionXMin * 512), MIN_Y, (regionZMin * 512), 0, 0));
-            globalSQL.updateCoordinate(maxCoordinateId, new Location(Bukkit.getWorld(commandArguments.location()), ((regionXMax * 512) + 511), MAX_Y - 1, ((regionZMax * 512) + 511), 0, 0));
+            globalSQL.updateCoordinate(maxCoordinateId,
+                    new Location(Bukkit.getWorld(commandArguments.location()), ((regionXMax * 512) + 511), MAX_Y - 1, ((regionZMax * 512) + 511), 0, 0));
 
             // Add the location to the database.
             for (Region region : regionsToAdd) {
@@ -252,13 +256,91 @@ public final class LocationCommand {
                         "SELECT name FROM server_data WHERE type='EARTH';") + "'," + "'region set plotsystem " + region.name() + "');");
 
                 // Add region to database.
-                plotSQL.update("INSERT INTO regions(region,server,location) VALUES('" + region.name() + "','" + PlotSystem.SERVER_NAME + "','" + commandArguments.location() + "');");
+                plotSQL.update(
+                        "INSERT INTO regions(region,server,location) VALUES('" + region.name() + "','" + PlotSystem.SERVER_NAME + "','" + commandArguments.location() + "');");
             }
 
             sender.sendMessage(ChatUtils.success("Updated location %s", commandArguments.location()));
 
             teleportToLocation(sender, globalSQL, plotSQL, commandArguments.location(), minCoordinateId, maxCoordinateId);
         });
+    }
+
+    public static void deleteLocation(CommandSender sender, String[] args) {
+
+        // If sender is a player, check for permission.
+        if (sender instanceof Player p) {
+            if (!(p.hasPermission("uknet.plots.delete.location"))) {
+                p.sendMessage(ChatUtils.error("You do not have permission to use this command."));
+                return;
+            }
+        }
+
+        // Check arg count.
+        if (args.length < 3) {
+            sender.sendMessage(ChatUtils.error("/plotsystem delete location [name]"));
+            return;
+        }
+
+        PlotSQL plotSQL = Network.getInstance().getPlotSQL();
+        GlobalSQL globalSQL = Network.getInstance().getGlobalSQL();
+
+        // Check if location exists.
+        if (!(plotSQL.hasRow("SELECT name FROM location_data WHERE name='" + args[2] + "';"))) {
+            sender.sendMessage(ChatUtils.error("The location %s does not exist.", args[2]));
+            return;
+        }
+
+        // Check if the location is on this server.
+        if (!(plotSQL.getString("SELECT server FROM location_data WHERE name='" + args[2] + "';").equals(PlotSystem.SERVER_NAME))) {
+            sender.sendMessage(ChatUtils.error("This location is not on this server."));
+            return;
+        }
+
+        // If location has plots, cancel.
+        if (plotSQL.hasRow("SELECT id FROM plot_data WHERE location='" + args[2] + "' AND status<>'completed' AND status<>'deleted';")) {
+            sender.sendMessage(ChatUtils.error("This location active has plots, all plots must be deleted or completed to remove the location."));
+            return;
+        }
+
+        // Teleport all players out of the world, so it can be deleted.
+        // Get the worlds.
+        String saveWorldName = PlotSystem.getInstance().getConfig().getString("save_world");
+        if (saveWorldName == null) {
+            sender.sendMessage(ChatUtils.error("The save world is not set in config."));
+            return;
+        }
+
+        // Get save world.
+        World saveWorld = Bukkit.getWorld(saveWorldName);
+
+        teleportPlayersFromLocation(args[2], saveWorld, plotSQL, globalSQL);
+
+        // Delete location.
+        if (Multiverse.deleteWorld(args[2])) {
+
+            // Delete location from database.
+            plotSQL.update("DELETE FROM location_data WHERE name='" + args[2] + "';");
+            sender.sendMessage(ChatUtils.success("Deleted location ")
+                    .append(Component.text(args[2], NamedTextColor.DARK_AQUA)));
+            LOGGER.info("Deleted location " + args[2] + ".");
+
+            // Get regions from database.
+            ArrayList<String> regions = plotSQL.getStringList("SELECT region FROM regions WHERE location='" + args[2] + "';");
+
+            // Delete regions from database.
+            plotSQL.update("DELETE FROM regions WHERE location='" + args[2] + "';");
+
+            // Iterate through regions to unlock them on Earth.
+            for (String region : regions) {
+                globalSQL.update("INSERT INTO server_events(uuid,type,server,event) VALUES(NULL,'network','"
+                        + globalSQL.getString("SELECT name FROM server_data WHERE type='earth';") + "'," +
+                        "'region set default " + region + "');");
+            }
+        } else {
+            sender.sendMessage(ChatUtils.error("An error occurred while deleting the world."));
+            LOGGER.warning("An error occurred while deleting world " + args[2] + ".");
+        }
     }
 
     private static CommandArguments parseCommandArguments(CommandSender sender, String[] args, Component error) {
@@ -384,6 +466,30 @@ public final class LocationCommand {
                             + p.getLocation().getYaw() + " " + p.getLocation().getPitch(),
                     "&aTeleported to location &3" + plotSQL.getString("SELECT alias FROM location_data WHERE name='" + location + "';"), p.getLocation());
         }
+    }
+
+    private static void teleportPlayersFromLocation(String location, World saveWorld, PlotSQL plotSQL, GlobalSQL globalSQL) {
+        int coordMin = globalSQL.getInt("SELECT coordMin FROM location_data WHERE name='" + location + "';");
+        int coordMax = globalSQL.getInt("SELECT coordMax FROM location_data WHERE name='" + location + "';");
+
+        // Get middle.
+        double x = ((globalSQL.getDouble("SELECT x FROM coordinates WHERE id=" + coordMax + ";") +
+                globalSQL.getDouble("SELECT x FROM coordinates WHERE id=" + coordMin + ";")) / 2) +
+                plotSQL.getInt("SELECT xTransform FROM location_data WHERE name='" + location + "';");
+
+        double z = ((globalSQL.getDouble("SELECT z FROM coordinates WHERE id=" + coordMax + ";") +
+                globalSQL.getDouble("SELECT z FROM coordinates WHERE id=" + coordMin + ";")) / 2) +
+                plotSQL.getInt("SELECT zTransform FROM location_data WHERE name='" + location + "';");
+
+        x -= plotSQL.getInt("SELECT xTransform FROM location_data WHERE name='" + location + "';");
+        z -= plotSQL.getInt("SELECT zTransform FROM location_data WHERE name='" + location + "';");
+
+        // Teleport all players away from the location.
+        Location teleportLocation = new Location(saveWorld, x, Utils.getHighestYAt(saveWorld, (int) x, (int) z), z);
+        PlotSystem.getInstance().getServer().getOnlinePlayers().forEach(player -> {
+            player.teleport(teleportLocation);
+            player.sendMessage(ChatUtils.success("Teleported to save world, location %s is being deleted.", location));
+        });
     }
 
     private record CommandArguments(String location, int xmin, int ymin, int zmin, int xmax, int ymax, int zmax) {
