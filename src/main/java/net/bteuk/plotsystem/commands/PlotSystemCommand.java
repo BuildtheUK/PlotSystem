@@ -46,17 +46,12 @@ public class PlotSystemCommand extends AbstractCommand {
         switch (args[0]) {
 
             case "selectiontool" -> selectionTool(sender);
-            case "create" -> {
-                CreateCommand createCommand = new CreateCommand(globalSQL, plotSQL);
-                createCommand.create(sender, args);
-            }
+            case "create" -> CreateCommand.create(sender, args);
             case "delete" -> {
                 DeleteCommand deleteCommand = new DeleteCommand(globalSQL, plotSQL);
                 deleteCommand.delete(sender, args);
             }
-            case "update" -> {
-                UpdateCommand.update(sender, args);
-            }
+            case "update" -> UpdateCommand.update(sender, args);
             case "help" -> help(sender);
             case "setalias" -> {
 
