@@ -151,9 +151,9 @@ public class UpdateCommand {
         int regionXMax = Math.floorDiv(xmax, 512);
         int regionZMax = Math.floorDiv(zmax, 512);
 
-        // TODO: Calculate the coordinate transformation.
-        int xTransform = -(regionXMin * 512);
-        int zTransform = -(regionZMin * 512);
+        // Get the coordinate transformation of the location.
+        int xTransform = plotSQL.getInt("SELECT xTransform FROM location_data WHERE name='" + args[2] + "';");
+        int zTransform = plotSQL.getInt("SELECT zTransform FROM location_data WHERE name='" + args[2] + "';");
 
         // Get the worlds.
         String saveWorld = PlotSystem.getInstance().getConfig().getString("save_world");
@@ -254,43 +254,24 @@ public class UpdateCommand {
 
             sender.sendMessage(ChatUtils.success("Terrain transfer has been completed."));
 
-            // TODO: Update the previous coordinates for the location.
-            // TODO: Add the regions to the database.
-            // TODO: Add the regions to the region database.
+            int minCoordinateId = globalSQL.getInt("SELECT coordMin FROM location_data WHERE name='" + args[2] + "';");
+            int maxCoordinateId = globalSQL.getInt("SELECT coordMax FROM location_data WHERE name='" + args[2] + "';");
 
-            int coordMin = globalSQL.addCoordinate(new Location(Bukkit.getWorld(args[2]), (regionXMin * 512), MIN_Y, (regionZMin * 512), 0, 0));
-
-            int coordMax = globalSQL.addCoordinate(new Location(Bukkit.getWorld(args[2]), ((regionXMax * 512) + 511), MAX_Y - 1, ((regionZMax * 512) + 511), 0, 0));
+            globalSQL.updateCoordinate(minCoordinateId, new Location(Bukkit.getWorld(args[2]), (regionXMin * 512), MIN_Y, (regionZMin * 512), 0, 0));
+            globalSQL.updateCoordinate(maxCoordinateId, new Location(Bukkit.getWorld(args[2]), ((regionXMax * 512) + 511), MAX_Y - 1, ((regionZMax * 512) + 511), 0, 0));
 
             // Add the location to the database.
-            if (plotSQL.update(
-                    "INSERT INTO location_data(name, alias, server, coordMin, coordMax, xTransform, zTransform) VALUES('" + args[2] + "','" + args[2] + "','" + PlotSystem.SERVER_NAME + "'," + coordMin + "," + coordMax + "," + xTransform + "," + zTransform + ");")) {
+            for (Region region : regionsToAdd) {
+                // Change region status in region database.
+                // If it already exists remove members.
+                globalSQL.update("INSERT INTO server_events(uuid,type,server,event) VALUES(NULL,'network','" + globalSQL.getString(
+                        "SELECT name FROM server_data WHERE type='EARTH';") + "'," + "'region set plotsystem " + region.name() + "');");
 
-                sender.sendMessage(ChatUtils.success("Created new location ").append(Component.text(args[2], NamedTextColor.DARK_AQUA)));
-
-                // Set the status of all effected regions in the region database.
-                for (int i = regionXMin; i <= regionXMax; i++) {
-                    for (int j = regionZMin; j <= regionZMax; j++) {
-
-                        String region = i + "," + j;
-
-                        // Change region status in region database.
-                        // If it already exists remove members.
-                        globalSQL.update("INSERT INTO server_events(uuid,type,server,event) VALUES(NULL,'network','" + globalSQL.getString(
-                                "SELECT name FROM server_data WHERE type='EARTH';") + "'," + "'region set plotsystem " + region + "');");
-
-                        // Add region to database.
-                        plotSQL.update("INSERT INTO regions(region,server,location) VALUES('" + region + "','" + PlotSystem.SERVER_NAME + "','" + args[2] + "');");
-
-                    }
-                }
-
-            } else {
-
-                sender.sendMessage(ChatUtils.error("An error occurred, please check the console for more info."));
-                LOGGER.warning("An error occured while adding new location!");
-
+                // Add region to database.
+                plotSQL.update("INSERT INTO regions(region,server,location) VALUES('" + region.name() + "','" + PlotSystem.SERVER_NAME + "','" + args[2] + "');");
             }
+
+            sender.sendMessage(ChatUtils.success("Update location %s", args[2]));
         });
     }
 
