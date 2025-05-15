@@ -180,7 +180,7 @@ public final class LocationCommand {
             return;
         }
 
-        PlotSQL plotSQL = Network.getInstance().getPlotSQL();
+        final PlotSQL plotSQL = Network.getInstance().getPlotSQL();
 
         // Check if the location name exists.
         if (!plotSQL.hasRow("SELECT name FROM location_data WHERE name='" + commandArguments.location() + "';")) {
@@ -241,8 +241,8 @@ public final class LocationCommand {
 
             GlobalSQL globalSQL = Network.getInstance().getGlobalSQL();
 
-            int minCoordinateId = globalSQL.getInt("SELECT coordMin FROM location_data WHERE name='" + commandArguments.location() + "';");
-            int maxCoordinateId = globalSQL.getInt("SELECT coordMax FROM location_data WHERE name='" + commandArguments.location() + "';");
+            int minCoordinateId = plotSQL.getInt("SELECT coordMin FROM location_data WHERE name='" + commandArguments.location() + "';");
+            int maxCoordinateId = plotSQL.getInt("SELECT coordMax FROM location_data WHERE name='" + commandArguments.location() + "';");
 
             globalSQL.updateCoordinate(minCoordinateId, new Location(Bukkit.getWorld(commandArguments.location()), (regionXMin * 512), MIN_Y, (regionZMin * 512), 0, 0));
             globalSQL.updateCoordinate(maxCoordinateId,

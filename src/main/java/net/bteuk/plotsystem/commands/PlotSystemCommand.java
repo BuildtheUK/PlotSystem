@@ -29,7 +29,7 @@ public class PlotSystemCommand extends AbstractCommand {
         this.plotSQL = plotSQL;
         this.globalSQL = globalSQL;
 
-        setTabCompleter(new FixedArgSelector(Arrays.asList("create", "selectiontool", "delete", "help", "setalias", "movemarker"), 0));
+        setTabCompleter(new FixedArgSelector(Arrays.asList("create", "selectiontool", "delete", "help", "setalias", "movemarker", "update"), 0));
     }
 
     @Override

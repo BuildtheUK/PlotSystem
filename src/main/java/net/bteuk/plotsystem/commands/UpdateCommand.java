@@ -4,6 +4,7 @@ import net.bteuk.network.Network;
 import net.bteuk.network.lib.enums.PlotDifficulties;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.sql.PlotSQL;
+import net.bteuk.plotsystem.PlotSystem;
 import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -76,5 +77,8 @@ public final class UpdateCommand {
         // Update the plot difficulty.
         plotSQL.update("UPDATE plot_data SET difficulty=" + plotDifficulty.getValue() + " WHERE id=" + plotID + ";");
         sender.sendMessage(ChatUtils.success("Updated difficulty of plot %s to %s.", args[2], args[5]));
+
+        // Update the plot outlines.
+        PlotSystem.getInstance().getUsers().forEach(PlotSystem.getInstance().getOutlines()::addNearbyOutlines);
     }
 }
