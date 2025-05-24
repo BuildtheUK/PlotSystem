@@ -6,6 +6,7 @@ import net.bteuk.network.eventing.events.EventManager;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.sql.GlobalSQL;
 import net.bteuk.network.sql.PlotSQL;
+import net.bteuk.network.utils.Coordinate;
 import net.bteuk.network.utils.Utils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.CopyRegionFormat;
@@ -181,10 +182,23 @@ public final class LocationCommand {
         }
 
         final PlotSQL plotSQL = Network.getInstance().getPlotSQL();
+        final GlobalSQL globalSQL = Network.getInstance().getGlobalSQL();
 
         // Check if the location name exists.
         if (!plotSQL.hasRow("SELECT name FROM location_data WHERE name='" + commandArguments.location() + "';")) {
             sender.sendMessage(ChatUtils.error("Location %s does not exist.", commandArguments.location()));
+            return;
+        }
+
+        // Check if the new area is equal or larger than the existing area.
+        final int minCoordinateId = plotSQL.getInt("SELECT coordMin FROM location_data WHERE name='" + commandArguments.location() + "';");
+        final int maxCoordinateId = plotSQL.getInt("SELECT coordMax FROM location_data WHERE name='" + commandArguments.location() + "';");
+
+        Coordinate minCoordinate = globalSQL.getCoordinate(minCoordinateId);
+        Coordinate maxCoordinate = globalSQL.getCoordinate(maxCoordinateId);
+
+        if (commandArguments.isSmallerThan(minCoordinate, maxCoordinate)) {
+            sender.sendMessage(ChatUtils.error("The new area must not be smaller than the current area."));
             return;
         }
 
@@ -238,11 +252,6 @@ public final class LocationCommand {
         Bukkit.getScheduler().runTaskAsynchronously(PlotSystem.getInstance(), () -> {
 
             copyRegions(sender, regions);
-
-            GlobalSQL globalSQL = Network.getInstance().getGlobalSQL();
-
-            int minCoordinateId = plotSQL.getInt("SELECT coordMin FROM location_data WHERE name='" + commandArguments.location() + "';");
-            int maxCoordinateId = plotSQL.getInt("SELECT coordMax FROM location_data WHERE name='" + commandArguments.location() + "';");
 
             globalSQL.updateCoordinate(minCoordinateId, new Location(Bukkit.getWorld(commandArguments.location()), (regionXMin * 512), MIN_Y, (regionZMin * 512), 0, 0));
             globalSQL.updateCoordinate(maxCoordinateId,
@@ -469,8 +478,8 @@ public final class LocationCommand {
     }
 
     private static void teleportPlayersFromLocation(String location, World saveWorld, PlotSQL plotSQL, GlobalSQL globalSQL) {
-        int coordMin = globalSQL.getInt("SELECT coordMin FROM location_data WHERE name='" + location + "';");
-        int coordMax = globalSQL.getInt("SELECT coordMax FROM location_data WHERE name='" + location + "';");
+        int coordMin = plotSQL.getInt("SELECT coordMin FROM location_data WHERE name='" + location + "';");
+        int coordMax = plotSQL.getInt("SELECT coordMax FROM location_data WHERE name='" + location + "';");
 
         // Get middle.
         double x = ((globalSQL.getDouble("SELECT x FROM coordinates WHERE id=" + coordMax + ";") +
@@ -493,6 +502,24 @@ public final class LocationCommand {
     }
 
     private record CommandArguments(String location, int xmin, int ymin, int zmin, int xmax, int ymax, int zmax) {
+
+        /**
+         * Checks whether the area defined by the command arguments is smaller than the area defined by the given coordinates.
+         *
+         * @param coordMin the min coordinate
+         * @param coordMax the max coordinate
+         * @return whether the area is smaller than the input coordinates
+         */
+        private boolean isSmallerThan(Coordinate coordMin, Coordinate coordMax) {
+            boolean smaller = coordMin == null || coordMax == null;
+            smaller = smaller || xmin > coordMin.getX();
+            smaller = smaller || ymin > coordMin.getY();
+            smaller = smaller || zmin > coordMin.getZ();
+            smaller = smaller || xmax < coordMax.getX();
+            smaller = smaller || ymax < coordMax.getY();
+            smaller = smaller || zmax < coordMax.getZ();
+            return smaller;
+        }
     }
 
     private record Region(String name, int regionX, int regionZ) {
