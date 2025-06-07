@@ -219,7 +219,7 @@ public abstract class ReviewAction {
         NetworkUser networkUser = Network.getInstance().getUser(user.player);
         if (networkUser != null) {
             networkUser.player.closeInventory();
-            previousFeedbackGui.open(Network.getInstance().getUser(user.player));
+            previousFeedbackGui.open(networkUser);
         }
     }
 
@@ -240,7 +240,7 @@ public abstract class ReviewAction {
 
         if (networkUser != null) {
             networkUser.player.closeInventory();
-            recommendedTutorialsGui.open(Network.getInstance().getUser(user.player));
+            recommendedTutorialsGui.open(networkUser);
         }
     }
 
