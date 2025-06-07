@@ -1,5 +1,5 @@
 # Server configuration
-version: 1.7.1
+version: 1.7.0
 enabled: false
 server_name: plotserver
 
@@ -52,15 +52,3 @@ submit_cooldown: 5
 default_size:
   small: 1000
   medium: 2000
-
-#Tutorials
-#Enable if your network contains a server with TeachingTutorials setup.
-tutorials:
-  enabled: false
-  compulsory_tutorial: true
-  database:
-    host: localhost
-    port: 3306
-    username: root
-    password: password
-    name: TeachingTutorials

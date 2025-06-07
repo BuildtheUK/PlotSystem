@@ -8,7 +8,6 @@ import net.bteuk.network.Network;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.sql.GlobalSQL;
 import net.bteuk.network.sql.PlotSQL;
-import net.bteuk.network.utils.NetworkConfig;
 import net.bteuk.plotsystem.commands.ClaimCommand;
 import net.bteuk.plotsystem.commands.PlotSystemCommand;
 import net.bteuk.plotsystem.commands.ReviewCommand;
@@ -56,6 +55,9 @@ public class PlotSystem extends JavaPlugin {
     // SQL Classes.
     public GlobalSQL globalSQL;
     public PlotSQL plotSQL;
+    @Getter
+    private DBConnection tutorialsDBConnection;
+
     public Timers timers;
     // Listeners
     public ClaimEnter claimEnter;
@@ -65,12 +67,6 @@ public class PlotSystem extends JavaPlugin {
     // Outline manager.
     @Getter
     private Outlines outlines;
-
-    public static boolean TUTORIALS;
-
-    // Tutorials DB connection
-    @Getter
-    private DBConnection tutorialsDBConnection;
 
     @Getter
     private boolean isClosing = false;
@@ -104,33 +100,10 @@ public class PlotSystem extends JavaPlugin {
         // Set databases from Network dependency.
         globalSQL = Network.getInstance().getGlobalSQL();
         plotSQL = Network.getInstance().getPlotSQL();
+        tutorialsDBConnection = Network.getInstance().getTutorialsDBConnection();
 
         // Set the server name from config.
         SERVER_NAME = CONFIG.getString("server_name");
-
-        // Setup tutorials DB connection and connect
-        TUTORIALS = CONFIG.getBoolean("tutorials.enabled");
-        if (TUTORIALS) {
-            // Initialise the DBConnection object
-            tutorialsDBConnection = new DBConnection();
-
-            // Extract database details from the config
-            String szHost = NetworkConfig.CONFIG.getString("tutorials.database.host");
-            int iPort = NetworkConfig.CONFIG.getInt("tutorials.database.port");
-            String szDBName = NetworkConfig.CONFIG.getString("tutorials.database.name");
-            String szUsername = NetworkConfig.CONFIG.getString("tutorials.database.username");
-            String szPassword = NetworkConfig.CONFIG.getString("tutorials.database.password");
-
-            // Set up the DBConnection object with details
-            tutorialsDBConnection.externalMySQLSetup(szHost, iPort, szDBName, szUsername, szPassword);
-
-            // Attempt to connect to the DB
-            if (!tutorialsDBConnection.connect()) {
-                getLogger().severe("Failed to connect to the Tutorials database, please check that you have set the config values correctly.");
-                getLogger().severe("Disabling PlotSystem");
-                return;
-            }
-        }
 
         // If the server is in the database.
         if (globalSQL.hasRow("SELECT name FROM server_data WHERE name='" + SERVER_NAME + "';")) {

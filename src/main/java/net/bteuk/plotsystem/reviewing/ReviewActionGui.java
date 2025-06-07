@@ -5,8 +5,8 @@ import net.bteuk.network.gui.Gui;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.sql.GlobalSQL;
 import net.bteuk.network.sql.PlotSQL;
+import net.bteuk.network.utils.Constants;
 import net.bteuk.network.utils.Utils;
-import net.bteuk.plotsystem.PlotSystem;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 
@@ -69,7 +69,7 @@ public abstract class ReviewActionGui extends Gui {
         createCancelReviewActionItem();
 
         // Open recommend tutorials gui
-        if (PlotSystem.TUTORIALS)
+        if (Constants.TUTORIALS)
             setItem(22, Utils.createItem(Material.KNOWLEDGE_BOOK, 1, ChatUtils.title("Recommend Tutorials")),
                     u -> reviewAction.openRecommendTutorialsGui());
     }
