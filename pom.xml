@@ -116,11 +116,6 @@
             <version>7f82648d73</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>com.github.BTEUK</groupId>
-            <artifactId>TeachingTutorials</artifactId>
-            <version>1.13.0</version>
-        </dependency>
 
         <dependency>
             <groupId>com.fastasyncworldedit</groupId>
