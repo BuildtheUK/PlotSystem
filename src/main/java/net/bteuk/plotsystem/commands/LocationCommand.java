@@ -243,7 +243,7 @@ public final class LocationCommand {
         }
 
         // Create a list of regions to copy-paste.
-        RegionHolder regionHolder = new RegionHolder(regionsToAdd, commandArguments.ymin(), commandArguments.ymax(), copy, paste, xTransform, zTransform);
+        RegionHolder regionHolder = new RegionHolder(regionsToAdd, (int) minCoordinate.getY(), (int) maxCoordinate.getY(), copy, paste, xTransform, zTransform);
         List<CopyRegionFormat> regions = getCopyRegions(sender, regionHolder);
 
         // Copy-paste the regions in the save world.
@@ -512,12 +512,10 @@ public final class LocationCommand {
          */
         private boolean isSmallerThan(Coordinate coordMin, Coordinate coordMax) {
             boolean smaller = coordMin == null || coordMax == null;
-            smaller = smaller || xmin > coordMin.getX();
-            smaller = smaller || ymin > coordMin.getY();
-            smaller = smaller || zmin > coordMin.getZ();
-            smaller = smaller || xmax < coordMax.getX();
-            smaller = smaller || ymax < coordMax.getY();
-            smaller = smaller || zmax < coordMax.getZ();
+            smaller = smaller || (xmin > coordMin.getX());
+            smaller = smaller || (zmin > coordMin.getZ());
+            smaller = smaller || (xmax < coordMax.getX());
+            smaller = smaller || (zmax < coordMax.getZ());
             return smaller;
         }
     }

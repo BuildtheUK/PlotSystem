@@ -139,9 +139,8 @@ public class PlotSystem extends JavaPlugin {
         // Create list of users.
         users = new ArrayList<>();
 
-        // TODO: Ensure no plots on this server are under review or under verification.
-        // plotSQL.update(
-        //         "UPDATE plot_data AS pd INNER JOIN location_data AS ld ON ld.name=pd.location SET pd.status='submitted' WHERE pd.status='reviewing' AND ld.server='" + SERVER_NAME + "';");
+        plotSQL.update("UPDATE plot_submission AS ps INNER JOIN plot_data AS pd ON ps.plot_id=pd.id SET ps.status='submitted' WHERE ps.status='under review' AND pd.location IN (SELECT name FROM location_data WHERE server='" + SERVER_NAME + "');");
+        plotSQL.update("UPDATE plot_submission AS ps INNER JOIN plot_data AS pd ON ps.plot_id=pd.id SET ps.status='awaiting verification' WHERE ps.status='under verification' AND pd.location IN (SELECT name FROM location_data WHERE server='" + SERVER_NAME + "');");
 
         // Create gui item
         gui = new ItemStack(Material.NETHER_STAR);
