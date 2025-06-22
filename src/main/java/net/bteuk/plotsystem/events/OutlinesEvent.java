@@ -8,6 +8,8 @@ import org.bukkit.entity.Player;
 
 import java.util.UUID;
 
+import static net.bteuk.plotsystem.PlotSystem.LOGGER;
+
 /**
  * Event to allow adding/removing outlines for specific plots.
  */
@@ -17,16 +19,16 @@ public class OutlinesEvent {
         // Get the user.
         Player p = Bukkit.getPlayer(UUID.fromString(uuid));
         if (p == null) {
-            Bukkit.getLogger().warning("Player " + uuid + " is not on the server the event was sent to!");
+            LOGGER.warning("Player " + uuid + " is not on the server the event was sent to!");
             return;
         }
         User user = PlotSystem.getInstance().getUser(p);
         if (user == null) {
-            Bukkit.getLogger().warning("User " + p.getName() + " is not on the server the event was sent to!");
+            LOGGER.warning("User " + p.getName() + " is not on the server the event was sent to!");
             return;
         }
 
-        //Events adding/removing outlines for a specific plot.
+        // Events adding/removing outlines for a specific plot.
         if (event[1].equals("toggle")) {// Check if the outlines are currently disabled.
             if (user.getSkipOutlines().contains(event[2])) {
                 // Enable:

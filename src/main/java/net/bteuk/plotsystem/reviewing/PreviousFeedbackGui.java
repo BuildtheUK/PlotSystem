@@ -6,14 +6,12 @@ import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.sql.GlobalSQL;
 import net.bteuk.network.sql.PlotSQL;
 import net.bteuk.network.utils.Utils;
+import net.bteuk.network.utils.plotsystem.ReviewFeedback;
 import net.bteuk.plotsystem.utils.User;
-import net.kyori.adventure.inventory.Book;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
-
-import java.util.ArrayList;
 
 public class PreviousFeedbackGui extends Gui {
 
@@ -46,7 +44,7 @@ public class PreviousFeedbackGui extends Gui {
         String uuid = plotSQL.getString("SELECT uuid FROM plot_members WHERE id=" + plotID + " AND is_owner=1;");
 
         //Get the number of times the plot was denied for the current plot owner.
-        int deniedCount = plotSQL.getInt("SELECT COUNT(attempt) FROM deny_data WHERE id=" + plotID + " AND uuid='" + uuid + "';");
+        int deniedCount = plotSQL.getInt("SELECT COUNT(attempt) FROM plot_review WHERE plot_id=" + plotID + " AND uuid='" + uuid + "' AND completed=1 AND accepted=0;");
 
         //Slot count.
         int slot = 10;
@@ -70,35 +68,19 @@ public class PreviousFeedbackGui extends Gui {
                             ChatUtils.line("Click to view feedback for this submission."),
                             ChatUtils.line("Reviewed by ")
                                     .append(Component.text(globalSQL.getString("SELECT name FROM player_data WHERE uuid='"
-                                            + plotSQL.getString("SELECT reviewer FROM deny_data WHERE id=" + plotID + " AND uuid='" + uuid + "' AND attempt=" + i + ";") + "';"), NamedTextColor.GRAY))),
+                                            + plotSQL.getString("SELECT reviewer FROM plot_review WHERE plot_id=" + plotID + " AND uuid='" + uuid + "' AND attempt=" + i + ";") + "';"), NamedTextColor.GRAY))),
 
                     u ->
 
                     {
-
-                        //Close inventory.
+                        // Close the inventory.
                         u.player.closeInventory();
 
-                        //Create book.
-                        Component title = ChatUtils.title("Plot " + plotID + " Attempt " + finalI);
-                        Component author = ChatUtils.line(globalSQL.getString("SELECT name FROM player_data WHERE uuid='" +
-                                plotSQL.getString("SELECT reviewer FROM deny_data WHERE id=" + plotID + " AND uuid='" + uuid + "' AND attempt=" + finalI + ";") + "';"));
+                        // Create book.
+                        int reviewId = plotSQL.getInt("SELECT id FROM plot_review WHERE plot_id=" + plotID + " AND uuid='" + uuid + "' AND attempt=" + finalI + ";");
 
-                        //Get pages of the book.
-                        ArrayList<String> sPages = plotSQL.getStringList("SELECT contents FROM book_data WHERE id="
-                                + plotSQL.getInt("SELECT book_id FROM deny_data WHERE id=" + plotID + " AND uuid='" + uuid + "' AND attempt=" + finalI + ";") + ";");
-
-                        //Create a list of components from the list of strings.
-                        ArrayList<Component> pages = new ArrayList<>();
-                        for (String page : sPages) {
-                            pages.add(Component.text(page));
-                        }
-
-                        Book book = Book.book(title, author, pages);
-
-                        //Open the book.
-                        u.player.openBook(book);
-
+                        // Open the book.
+                        u.player.openBook(ReviewFeedback.createFeedbackBook(reviewId));
                     });
 
 
@@ -118,19 +100,17 @@ public class PreviousFeedbackGui extends Gui {
                         ChatUtils.line("Go back to the review menu.")),
 
                 u -> {
-
                     //Go back to the review gui.
                     u.player.closeInventory();
-                    user.review.reviewGui.open(u);
-
+                    user.getReview().getReviewActionGui().open(u);
                 }
         );
     }
 
     public void refresh() {
-
         this.clearGui();
         createGui();
-
     }
+
+
 }

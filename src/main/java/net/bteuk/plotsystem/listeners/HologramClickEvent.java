@@ -7,6 +7,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 
+import java.util.Arrays;
+
 public class HologramClickEvent implements Listener {
 
     private final PlotSystem instance;
@@ -21,10 +23,11 @@ public class HologramClickEvent implements Listener {
         // Get the click event based on the hologram name.
         String name = e.getHologram().getName();
         String[] args = name.split("_");
-        if (args.length == 2) {
+        if (args.length >= 2) {
             int plot = ParseUtils.toInt(args[0]);
+            String type = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
             if (plot != 0) {
-                if (args[1].equals(PlotStatus.UNCLAIMED.name())) {
+                if (type.equals(PlotStatus.UNCLAIMED.name())) {
                     Bukkit.getScheduler().runTask(instance, () -> e.getPlayer().performCommand("claim " + plot));
                 } else {
                     Bukkit.getScheduler().runTask(instance, () -> e.getPlayer().performCommand("plot info " + plot));

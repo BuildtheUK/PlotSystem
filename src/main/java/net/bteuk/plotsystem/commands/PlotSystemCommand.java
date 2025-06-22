@@ -25,7 +25,6 @@ public class PlotSystemCommand extends AbstractCommand {
     private final PlotSQL plotSQL;
     private final GlobalSQL globalSQL;
 
-
     public PlotSystemCommand(GlobalSQL globalSQL, PlotSQL plotSQL) {
         this.plotSQL = plotSQL;
         this.globalSQL = globalSQL;
@@ -85,7 +84,7 @@ public class PlotSystemCommand extends AbstractCommand {
 
     private void selectionTool(CommandSender sender) {
 
-        //Check if the sender is a player.
+        // Check if the sender is a player.
         if (!(sender instanceof Player)) {
 
             sender.sendMessage(ChatUtils.error("You must be a player to use this command."));
@@ -93,10 +92,10 @@ public class PlotSystemCommand extends AbstractCommand {
 
         }
 
-        //Get the user.
+        // Get the user.
         User u = PlotSystem.getInstance().getUser((Player) sender);
 
-        //Check if the user has permission.
+        // Check if the user has permission.
         if (!u.player.hasPermission("uknet.plots.select")) {
 
             u.player.sendMessage(ChatUtils.error("You do not have permission to do this."));
@@ -104,7 +103,7 @@ public class PlotSystemCommand extends AbstractCommand {
 
         }
 
-        //Give the player a selection tool.
+        // Give the player a selection tool.
         u.selectionTool.giveSelectionTool();
 
     }

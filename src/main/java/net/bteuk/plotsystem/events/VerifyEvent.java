@@ -8,7 +8,7 @@ import net.bteuk.network.utils.enums.SubmittedStatus;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
-import net.bteuk.plotsystem.reviewing.Review;
+import net.bteuk.plotsystem.reviewing.Verification;
 import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.User;
 import net.bteuk.plotsystem.utils.plugins.WorldGuardFunctions;
@@ -23,7 +23,7 @@ import java.util.concurrent.CompletableFuture;
 
 import static net.bteuk.plotsystem.PlotSystem.LOGGER;
 
-public class ReviewEvent {
+public class VerifyEvent {
 
     public static void event(String uuid, String[] event) {
 
@@ -61,16 +61,16 @@ public class ReviewEvent {
             // Get world of plot.
             World world = Bukkit.getWorld(plotSQL.getString("SELECT location FROM plot_data WHERE id=" + id + ";"));
 
-            // Check if the plot is still submitted.
-            if (plotSQL.hasRow("SELECT 1 FROM plot_submission WHERE plot_id=" + id + " AND status='" + SubmittedStatus.SUBMITTED.database_value + "';")) {
+            // Check if the plot is still awaiting verification.
+            if (plotSQL.hasRow("SELECT 1 FROM plot_submission WHERE plot_id=" + id + " AND status='" + SubmittedStatus.AWAITING_VERIFICATION.database_value + "';")) {
 
-                //Set the plot to under review.
-                PlotHelper.updateSubmittedStatus(id, SubmittedStatus.UNDER_REVIEW);
+                // Set the plot to under review.
+                PlotHelper.updateSubmittedStatus(id, SubmittedStatus.UNDER_VERIFICATION);
 
-                //Create new review instance for user.
-                user.setReview(new Review(PlotSystem.getInstance(), id, user));
+                // Create new verification instance for user.
+                user.setReview(new Verification(PlotSystem.getInstance(), id, user));
 
-                //Add the reviewer to the plot.
+                // Add the reviewer to the plot.
                 try {
                     WorldGuardFunctions.addMember(String.valueOf(id), uuid, world);
                 } catch (RegionManagerNotFoundException | RegionNotFoundException e) {
@@ -78,7 +78,7 @@ public class ReviewEvent {
                     e.printStackTrace();
                 }
 
-                //Teleport the reviewer to the plot.
+                // Teleport the reviewer to the plot.
                 try {
                     Location l = WorldGuardFunctions.getCurrentLocation(event[2], world);
                     CompletableFuture<Boolean> teleport = PaperLib.teleportAsync(player, l);
@@ -93,7 +93,7 @@ public class ReviewEvent {
 
             } else {
 
-                player.sendMessage(ChatUtils.error("The plot is no longer submitted."));
+                player.sendMessage(ChatUtils.error("The plot is no longer awaiting verification."));
 
             }
         }

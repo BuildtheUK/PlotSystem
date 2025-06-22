@@ -15,29 +15,31 @@ import org.bukkit.entity.Player;
 import java.util.Arrays;
 import java.util.UUID;
 
+import static net.bteuk.plotsystem.PlotSystem.LOGGER;
+
 public class LeaveEvent {
 
     public static void event(String uuid, String[] event) {
 
-        //Events for leaving
+        // Events for leaving
         if (event[1].equals("plot")) {
 
-            //Convert the string id to int id.
+            // Convert the string id to int id.
             int id = Integer.parseInt(event[2]);
 
-            //Get worlds of plot.
+            // Get worlds of plot.
             World world = Bukkit.getWorld(PlotSystem.getInstance().plotSQL.getString("SELECT location FROM plot_data WHERE id=" + id + ";"));
 
             if (world == null) {
 
-                //Send error to console.
-                Bukkit.getLogger().severe("Plot leave event failed!");
-                Bukkit.getLogger().severe("Event details:" + Arrays.toString(event));
+                // Send error to console.
+                LOGGER.severe("Plot leave event failed!");
+                LOGGER.severe("Event details:" + Arrays.toString(event));
                 return;
 
             }
 
-            //Remove member from plot.
+            // Remove member from plot.
             try {
                 WorldGuardFunctions.removeMember(event[2], uuid, world);
             } catch (RegionManagerNotFoundException | RegionNotFoundException e) {
@@ -47,10 +49,10 @@ public class LeaveEvent {
                 return;
             }
 
-            //Remove members from plot in database.
+            // Remove members from plot in database.
             PlotSystem.getInstance().plotSQL.update("DELETE FROM plot_members WHERE id=" + id + " AND uuid='" + uuid + "';");
 
-            //Send message to plot owner.
+            // Send message to plot owner.
             Player p = Bukkit.getPlayer(UUID.fromString(uuid));
 
             if (p != null) {
@@ -64,22 +66,22 @@ public class LeaveEvent {
 
         } else if (event[1].equals("zone")) {
 
-            //Convert the string id to int id.
+            // Convert the string id to int id.
             int id = Integer.parseInt(event[2]);
 
-            //Get worlds of plot.
+            // Get worlds of plot.
             World world = Bukkit.getWorld(PlotSystem.getInstance().plotSQL.getString("SELECT location FROM zones WHERE id=" + id + ";"));
 
             if (world == null) {
 
-                //Send error to console.
-                Bukkit.getLogger().severe("Zone leave event failed!");
-                Bukkit.getLogger().severe("Event details:" + Arrays.toString(event));
+                // Send error to console.
+                LOGGER.severe("Zone leave event failed!");
+                LOGGER.severe("Event details:" + Arrays.toString(event));
                 return;
 
             }
 
-            //Remove member from zone.
+            // Remove member from zone.
             try {
                 WorldGuardFunctions.removeMember("z" + event[2], uuid, world);
             } catch (RegionManagerNotFoundException | RegionNotFoundException e) {
@@ -89,7 +91,7 @@ public class LeaveEvent {
                 return;
             }
 
-            //Remove members from zone in database.
+            // Remove members from zone in database.
             PlotSystem.getInstance().plotSQL.update("DELETE FROM zone_members WHERE id=" + id + " AND uuid='" + uuid + "';");
 
             DirectMessage directMessage = new DirectMessage("global", uuid, "server",

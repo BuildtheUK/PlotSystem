@@ -1,19 +1,34 @@
-#Server configuration
+# Server configuration
+version: 1.7.0
 enabled: false
 server_name: plotserver
 
-#Save world name
-#This is where all completed plots are stored.
+# Save world name
+# This is where all completed plots are stored.
 save_world: saveWorld
 
-#Maximum number of plots a user can have, this includes submitted plots
+# Maximum number of plots a user can have, this includes submitted plots
 plot_maximum: 21
 
-#Building points
-#Formula is (size+difficulty)*((accuracy+quality)/2)
-#The multipliers for accuracy and quality mean that
-#for each level from the base of 3 the value shifts by the multiplier.
-#Example: at accuracy 1 this would mean 1-(2*accuracy_multiplier)=0.6
+# Thresholds for each reviewing category and difficulty.
+# The format is "category: easy, normal, hard", where the selection can be "GOOD", "OK" or "POOR"
+# Example: OUTLINES: [ ok, ok, good ]
+categories:
+  OUTLINES: [ OK, GOOD, GOOD ]
+  FEATURES: [ OK, OK, GOOD ]
+  ROOF: [ OK, OK, GOOD ]
+  GARDEN: [ OK, OK, OK ]
+  TEXTURES: [ OK, OK, GOOD ]
+  DETAILS: [ POOR, OK, OK ]
+
+# Whether reviewers reviews have a change to require verification.
+reviewer_verification: false
+
+# Building points
+# Formula is (size+difficulty)*((accuracy+quality)/2)
+# The multipliers for accuracy and quality mean that
+# for each level from the base of 3 the value shifts by the multiplier.
+# Example: at accuracy 1 this would mean 1-(2*accuracy_multiplier)=0.6
 size:
   small: 5
   medium: 10
@@ -25,15 +40,15 @@ difficulty:
 accuracy_multiplier: 0.2
 quality_multiplier: 0.2
 
-#Number of days a player can be inactive before their plots get cancelled
+# Number of days a player can be inactive before their plots get cancelled
 plot_inactive_cancel: 14
 
-#Cooldown between plot submissions in minutes
+# Cooldown between plot submissions in minutes
 submit_cooldown: 5
 
-#Default area size
-#When a player creates a new plot the area of the selection is calculated and will give a default size for the plot.
-#The values here represent the largest area in m^2 that will show this size in the plot creation menu.
+# Default area size
+# When a player creates a new plot the area of the selection is calculated and will give a default size for the plot.
+# The values here represent the largest area in m^2 that will show this size in the plot creation menu.
 default_size:
   small: 1000
   medium: 2000

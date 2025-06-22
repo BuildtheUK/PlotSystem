@@ -29,6 +29,51 @@ public class ClaimCommand extends AbstractCommand {
         this.plotSQL = plotSQL;
     }
 
+    public static boolean hasClaimPermission(User u, NetworkUser user, int plot) {
+
+        // Make sure the player has permission to claim plots, else they must complete the tutorial first.
+        // Only checked if tutorials are enabled.
+        if (!(user.hasPermission("uknet.plots.claim.all") || user.hasPermission("uknet.plots.claim.easy")) && TUTORIALS) {
+            user.player.sendMessage(TUTORIAL_REQUIRED_MESSAGE);
+            return false;
+        }
+
+        // Check if the player has permission to claim a plot of this difficulty.
+        if (!user.hasPermission("uknet.plots.claim.all")) {
+            switch (u.plotSQL.getInt("SELECT difficulty FROM plot_data WHERE id=" + plot + ";")) {
+
+                case 1 -> {
+                    if (!user.hasPermission("uknet.plots.claim.easy")) {
+                        user.sendMessage(ChatUtils.error("You do not have permission to claim an ")
+                                .append(Component.text("Easy", NamedTextColor.DARK_RED))
+                                .append(ChatUtils.error(" plot.")));
+                        return false;
+                    }
+                }
+
+                case 2 -> {
+                    if (!user.hasPermission("uknet.plots.claim.normal")) {
+                        user.sendMessage(ChatUtils.error("You do not have permission to claim a ")
+                                .append(Component.text("Normal", NamedTextColor.DARK_RED))
+                                .append(ChatUtils.error(" plot.")));
+                        return false;
+                    }
+                }
+
+                case 3 -> {
+                    if (!user.hasPermission("uknet.plots.claim.hard")) {
+                        user.sendMessage(ChatUtils.error("You do not have permission to claim a ")
+                                .append(Component.text("Hard", NamedTextColor.DARK_RED))
+                                .append(ChatUtils.error(" plot.")));
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
     @Override
     public void execute(CommandSourceStack stack, String[] args) {
 
@@ -38,7 +83,7 @@ public class ClaimCommand extends AbstractCommand {
             return;
         }
 
-        //Get the user.
+        // Get the user.
         User u = PlotSystem.getInstance().getUser(player);
 
         int plot = 0;
@@ -51,7 +96,7 @@ public class ClaimCommand extends AbstractCommand {
             inPlot = true;
         }
 
-        //If the plot is valid open the claim plot gui.
+        // If the plot is valid open the claim plot gui.
         if (validPlot(u, plot, inPlot)) {
 
             NetworkUser user = Network.getInstance().getUser(u.player);
@@ -60,7 +105,7 @@ public class ClaimCommand extends AbstractCommand {
                 return;
             }
 
-            //Open claim gui.
+            // Open claim gui.
             u.claimGui = new ClaimGui(u, plot);
             u.claimGui.open(user);
 
@@ -106,57 +151,13 @@ public class ClaimCommand extends AbstractCommand {
         }
 
         // Check if the plot is on this server.
-        if (!plotSQL.hasRow("SELECT pd.id FROM plot_data AS pd INNER JOIN location_data AS ld ON ld.name=pd.location WHERE pd.id=" + plot + " AND ld.server='" + SERVER_NAME + "';")) {
+        if (!plotSQL.hasRow(
+                "SELECT pd.id FROM plot_data AS pd INNER JOIN location_data AS ld ON ld.name=pd.location WHERE pd.id=" + plot + " AND ld.server='" + SERVER_NAME + "';")) {
             u.player.sendMessage(ChatUtils.error("This plot is on another server, unable to claim it from here."));
             return false;
         }
 
-        //Checks passed, return true.
-        return true;
-    }
-
-    public static boolean hasClaimPermission(User u, NetworkUser user, int plot) {
-
-        //Make sure the player has permission to claim plots, else they must complete the tutorial first.
-        //Only checked if tutorials are enabled.
-        if (!(user.hasPermission("uknet.plots.claim.all") || user.hasPermission("uknet.plots.claim.easy")) && TUTORIALS) {
-            user.player.sendMessage(TUTORIAL_REQUIRED_MESSAGE);
-            return false;
-        }
-
-        //Check if the player has permission to claim a plot of this difficulty.
-        if (!user.hasPermission("uknet.plots.claim.all")) {
-            switch (u.plotSQL.getInt("SELECT difficulty FROM plot_data WHERE id=" + plot + ";")) {
-
-                case 1 -> {
-                    if (!user.hasPermission("uknet.plots.claim.easy")) {
-                        user.sendMessage(ChatUtils.error("You do not have permission to claim an ")
-                                .append(Component.text("Easy", NamedTextColor.DARK_RED))
-                                .append(ChatUtils.error(" plot.")));
-                        return false;
-                    }
-                }
-
-                case 2 -> {
-                    if (!user.hasPermission("uknet.plots.claim.normal")) {
-                        user.sendMessage(ChatUtils.error("You do not have permission to claim a ")
-                                .append(Component.text("Normal", NamedTextColor.DARK_RED))
-                                .append(ChatUtils.error(" plot.")));
-                        return false;
-                    }
-                }
-
-                case 3 -> {
-                    if (!user.hasPermission("uknet.plots.claim.hard")) {
-                        user.sendMessage(ChatUtils.error("You do not have permission to claim a ")
-                                .append(Component.text("Hard", NamedTextColor.DARK_RED))
-                                .append(ChatUtils.error(" plot.")));
-                        return false;
-                    }
-                }
-            }
-        }
-
+        // Checks passed, return true.
         return true;
     }
 }

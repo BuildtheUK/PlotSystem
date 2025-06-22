@@ -22,9 +22,11 @@ public class CloseInventory implements Listener {
         Player p = (Player) e.getPlayer();
         User u = PlotSystem.getInstance().getUser(p);
 
-        if (u == null) { return; }
+        if (u == null) {
+            return;
+        }
 
-        //If the player has a claim or create gui delete it.
+        // If the player has a claim or create gui delete it.
         if (u.claimGui != null) {
             u.claimGui.delete();
             u.claimGui = null;

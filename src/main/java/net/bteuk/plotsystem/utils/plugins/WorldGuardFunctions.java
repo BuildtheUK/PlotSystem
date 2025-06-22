@@ -32,10 +32,10 @@ public class WorldGuardFunctions {
 
     public static Location getCurrentLocation(String regionName, World world) throws RegionNotFoundException, RegionManagerNotFoundException {
 
-        //Get worldguard instance
+        // Get worldguard instance
         WorldGuard wg = WorldGuard.getInstance();
 
-        //Get worldguard region data
+        // Get worldguard region data
         RegionContainer container = wg.getPlatform().getRegionContainer();
         RegionManager buildRegions = container.get(BukkitAdapter.adapt(world));
 
@@ -45,7 +45,7 @@ public class WorldGuardFunctions {
 
         }
 
-        //Get the worldguard region and teleport to player to one of the corners.
+        // Get the worldguard region and teleport to player to one of the corners.
         ProtectedPolygonalRegion region = (ProtectedPolygonalRegion) buildRegions.getRegion(regionName);
 
         if (region == null) {
@@ -62,11 +62,11 @@ public class WorldGuardFunctions {
 
     public static Location getBeforeLocation(String regionName, World buildWorld) throws WorldNotFoundException, RegionNotFoundException, RegionManagerNotFoundException {
 
-        //Get instance of plugin and config
+        // Get instance of plugin and config
         PlotSystem instance = PlotSystem.getInstance();
         FileConfiguration config = instance.getConfig();
 
-        //Get worlds from config
+        // Get worlds from config
         String save_world = config.getString("save_world");
         if (save_world == null) {
 
@@ -76,10 +76,10 @@ public class WorldGuardFunctions {
 
         World saveWorld = Bukkit.getServer().getWorld(save_world);
 
-        //Get worldguard instance
+        // Get worldguard instance
         WorldGuard wg = WorldGuard.getInstance();
 
-        //Get worldguard region data
+        // Get worldguard region data
         RegionContainer container = wg.getPlatform().getRegionContainer();
         RegionManager buildRegions = container.get(BukkitAdapter.adapt(buildWorld));
 
@@ -99,7 +99,7 @@ public class WorldGuardFunctions {
 
         BlockVector2 bv = Point.getAveragePoint(region.getPoints());
 
-        //To get the actual location we need to take the negative coordinate transform of the plot.
+        // To get the actual location we need to take the negative coordinate transform of the plot.
         PlotSQL plotSQL = Network.getInstance().getPlotSQL();
 
         int xTransform = -plotSQL.getInt("SELECT xTransform FROM location_data WHERE name='" + buildWorld.getName() + "';");
@@ -113,10 +113,10 @@ public class WorldGuardFunctions {
 
     public static List<BlockVector2> getPoints(String regionName, World world) throws RegionNotFoundException, RegionManagerNotFoundException {
 
-        //Get worldguard instance
+        // Get worldguard instance
         WorldGuard wg = WorldGuard.getInstance();
 
-        //Get worldguard region data
+        // Get worldguard region data
         RegionContainer container = wg.getPlatform().getRegionContainer();
         RegionManager buildRegions = container.get(BukkitAdapter.adapt(world));
 
@@ -140,10 +140,10 @@ public class WorldGuardFunctions {
 
     public static boolean inRegion(Block block) throws RegionManagerNotFoundException {
 
-        //Get worldguard instance
+        // Get worldguard instance
         WorldGuard wg = WorldGuard.getInstance();
 
-        //Get worldguard region data
+        // Get worldguard region data
         RegionManager regions = wg.getPlatform().getRegionContainer().get(BukkitAdapter.adapt(block.getWorld()));
 
         if (regions == null) {
@@ -152,10 +152,10 @@ public class WorldGuardFunctions {
 
         }
 
-        //Get the blockvector3 at the block.
+        // Get the blockvector3 at the block.
         BlockVector3 v = BlockVector3.at(block.getX(), block.getY(), block.getZ());
 
-        //Check whether the region overlaps an existing plot, if true stop the process.
+        // Check whether the region overlaps an existing plot, if true stop the process.
         ApplicableRegionSet set = regions.getApplicableRegions(v);
 
         return set.size() > 0;
@@ -163,10 +163,10 @@ public class WorldGuardFunctions {
 
     public static boolean addMember(String regionName, String uuid, World world) throws RegionManagerNotFoundException, RegionNotFoundException {
 
-        //Get instance of WorldGuard.
+        // Get instance of WorldGuard.
         WorldGuard wg = WorldGuard.getInstance();
 
-        //Get regions.
+        // Get regions.
         RegionContainer container = wg.getPlatform().getRegionContainer();
         RegionManager buildRegions = container.get(BukkitAdapter.adapt(world));
 
@@ -184,10 +184,10 @@ public class WorldGuardFunctions {
 
         }
 
-        //Add the member to the region.
+        // Add the member to the region.
         region.getMembers().addPlayer(UUID.fromString(uuid));
 
-        //Save the changes
+        // Save the changes
         try {
             buildRegions.saveChanges();
             return true;
@@ -199,10 +199,10 @@ public class WorldGuardFunctions {
 
     public static void removeMember(String regionName, String uuid, World world) throws RegionManagerNotFoundException, RegionNotFoundException {
 
-        //Get instance of WorldGuard.
+        // Get instance of WorldGuard.
         WorldGuard wg = WorldGuard.getInstance();
 
-        //Get regions.
+        // Get regions.
         RegionContainer container = wg.getPlatform().getRegionContainer();
         RegionManager buildRegions = container.get(BukkitAdapter.adapt(world));
 
@@ -212,7 +212,7 @@ public class WorldGuardFunctions {
 
         }
 
-        //Check if the member is in the region.
+        // Check if the member is in the region.
         ProtectedRegion region = buildRegions.getRegion(regionName);
 
         if (region == null) {
@@ -222,13 +222,13 @@ public class WorldGuardFunctions {
         }
 
         if (region.getMembers().contains(UUID.fromString(uuid))) {
-            //Remove the member to the region.
+            // Remove the member to the region.
             region.getMembers().removePlayer(UUID.fromString(uuid));
         } else {
             return;
         }
 
-        //Save the changes
+        // Save the changes
         try {
             buildRegions.saveChanges();
         } catch (StorageException e1) {
@@ -238,10 +238,10 @@ public class WorldGuardFunctions {
 
     public static void clearMembers(String regionName, World world) throws RegionNotFoundException, RegionManagerNotFoundException {
 
-        //Get instance of WorldGuard.
+        // Get instance of WorldGuard.
         WorldGuard wg = WorldGuard.getInstance();
 
-        //Get regions.
+        // Get regions.
         RegionContainer container = wg.getPlatform().getRegionContainer();
         RegionManager buildRegions = container.get(BukkitAdapter.adapt(world));
 
@@ -259,10 +259,10 @@ public class WorldGuardFunctions {
 
         }
 
-        //Remove all members from the region.
+        // Remove all members from the region.
         region.getMembers().clear();
 
-        //Save the changes
+        // Save the changes
         try {
             buildRegions.saveChanges();
         } catch (StorageException e1) {
@@ -272,10 +272,10 @@ public class WorldGuardFunctions {
 
     public static boolean delete(String regionName, World world) throws RegionManagerNotFoundException {
 
-        //Get instance of WorldGuard.
+        // Get instance of WorldGuard.
         WorldGuard wg = WorldGuard.getInstance();
 
-        //Get regions.
+        // Get regions.
         RegionContainer container = wg.getPlatform().getRegionContainer();
         RegionManager buildRegions = container.get(BukkitAdapter.adapt(world));
 
@@ -285,17 +285,17 @@ public class WorldGuardFunctions {
 
         }
 
-        //Get the region to remove the outlines.
+        // Get the region to remove the outlines.
         ProtectedRegion region = buildRegions.getRegion(regionName);
 
         if (region != null) {
             PlotSystem.getInstance().getOutlines().removeOutline(region, world);
         }
 
-        //Attempt to remove the plot.
+        // Attempt to remove the plot.
         buildRegions.removeRegion(regionName);
 
-        //Save the changes
+        // Save the changes
         try {
             buildRegions.saveChanges();
             return true;
@@ -309,23 +309,21 @@ public class WorldGuardFunctions {
      * Get the points of a specific plot or zone as if it was located in the save world.
      * This is done by getting the points in the world where the plot or zone is and then applying the negative transform from its original location.
      *
-     * @param regionName
-     * the name of the plot or zone
-     * @param world
-     * the name of the world where the plot or zone exists, NOT the world of the save world
+     * @param regionName the name of the plot or zone
+     * @param world      the name of the world where the plot or zone exists, NOT the world of the save world
      */
     public static List<BlockVector2> getPointsTransformedToSaveWorld(String regionName, World world) throws RegionNotFoundException, RegionManagerNotFoundException {
 
         List<BlockVector2> vector = getPoints(regionName, world);
         List<BlockVector2> newVector = new ArrayList<>();
 
-        //Get the negative coordinate transform.
+        // Get the negative coordinate transform.
         PlotSQL plotSQL = Network.getInstance().getPlotSQL();
 
         int xTransform = -plotSQL.getInt("SELECT xTransform FROM location_data WHERE name='" + world.getName() + "';");
         int zTransform = -plotSQL.getInt("SELECT zTransform FROM location_data WHERE name='" + world.getName() + "';");
 
-        //Apply to transform to each coordinate.
+        // Apply to transform to each coordinate.
         vector.forEach(bv -> newVector.add(BlockVector2.at(bv.getX() + xTransform, bv.getZ() + zTransform)));
 
         return newVector;

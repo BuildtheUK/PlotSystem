@@ -2,8 +2,8 @@ package net.bteuk.plotsystem.events;
 
 import com.sk89q.worldedit.math.BlockVector2;
 import net.bteuk.network.Network;
-import net.bteuk.network.lib.dto.ChatMessage;
 import net.bteuk.network.lib.dto.DirectMessage;
+import net.bteuk.network.lib.dto.PlotMessage;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.sql.PlotSQL;
 import net.bteuk.network.utils.enums.PlotStatus;
@@ -30,19 +30,19 @@ public class DeleteEvent {
 
     public static void event(String uuid, String[] event) {
 
-        //Events for deleting
+        // Events for deleting
         if (event[1].equals("plot")) {
 
-            //PlotSQL
+            // PlotSQL
             PlotSQL plotSQL = Network.getInstance().getPlotSQL();
 
-            //Convert the string id to int id.
+            // Convert the string id to int id.
             int id = Integer.parseInt(event[2]);
 
-            //Get location which is the world.
+            // Get location which is the world.
             String location = plotSQL.getString("SELECT location FROM plot_data WHERE id=" + id + ";");
 
-            //Get worlds of plot and save location.
+            // Get worlds of plot and save location.
             String save_world = PlotSystem.getInstance().getConfig().getString("save_world");
             if (save_world == null) {
                 LOGGER.warning("Save World is not defined in config, plot delete event has therefore failed!");
@@ -50,14 +50,14 @@ public class DeleteEvent {
             }
 
             World copyWorld = Bukkit.getWorld(save_world);
-            //Location name is the same as the world name.
+            // Location name is the same as the world name.
             World pasteWorld = Bukkit.getWorld(location);
 
             if (copyWorld == null || pasteWorld == null) {
 
-                //Send error to console.
-                Bukkit.getLogger().severe("Plot delete event failed!");
-                Bukkit.getLogger().severe("Event details:" + Arrays.toString(event));
+                // Send error to console.
+                LOGGER.severe("Plot delete event failed!");
+                LOGGER.severe("Event details:" + Arrays.toString(event));
                 return;
 
             }
@@ -65,7 +65,7 @@ public class DeleteEvent {
             int minusXTransform = -plotSQL.getInt("SELECT xTransform FROM location_data WHERE name='" + location + "';");
             int minusZTransform = -plotSQL.getInt("SELECT zTransform FROM location_data WHERE name='" + location + "';");
 
-            //Get the plot bounds.
+            // Get the plot bounds.
             List<BlockVector2> pasteVector;
             try {
                 pasteVector = WorldGuardFunctions.getPoints(String.valueOf(id), pasteWorld);
@@ -76,18 +76,18 @@ public class DeleteEvent {
                 return;
             }
 
-            //Create the copyVector by transforming the points in the paste vector with the negative transform.
-            //The negative transform is used because the coordinates by default are transformed from the save to the paste world, which in this case it reversed.
+            // Create the copyVector by transforming the points in the paste vector with the negative transform.
+            // The negative transform is used because the coordinates by default are transformed from the save to the paste world, which in this case it reversed.
             List<BlockVector2> copyVector = new ArrayList<>();
             for (BlockVector2 bv : pasteVector) {
                 copyVector.add(BlockVector2.at(bv.getX() + minusXTransform, bv.getZ() + minusZTransform));
             }
 
-            //Revert plot to original state.
+            // Revert plot to original state.
             Bukkit.getScheduler().runTaskAsynchronously(PlotSystem.getInstance(), () -> {
                 WorldEditor.updateWorld(copyVector, pasteVector, copyWorld, pasteWorld);
 
-                //Remove all members from the worldguard plot.
+                // Remove all members from the worldguard plot.
                 try {
                     WorldGuardFunctions.clearMembers(event[2], pasteWorld);
                 } catch (RegionNotFoundException | RegionManagerNotFoundException e) {
@@ -97,20 +97,20 @@ public class DeleteEvent {
                     return;
                 }
 
-                //Remove all members of plot in database.
+                // Remove all members of plot in database.
                 plotSQL.update("DELETE FROM plot_members WHERE id=" + id + ";");
 
-                //Remove the submitted plot if it is currently submitted.
-                plotSQL.update("DELETE FROM plot_submissions WHERE id=" + id + ";");
+                // Remove the submitted plot if it is currently submitted.
+                plotSQL.update("DELETE FROM plot_submission WHERE plot_id=" + id + ";");
 
-                //Set plot status to unclaimed.
+                // Set plot status to unclaimed.
                 PlotStatus currentStatus = PlotStatus.fromDatabaseValue(plotSQL.getString("SELECT status FROM plot_data WHERE id=" + id + ";"));
                 PlotHelper.updatePlotStatus(id, PlotStatus.UNCLAIMED);
 
-                //Send message to plot owner.
+                // Send message to plot owner.
                 Player p = Bukkit.getPlayer(UUID.fromString(uuid));
 
-                //If the player is on this server send them a message.
+                // If the player is on this server send them a message.
                 if (p != null) {
 
                     p.sendMessage(ChatUtils.success("Plot ")
@@ -126,14 +126,9 @@ public class DeleteEvent {
 
                 // If the plot was submitted, before deleting, send a message to reviewers letting them know it's no longer submitted.
                 if (currentStatus == PlotStatus.SUBMITTED) {
-                    //Get number of submitted plots.
-                    int plot_count = PlotSystem.getInstance().plotSQL.getInt("SELECT count(id) FROM plot_data WHERE status='submitted';");
-
-                    //Send message to reviewers that a plot submission has been deleted.
-                    ChatMessage chatMessage = new ChatMessage("reviewer", "server",
-                            ChatUtils.success("A submitted plot has been deleted, there " + (plot_count == 1 ? "is" : "are") + " %s submitted " + (plot_count == 1 ? "plot" : "plots") + ".", String.valueOf(plot_count))
-                    );
-                    Network.getInstance().getChat().sendSocketMesage(chatMessage);
+                    // Send message to reviewers that a plot submission has been deleted.
+                    PlotMessage plotMessage = new PlotMessage("A submitted plot has been deleted, there %s %s submitted %s.", false);
+                    Network.getInstance().getChat().sendSocketMesage(plotMessage);
                 }
             });
         } else if (event[1].equals("zone")) {
@@ -160,7 +155,7 @@ public class DeleteEvent {
 
             if (copyWorld == null || pasteWorld == null) {
 
-                //Send error to console.
+                // Send error to console.
                 LOGGER.severe("Zone delete event failed due to the copy or paste-world being null!");
                 return;
 
@@ -195,7 +190,7 @@ public class DeleteEvent {
             Bukkit.getScheduler().runTaskAsynchronously(PlotSystem.getInstance(), () -> {
                 WorldEditor.updateWorld(copyVector, pasteVector, copyWorld, pasteWorld);
 
-                //Remove the zone from worldguard.
+                // Remove the zone from worldguard.
                 try {
                     WorldGuardFunctions.delete("z" + event[2], pasteWorld);
                 } catch (RegionManagerNotFoundException e) {
@@ -205,10 +200,10 @@ public class DeleteEvent {
                     return;
                 }
 
-                //Remove all members of zone in database.
+                // Remove all members of zone in database.
                 plotSQL.update("DELETE FROM zone_members WHERE id=" + id + ";");
 
-                //Set zone status to closed.
+                // Set zone status to closed.
                 plotSQL.update("UPDATE zones SET status='closed' WHERE id=" + id + ";");
 
                 DirectMessage directMessage = new DirectMessage("global", uuid, "server",

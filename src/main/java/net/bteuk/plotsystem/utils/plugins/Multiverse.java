@@ -1,5 +1,6 @@
 package net.bteuk.plotsystem.utils.plugins;
 
+import com.onarandombox.MultiverseCore.MultiverseCore;
 import com.onarandombox.MultiverseCore.api.MVWorldManager;
 import com.onarandombox.MultiverseCore.api.MultiverseWorld;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
@@ -10,13 +11,17 @@ import com.sk89q.worldguard.protection.flags.StateFlag;
 import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.managers.storage.StorageException;
 import com.sk89q.worldguard.protection.regions.GlobalProtectedRegion;
-import net.bteuk.plotsystem.PlotSystem;
-import org.bukkit.*;
-
-import com.onarandombox.MultiverseCore.MultiverseCore;
+import org.bukkit.Bukkit;
+import org.bukkit.Difficulty;
+import org.bukkit.GameMode;
+import org.bukkit.GameRule;
+import org.bukkit.World;
+import org.bukkit.WorldType;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import static net.bteuk.plotsystem.PlotSystem.LOGGER;
 
 public class Multiverse {
 
@@ -25,7 +30,7 @@ public class Multiverse {
         MultiverseCore core = (MultiverseCore) Bukkit.getServer().getPluginManager().getPlugin("Multiverse-Core");
 
         if (core == null) {
-            PlotSystem.LOGGER.severe("Multiverse is a dependency of PlotSystem!");
+            LOGGER.severe("Multiverse is a dependency of PlotSystem!");
             return false;
         }
 
@@ -49,34 +54,34 @@ public class Multiverse {
         MVWorld.setHunger(false);
         MVWorld.setKeepSpawnInMemory(false);
 
-        //Get world from bukkit.
+        // Get world from bukkit.
         World world = Bukkit.getWorld(name);
 
         if (world == null) {
-            PlotSystem.LOGGER.warning("World is null!");
+            LOGGER.warning("World is null!");
             return false;
         }
 
-        //Disable daylightcycle.
+        // Disable daylightcycle.
         world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
         world.setTime(6000);
 
-        //Disable fire tick.
+        // Disable fire tick.
         world.setGameRule(GameRule.DO_FIRE_TICK, false);
 
-        //Disable random tick.
+        // Disable random tick.
         world.setGameRule(GameRule.RANDOM_TICK_SPEED, 0);
 
-        //Get worldguard.
+        // Get worldguard.
         WorldGuard wg = WorldGuard.getInstance();
         RegionManager regions = wg.getPlatform().getRegionContainer().get(BukkitAdapter.adapt(world));
 
         if (regions == null) {
-            PlotSystem.LOGGER.warning("Regions is null!");
+            LOGGER.warning("Regions is null!");
             return false;
         }
 
-        //Create global region and add all necessary flags.
+        // Create global region and add all necessary flags.
         GlobalProtectedRegion globalRegion = new GlobalProtectedRegion("__global__");
 
         Map<Flag<?>, Object> flags = new HashMap<>();
@@ -119,7 +124,7 @@ public class Multiverse {
             e.printStackTrace();
         }
 
-        Bukkit.getLogger().info("Created new world with name " + name);
+        LOGGER.info("Created new world with name " + name);
 
         return true;
     }
@@ -129,11 +134,11 @@ public class Multiverse {
         MultiverseCore core = (MultiverseCore) Bukkit.getServer().getPluginManager().getPlugin("Multiverse-Core");
 
         if (core == null) {
-            Bukkit.getLogger().severe("Multiverse is a dependency of PlotSystem!");
+            LOGGER.severe("Multiverse is a dependency of PlotSystem!");
             return false;
         }
 
-        //If the world exists return true.
+        // If the world exists return true.
 
         MVWorldManager worldManager = core.getMVWorldManager();
 
@@ -147,11 +152,11 @@ public class Multiverse {
         MultiverseCore core = (MultiverseCore) Bukkit.getServer().getPluginManager().getPlugin("Multiverse-Core");
 
         if (core == null) {
-            Bukkit.getLogger().severe("Multiverse is a dependency of PlotSystem!");
+            LOGGER.severe("Multiverse is a dependency of PlotSystem!");
             return false;
         }
 
-        //If world exists delete it.
+        // If world exists delete it.
         MVWorldManager worldManager = core.getMVWorldManager();
 
         MultiverseWorld world = worldManager.getMVWorld(name);

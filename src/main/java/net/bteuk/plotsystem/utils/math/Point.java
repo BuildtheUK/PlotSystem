@@ -1,8 +1,8 @@
 package net.bteuk.plotsystem.utils.math;
 
-import java.util.List;
-
 import com.sk89q.worldedit.math.BlockVector2;
+
+import java.util.List;
 
 public class Point {
 

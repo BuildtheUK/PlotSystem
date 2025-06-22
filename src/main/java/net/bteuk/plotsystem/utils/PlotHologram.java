@@ -5,6 +5,7 @@ import lombok.Getter;
 import net.bteuk.network.Network;
 import net.bteuk.network.utils.Holograms;
 import net.bteuk.network.utils.enums.PlotStatus;
+import net.bteuk.network.utils.enums.SubmittedStatus;
 import net.bteuk.plotsystem.PlotSystem;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -22,12 +23,10 @@ public class PlotHologram {
 
     @Getter
     private final int plot;
-
-    private PlotStatus plotStatus;
-
-    private Location location;
-
     private final HashMap<PlotHologramType, Hologram> holograms = new HashMap<>();
+    private PlotStatus plotStatus;
+    private SubmittedStatus submittedStatus;
+    private Location location;
 
     public PlotHologram(int plot) {
         this.plot = plot;
@@ -38,8 +37,9 @@ public class PlotHologram {
      * Set the status of the plot, the status determines the info displayed on the hologram.
      * Updates the hologram as a result.
      */
-    public void updatePlotStatus(PlotStatus status) {
-        plotStatus = status;
+    public void updatePlotStatus(PlotStatus plotStatus, SubmittedStatus submittedStatus) {
+        this.plotStatus = plotStatus;
+        this.submittedStatus = submittedStatus;
         updateHologram();
     }
 
@@ -71,19 +71,34 @@ public class PlotHologram {
     public void setHologramVisibilityForPlayer(Player p) {
         // Determine which type to show for this player, default is ALL.
         PlotHologramType showType = PlotHologramType.ALL;
-        if (plotStatus == PlotStatus.CLAIMED || plotStatus == PlotStatus.SUBMITTED || plotStatus == PlotStatus.REVIEWING) {
+        if (plotStatus == PlotStatus.CLAIMED || plotStatus == PlotStatus.SUBMITTED) {
             // Check if the player is the plot owner.
             if (Network.getInstance().getPlotSQL().hasRow("SELECT id FROM plot_members WHERE id=" + plot + " AND uuid='" + p.getUniqueId() + "' AND is_owner=1;")) {
                 showType = PlotHologramType.OWNER;
             } else if (Network.getInstance().getPlotSQL().hasRow("SELECT id FROM plot_members WHERE id=" + plot + " AND uuid='" + p.getUniqueId() + "' AND is_owner=0;")) {
                 showType = PlotHologramType.MEMBER;
             } else {
-                if (plotStatus == PlotStatus.SUBMITTED && p.hasPermission("uknet.plots.review")) {
-                    showType = PlotHologramType.REVIEWER;
-                } else if (plotStatus == PlotStatus.REVIEWING) {
-                    User u = PlotSystem.getInstance().getUser(p);
-                    if (u != null && u.review != null && u.review.plot == plot) {
-                        showType = PlotHologramType.REVIEWER;
+                if (plotStatus == PlotStatus.SUBMITTED) {
+                    switch (submittedStatus) {
+                        case SUBMITTED -> {
+                            if (Network.getInstance().getPlotSQL()
+                                    .canReviewPlot(plot, p.getUniqueId().toString(), p.hasPermission("group.architect"), p.hasPermission("group.reviewer"))) {
+                                showType = PlotHologramType.REVIEWER;
+                            }
+                        }
+
+                        case UNDER_REVIEW, UNDER_VERIFICATION -> {
+                            User u = PlotSystem.getInstance().getUser(p);
+                            if (u != null && u.getReview() != null && u.getReview().getPlotID() == plot) {
+                                showType = PlotHologramType.REVIEWER;
+                            }
+                        }
+
+                        case AWAITING_VERIFICATION -> {
+                            if (Network.getInstance().getPlotSQL().canVerifyPlot(plot, p.getUniqueId().toString(), p.hasPermission("group.reviewer"))) {
+                                showType = PlotHologramType.REVIEWER;
+                            }
+                        }
                     }
                 }
             }
@@ -113,7 +128,12 @@ public class PlotHologram {
      */
     private void createHologram() {
         // Get the plot status.
-        plotStatus = PlotStatus.fromDatabaseValue(Network.getInstance().getPlotSQL().getString("SELECT status FROM plot_data WHERE id=" + plot));
+        plotStatus = PlotStatus.fromDatabaseValue(Network.getInstance().getPlotSQL().getString("SELECT status FROM plot_data WHERE id=" + plot + ";"));
+
+        // If the status is submitted get the submitted status.
+        if (plotStatus == PlotStatus.SUBMITTED) {
+            submittedStatus = SubmittedStatus.fromDatabaseValue(Network.getInstance().getPlotSQL().getString("SELECT status FROM plot_submission WHERE plot_id=" + plot + ";"));
+        }
 
         // Get the location of the hologram.
         int coordinate = Network.getInstance().getPlotSQL().getInt("SELECT coordinate_id FROM plot_data WHERE id=" + plot);
@@ -133,15 +153,19 @@ public class PlotHologram {
             if (plotStatus == PlotStatus.UNCLAIMED) {
                 // Create a hologram, visible for all players.
                 holograms.put(PlotHologramType.ALL, createUnclaimedHologram());
-            } else if (plotStatus == PlotStatus.CLAIMED || plotStatus == PlotStatus.SUBMITTED || plotStatus == PlotStatus.REVIEWING) {
+            } else if (plotStatus == PlotStatus.CLAIMED || plotStatus == PlotStatus.SUBMITTED) {
                 // Create a hologram for the plot owner.
                 holograms.put(PlotHologramType.OWNER, createClaimedHologram("&fYou are the owner of the plot", "OWNER"));
                 holograms.put(PlotHologramType.MEMBER, createClaimedHologram("&fYou are a member of the plot", "MEMBER"));
                 // Create a hologram for the reviewers.
                 if (plotStatus == PlotStatus.SUBMITTED) {
-                    holograms.put(PlotHologramType.REVIEWER, createClaimedHologram("&fThis plot is submitted", "SUBMITTED"));
-                } else if (plotStatus == PlotStatus.REVIEWING) {
-                    holograms.put(PlotHologramType.REVIEWER, createClaimedHologram("&fYou are reviewing this plot", "REVIEWER"));
+                    switch (submittedStatus) {
+                        case SUBMITTED -> holograms.put(PlotHologramType.REVIEWER, createClaimedHologram("&fThis plot is submitted", "SUBMITTED"));
+                        case UNDER_REVIEW -> holograms.put(PlotHologramType.REVIEWER, createClaimedHologram("&fYou are reviewing this plot", "UNDER_REVIEW"));
+                        case AWAITING_VERIFICATION ->
+                                holograms.put(PlotHologramType.REVIEWER, createClaimedHologram("&fThis plot is awaiting verification", "AWAITING_VERIFICATION"));
+                        case UNDER_VERIFICATION -> holograms.put(PlotHologramType.REVIEWER, createClaimedHologram("&fYou are verifying this plot", "UNDER_VERIFICATION"));
+                    }
                 }
                 // Create a hologram for the remaining players.
                 holograms.put(PlotHologramType.ALL, createClaimedHologram("&fThis plot is claimed", "ALL"));

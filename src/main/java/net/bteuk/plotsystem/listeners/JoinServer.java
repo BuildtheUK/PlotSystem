@@ -34,37 +34,36 @@ public class JoinServer implements Listener {
 
     }
 
-    //Must run last.
+    // Must run last.
     @EventHandler(priority = EventPriority.HIGH)
     public void joinEvent(PlayerJoinEvent e) {
 
-        //Create instance of User and add it to list.
+        // Create instance of User and add it to list.
         User u = new User(e.getPlayer(), globalSQL, plotSQL);
         instance.addUser(u);
 
         // Add the player to relevant holograms.
         PlotHelper.addPlayer(e.getPlayer());
 
-        //If the player has a join event, execute it.
-        //Delay by 1 second for all plugins to run their join events.
+        // If the player has a join event, execute it.
+        // Delay by 1 second for all plugins to run their join events.
         Bukkit.getScheduler().scheduleSyncDelayedTask(instance, () -> {
             if (globalSQL.hasRow("SELECT uuid FROM join_events WHERE uuid='" + u.player.getUniqueId() + "' AND type='plotsystem';")) {
 
-                //Get the event from the database.
+                // Get the event from the database.
                 String event = globalSQL.getString("SELECT event FROM join_events WHERE uuid='" + u.player.getUniqueId() + "' AND type='plotsystem'");
 
-                //Split the event by word.
+                // Split the event by word.
                 String[] aEvent = event.split(" ");
 
-                //Send the event to the event handler.
+                // Send the event to the event handler.
                 EventManager.event(u.uuid, aEvent);
 
-                //Clear the events.
+                // Clear the events.
                 globalSQL.update("DELETE FROM join_events WHERE uuid='" + u.player.getUniqueId() + "' AND type='plotsystem';");
 
             }
         }, 20L);
-
 
     }
 }

@@ -34,7 +34,6 @@ public class ClaimEnter implements Listener {
 
     }
 
-
     @EventHandler
     public void joinEvent(PlayerJoinEvent e) {
 
@@ -50,7 +49,7 @@ public class ClaimEnter implements Listener {
 
         User u = PlotSystem.getInstance().getUser(e.getPlayer());
 
-        //Delay this so the movement has taken place.
+        // Delay this so the movement has taken place.
         Bukkit.getScheduler().runTask(PlotSystem.getInstance(), () -> checkRegion(u));
     }
 
@@ -59,39 +58,39 @@ public class ClaimEnter implements Listener {
 
         User u = PlotSystem.getInstance().getUser(e.getPlayer());
 
-        //Delay this so the teleport has taken place.
+        // Delay this so the teleport has taken place.
         Bukkit.getScheduler().runTask(PlotSystem.getInstance(), () -> checkRegion(u));
     }
 
     public void checkRegion(User u) {
 
-        //Get the location of the user.
+        // Get the location of the user.
         Location l = u.player.getLocation();
 
-        //Create a query for all regions that the player is standing in, this should always contain 1 or less regions.
-        //If more than 1 region is queried then something has gone wrong with creating regions.
+        // Create a query for all regions that the player is standing in, this should always contain 1 or less regions.
+        // If more than 1 region is queried then something has gone wrong with creating regions.
         RegionQuery query = WorldGuard.getInstance().getPlatform().getRegionContainer().createQuery();
         ApplicableRegionSet applicableRegionSet = query.getApplicableRegions(BukkitAdapter.adapt(l));
 
-        //Iterate through the regions, which should be at most 1.
-        //If there is more than 1 region, throw an error.
+        // Iterate through the regions, which should be at most 1.
+        // If there is more than 1 region, throw an error.
         if (applicableRegionSet.size() > 1) {
             PlotSystem.LOGGER.severe("The player " + u.player.getName() + " is standing in more than 1 region, this should not be possible!");
             return;
         }
 
-        //If there is a region, then check if it's a plot or zone.
-        //If this is not the same as the player was previously standing, notify the user and update the information in the user instance.
+        // If there is a region, then check if it's a plot or zone.
+        // If this is not the same as the player was previously standing, notify the user and update the information in the user instance.
         if (applicableRegionSet.size() == 1) {
 
             for (ProtectedRegion region : applicableRegionSet.getRegions()) {
 
-                //Get region name.
+                // Get region name.
                 String regionName = region.getId();
 
-                //If the regionName starts with a z, then it's a zone.
-                //Else it's a region.
-                //The try catch will try to prevent any format exceptions.
+                // If the regionName starts with a z, then it's a zone.
+                // Else it's a region.
+                // The try catch will try to prevent any format exceptions.
                 try {
 
                     if (regionName.startsWith("z")) {
@@ -111,10 +110,10 @@ public class ClaimEnter implements Listener {
             }
         }
 
-        //If you're currently in a plot or zone, but you're not in a region, show the player that they've left it.
+        // If you're currently in a plot or zone, but you're not in a region, show the player that they've left it.
         if (applicableRegionSet.size() == 0 && (u.inPlot + u.inZone) > 0) {
 
-            //If the plot is claimed, send the relevant message.
+            // If the plot is claimed, send the relevant message.
             if (u.inPlot != 0) {
                 if (!plotSQL.hasRow("SELECT id FROM plot_members WHERE id=" + u.inPlot + ";")) {
 
@@ -124,7 +123,7 @@ public class ClaimEnter implements Listener {
 
                 } else {
 
-                    //If you are the owner of the plot send the relevant message.
+                    // If you are the owner of the plot send the relevant message.
                     if (plotSQL.hasRow("SELECT id FROM plot_members WHERE id=" + u.inPlot + " AND uuid='" + u.uuid + "' AND is_owner=1;")) {
 
                         u.player.sendActionBar(
@@ -132,11 +131,12 @@ public class ClaimEnter implements Listener {
 
                     } else {
 
-                        //If you are not an owner or member send the relevant message.
+                        // If you are not an owner or member send the relevant message.
                         u.player.sendActionBar(
                                 ChatUtils.success("You have left ")
                                         .append(Component.text(globalSQL.getString("SELECT name FROM player_data WHERE uuid = '" +
-                                                plotSQL.getString("SELECT uuid FROM plot_members WHERE id=" + u.inPlot + " AND is_owner=1;") + "';") + "'s", NamedTextColor.DARK_AQUA))
+                                                        plotSQL.getString("SELECT uuid FROM plot_members WHERE id=" + u.inPlot + " AND is_owner=1;") + "';") + "'s",
+                                                NamedTextColor.DARK_AQUA))
                                         .append(ChatUtils.success(" plot.")));
 
                     }
@@ -144,14 +144,14 @@ public class ClaimEnter implements Listener {
 
             } else if (u.inZone != 0) {
 
-                //Show zone leave message.
+                // Show zone leave message.
                 u.player.sendActionBar(
                         ChatUtils.success("You have left zone ")
                                 .append(Component.text(u.inZone, NamedTextColor.DARK_AQUA)));
 
             }
 
-            //Set all variables to default values after the logic has been run.
+            // Set all variables to default values after the logic has been run.
             u.inPlot = 0;
             u.inZone = 0;
 
@@ -160,16 +160,16 @@ public class ClaimEnter implements Listener {
 
     private void checkPlot(User u, int plot) {
 
-        //If the plot is not equal to the current plot, then notify the player and update the user instance.
+        // If the plot is not equal to the current plot, then notify the player and update the user instance.
         if (u.inPlot != plot) {
 
-            //Set the zone value to zero, since you can never be in both at the same time.
+            // Set the zone value to zero, since you can never be in both at the same time.
             u.inZone = 0;
 
-            //Set plot to the current plot.
+            // Set plot to the current plot.
             u.inPlot = plot;
 
-            //If the plot is claimed, send the relevant message.
+            // If the plot is claimed, send the relevant message.
             if (!plotSQL.hasRow("SELECT id FROM plot_members WHERE id=" + plot + ";")) {
 
                 u.player.sendActionBar(
@@ -179,16 +179,16 @@ public class ClaimEnter implements Listener {
 
             } else {
 
-                //If you are the owner of the plot send the relevant message.
+                // If you are the owner of the plot send the relevant message.
                 if (plotSQL.hasRow("SELECT id FROM plot_members WHERE id=" + plot + " AND uuid='" + u.uuid + "' AND is_owner=1;")) {
 
-                    plotSQL.update("UPDATE plot_members SET last_enter=" + Time.currentTime() + " WHERE id=" + plot + " AND uuid='" + u.uuid + "';");
+                    plotSQL.update("UPDATE plot_members SET last_enter=" + Time.currentTime() + ",inactivity_notice=0 WHERE id=" + plot + " AND uuid='" + u.uuid + "';");
                     u.player.sendActionBar(
                             ChatUtils.success("You have entered plot ")
                                     .append(Component.text(u.inPlot, NamedTextColor.DARK_AQUA))
                                     .append(ChatUtils.success(", you are the owner of this plot.")));
 
-                    //If you are a member of the plot send the relevant message.
+                    // If you are a member of the plot send the relevant message.
                 } else if (plotSQL.hasRow("SELECT id FROM plot_members WHERE id=" + plot + " AND uuid='" + u.uuid + "' AND is_owner=0;")) {
 
                     plotSQL.update("UPDATE plot_members SET last_enter=" + Time.currentTime() + " WHERE id=" + plot + " AND uuid='" + u.uuid + "';");
@@ -199,7 +199,7 @@ public class ClaimEnter implements Listener {
 
                 } else {
 
-                    //If you are not an owner or member send the relevant message.
+                    // If you are not an owner or member send the relevant message.
                     u.player.sendActionBar(
                             ChatUtils.success("You have entered ")
                                     .append(Component.text(globalSQL.getString("SELECT name FROM player_data WHERE uuid = '" +
@@ -211,7 +211,7 @@ public class ClaimEnter implements Listener {
 
         } else {
 
-            //If you are the owner or member of this plot update your last enter time.
+            // If you are the owner or member of this plot update your last enter time.
             if (plotSQL.hasRow("SELECT id FROM plot_members WHERE id=" + u.inPlot + " AND uuid='" + u.uuid + "';")) {
 
                 plotSQL.update("UPDATE plot_members SET last_enter=" + Time.currentTime() + " WHERE id=" + u.inPlot + " AND uuid='" + u.uuid + "';");
@@ -224,13 +224,13 @@ public class ClaimEnter implements Listener {
 
         if (u.inZone != zone) {
 
-            //Set the plot value to zero, since you can never be in both at the same time.
+            // Set the plot value to zero, since you can never be in both at the same time.
             u.inPlot = 0;
 
-            //Set zone to current zone.
+            // Set zone to current zone.
             u.inZone = zone;
 
-            //Check if the zone is public.
+            // Check if the zone is public.
             if (plotSQL.hasRow("SELECT id FROM zones WHERE id=" + zone + " AND is_public=1;")) {
 
                 u.player.sendActionBar(

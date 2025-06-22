@@ -1,91 +1,126 @@
 package net.bteuk.plotsystem.reviewing;
 
 import lombok.Getter;
+import net.bteuk.network.Network;
+import net.bteuk.network.lib.dto.PlotMessage;
 import net.bteuk.network.lib.utils.ChatUtils;
+import net.bteuk.network.lib.utils.Reviewing;
+import net.bteuk.network.utils.enums.SubmittedStatus;
 import net.bteuk.plotsystem.PlotSystem;
+import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
+import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
+import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.User;
-import org.bukkit.Material;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.BookMeta;
+import net.bteuk.plotsystem.utils.plugins.WorldGuardFunctions;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 
-public class Review {
+import static net.bteuk.plotsystem.utils.Config.CONFIG;
 
-    private final ItemStack[] inventory;
+@Getter
+public class Review extends ReviewAction {
 
-    //User instance.
-    @Getter
-    private final User u;
+    // Review Gui and Listener.
+    private final ReviewGui reviewActionGui;
 
-    //Review Gui and Listener.
-    public final ReviewGui reviewGui;
-    private final ReviewHotbar hotbarListener;
+    /**
+     * Constructor to create a new review.
+     *
+     * @param instance instance of the plugin
+     * @param plotID   the plot to review
+     * @param user     the reviewer
+     */
+    public Review(PlotSystem instance, int plotID, User user) {
+        super(instance, plotID, user);
 
-    //Accept Gui and accept data.
-    public AcceptGui acceptGui;
-
-    //Previous feedback Gui.
-    public PreviousFeedbackGui previousFeedbackGui;
-
-    //Plot id.
-    public final int plot;
-
-    //Feedback book
-    public final ItemStack book;
-    public BookMeta bookMeta;
-    public final EditBook editBook;
-
-    public Review(int plot, User u) {
-
-        this.u = u;
-        this.plot = plot;
-
-        //Save the users hotbar to revert to after reviewing.
-        //Then clear their inventory and set it up for reviewing.
-        inventory = u.player.getInventory().getContents();
-        u.player.getInventory().clear();
-
-        //Set review gui.
-        reviewGui = new ReviewGui(u, plot);
-
-        //Create listener for review gui button in slot 1 of hotbar.
-        hotbarListener = new ReviewHotbar(PlotSystem.getInstance(), u);
-
-        //Feedback book details.
-        book = new ItemStack(Material.WRITABLE_BOOK);
-        bookMeta = (BookMeta) book.getItemMeta();
-        bookMeta.displayName(ChatUtils.success("Feedback"));
-        book.setItemMeta(bookMeta);
-        editBook = new EditBook(PlotSystem.getInstance(), this);
+        // Create the review gui.
+        reviewActionGui = new ReviewGui(this);
 
     }
 
-    public void closeReview() {
+    @Override
+    public void cancel() {
+        // Set the plot back to 'submitted'.
+        PlotHelper.updateSubmittedStatus(plotID, SubmittedStatus.SUBMITTED);
 
-        //Unregister Listeners
-        hotbarListener.unregister();
-        editBook.unregister();
-
-        //Remove any existing guis.
-        if (reviewGui != null) {
-            reviewGui.delete();
-        }
-        if (acceptGui != null) {
-            acceptGui.delete();
-        }
-        if (previousFeedbackGui != null) {
-            previousFeedbackGui.delete();
+        // Send feedback.
+        if (user.player.isOnline()) {
+            user.player.sendMessage(ChatUtils.success("Cancelled reviewing of plot ")
+                    .append(Component.text(plotID, NamedTextColor.DARK_AQUA)));
         }
 
-        //Convert inventory back to how it was pre-review.
-        u.player.getInventory().setContents(inventory);
-
-        //Set review to null.
-        u.review = null;
-
+        super.cancel();
     }
 
-    public boolean isSamePlayer(Player p) {
-        return p.equals(u.player);
+    /**
+     * Save the review.
+     *
+     * @param accept true if the plot should be accepted, false if denied
+     */
+    public void save(boolean accept) {
+
+        double verificationChance = Reviewing.getReassessmentChance(plotSQL.getReviewerReputation(user.uuid));
+        boolean requiresVerification = false;
+        if (CONFIG.getBoolean("reviewer_verification", true) || !user.player.hasPermission("group.reviewer")) {
+            requiresVerification = Math.random() < verificationChance;
+        }
+
+        // Create a review entry in the database.
+        int reviewId = plotSQL.createReview(plotID, plotOwner, user.uuid, accept, !requiresVerification);
+
+        // Save feedback for each category.
+        saveFeedback(reviewId);
+
+        if (requiresVerification) {
+            setAwaitingVerification(accept);
+        } else {
+            completeReview(accept);
+        }
+
+        // Close gui and clear review if exists.
+        this.closeReviewAction();
+    }
+
+    @Override
+    protected void notifyReviewers() {
+        // Send message to reviewers that a plot has been reviewed.
+        PlotMessage plotMessage = new PlotMessage("A plot has been reviewed, there %s %s submitted %s.", false);
+        Network.getInstance().getChat().sendSocketMesage(plotMessage);
+    }
+
+    private void saveFeedback(int reviewId) {
+        getReviewBook().saveFeedback(reviewId);
+    }
+
+    private void setAwaitingVerification(boolean accept) {
+        // Remove the reviewer from the plot.
+        try {
+            WorldGuardFunctions.removeMember(String.valueOf(plotID), user.player.getUniqueId().toString(), plotWorld);
+        } catch (RegionNotFoundException | RegionManagerNotFoundException e) {
+            user.player.sendMessage(ChatUtils.error("Unable to remove you from the plot, please notify an admin."));
+        }
+
+        // Update the submitted status of the plot to 'awaiting verification'.
+        plotSQL.update("UPDATE plot_submission SET status='" + SubmittedStatus.AWAITING_VERIFICATION.database_value + "' WHERE plot_id=" + plotID + ";");
+
+        notifyReviewers();
+
+        // Send message to reviewers that a plot has been verified.
+        PlotMessage plotMessage = new PlotMessage("A plot has been reviewed and is awaiting verification, there %s %s %s awaiting verification.", true);
+        Network.getInstance().getChat().sendSocketMesage(plotMessage);
+
+        sendReviewerVerificationMessage(accept);
+    }
+
+    private void sendReviewerVerificationMessage(boolean accept) {
+        if (accept) {
+            user.player.sendMessage(ChatUtils.success("Plot ")
+                    .append(Component.text(plotID, NamedTextColor.DARK_AQUA))
+                    .append(ChatUtils.success(" accepted, it is now awaiting verification.")));
+        } else {
+            user.player.sendMessage(ChatUtils.success("Plot ")
+                    .append(Component.text(plotID, NamedTextColor.DARK_AQUA))
+                    .append(ChatUtils.success(" has been denied, it is now awaiting verification.")));
+        }
     }
 }

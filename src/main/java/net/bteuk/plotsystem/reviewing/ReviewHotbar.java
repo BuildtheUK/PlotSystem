@@ -1,165 +1,69 @@
 package net.bteuk.plotsystem.reviewing;
 
-import net.bteuk.network.Network;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.utils.NetworkUser;
 import net.bteuk.network.utils.Utils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.User;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
-import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerEditBookEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import static net.bteuk.plotsystem.PlotSystem.LOGGER;
+
 public class ReviewHotbar implements Listener {
 
-    //PlotSystem instance.
-    private final PlotSystem plotSystem;
+    // PlotSystem instance.
+    private final PlotSystem instance;
 
-    //User.
-    private final User u;
+    // User.
+    private final User user;
 
-    //Review gui item.
-    private final ItemStack reviewGuiItem;
+    // Review gui item.
+    private final ItemStack reviewGui;
 
-    //Timer ID.
-    private int taskID;
+    private final List<ItemStack> requiredItems = new ArrayList<>();
 
-    //Itemstack for slot 1 and 2.
-    private ItemStack slot1;
-    private ItemStack slot2;
+    public ReviewHotbar(PlotSystem instance, User user) {
 
-    public ReviewHotbar(PlotSystem plotSystem, User u) {
+        // Set plotsystem.
+        this.instance = instance;
 
-        //Set plotsystem.
-        this.plotSystem = plotSystem;
+        // Set user.
+        this.user = user;
 
-        //Set user.
-        this.u = u;
+        // Create the review gui item.
+        reviewGui = Utils.createItem(Material.EMERALD, 1, ChatUtils.title("Review Menu"), ChatUtils.line("Click to open review menu."));
 
-        //Create review gui item.
-        reviewGuiItem = Utils.createItem(Material.EMERALD,1, ChatUtils.title("Review Menu"), ChatUtils.line("Click to open review menu."));
+        initReviewItems();
 
-        //Register listeners.
-        Bukkit.getServer().getPluginManager().registerEvents(this, plotSystem);
-
-        //Start timer to keep review gui in slot 1.
-        timer();
+        // Register listeners.
+        Bukkit.getServer().getPluginManager().registerEvents(this, instance);
 
     }
 
-    //If the player clicks on the review gui in their inventory, open the gui.
-    @EventHandler
-    public void onClick(InventoryClickEvent e) {
-
-        if (e.getCurrentItem() == null) {
-            return;
+    public void setReviewBookSlot(ItemStack itemStack) {
+        if (requiredItems.size() > 1) {
+            requiredItems.remove(1);
         }
-
-        //Check if player equals the reviewer.
-        if (!e.getWhoClicked().equals(u.player)) {
-            return;
-        }
-
-        User u = PlotSystem.getInstance().getUser((Player) e.getWhoClicked());
-
-        //If item is review gui then open the gui.
-        if (e.getCurrentItem().equals(reviewGuiItem)) {
-            e.setCancelled(true);
-
-            //If item is not in slot 1, delete it.
-            if (e.getSlot() != 0) {
-                u.player.getInventory().clear(e.getSlot());
-                return;
-            }
-
-            u.player.closeInventory();
-            NetworkUser user = Network.getInstance().getUser(u.player);
-            Bukkit.getScheduler().runTaskLater(plotSystem, () -> u.review.reviewGui.open(user), 1);
-        }
+        requiredItems.add(1, itemStack);
+        user.player.getInventory().setItem(1, itemStack);
     }
-
-    //If the player interacts with the gui without opening their inventory, open the gui.
-    @EventHandler
-    public void interactEvent(PlayerInteractEvent e) {
-
-        if (e.getPlayer().getOpenInventory().getType() != InventoryType.CRAFTING && e.getPlayer().getOpenInventory().getType() != InventoryType.CREATIVE) {
-            return;
-        }
-
-        //Check if player equals the reviewer.
-        if (!e.getPlayer().equals(u.player)) {
-            return;
-        }
-
-        //If item is review gui then open the gui.
-        if (e.getPlayer().getInventory().getItemInMainHand().equals(reviewGuiItem)) {
-            e.setCancelled(true);
-            u.player.closeInventory();
-            NetworkUser user = Network.getInstance().getUser(u.player);
-            if (u.review != null) {
-                u.review.reviewGui.open(user);
-            }
-        }
-    }
-
-    //Timer to keep review gui and feedback book in inventory.
-    private void timer() {
-
-        //1 tick timer.
-        taskID = Bukkit.getScheduler().scheduleSyncRepeatingTask(plotSystem, () -> {
-
-            //Get slot1 and slot2.
-            slot1 = u.player.getInventory().getItem(0);
-            slot2 = u.player.getInventory().getItem(1);
-
-            //If slot1 is null set to review gui.
-            if (slot1 == null) {
-
-                //Set slot1 to gui.
-                u.player.getInventory().setItem(0, reviewGuiItem);
-
-                //If slot1 is not review gui set to review gui.
-            } else if (!slot1.equals(reviewGuiItem)) {
-
-                //Set slot to gui.
-                u.player.getInventory().setItem(0, reviewGuiItem);
-
-            }
-
-            //If slot2 is null set to feedback book.
-            if (slot2 == null) {
-
-                //Set slot2 to feedback book.
-                u.player.getInventory().setItem(1, u.review.book);
-
-                //If slot2 is not feedback book set to feedback book.
-            } else if (!slot2.equals(u.review.book)) {
-
-                //Set slot to gui.
-                u.player.getInventory().setItem(1, u.review.book);
-
-            }
-
-        }, 0L, 1L);
-    }
-
 
     public void unregister() {
-
-        //Stop timer.
-        Bukkit.getScheduler().cancelTask(taskID);
-
         //Unregister listeners.
         PlayerEditBookEvent.getHandlerList().unregister(this);
         InventoryClickEvent.getHandlerList().unregister(this);
@@ -170,59 +74,67 @@ public class ReviewHotbar implements Listener {
         PlayerSwapHandItemsEvent.getHandlerList().unregister(this);
 
         //Send feedback in the console.
-        PlotSystem.LOGGER.info("Reset reviewing hotbar and unregistered listeners");
-
-    }
-
-    /*
-
-    The following events are to prevent the gui being moved in the inventory,
-    causing duplicate items which are difficult to remove.
-
-     */
-
-    @EventHandler
-    public void swapHands(PlayerSwapHandItemsEvent e) {
-
-        if (e.getOffHandItem() == null) {
-            return;
-        }
-
-        e.setCancelled(cancelEvent(e.getOffHandItem()));
-
+        LOGGER.info("Reset reviewing hotbar and unregistered listeners");
     }
 
     @EventHandler
-    public void dropItem(PlayerDropItemEvent e) {
-        e.setCancelled(cancelEvent(e.getItemDrop().getItemStack()));
-    }
-
-    @EventHandler
-    public void moveItem(InventoryMoveItemEvent e) {
-        e.setCancelled(cancelEvent(e.getItem()));
-    }
-
-    @EventHandler
-    public void dragItem(InventoryDragEvent e) {
-        if (cancelEvent(e.getOldCursor())) {
+    public void onClick(InventoryClickEvent e) {
+        if (cancelEvent(e.getWhoClicked(), e.getCurrentItem()) || cancelEvent(e.getWhoClicked(), e.getCursor())) {
             e.setCancelled(true);
-            return;
-        }
 
-        if (e.getCursor() != null) {
-            if (cancelEvent(e.getCursor())) {
-                e.setCancelled(true);
+            // If item is review gui then open the gui.
+            if (reviewGui.equals(e.getCurrentItem())) {
+                Bukkit.getScheduler().runTaskLater(instance, () -> user.getReview().openReviewActionGui(), 1);
             }
         }
     }
 
-    public boolean cancelEvent(ItemStack item) {
+    @EventHandler
+    public void interactEvent(PlayerInteractEvent e) {
+        if (cancelEvent(e.getPlayer(), e.getItem())) {
+            e.setCancelled(true);
 
-        //Check if review is not null.
-        if (u.review != null) {
-            return item.equals(reviewGuiItem) || item.equals(u.review.book);
+            // If item is review gui then open the gui.
+            if (reviewGui.equals(e.getItem())) {
+                Bukkit.getScheduler().runTaskLater(instance, () -> user.getReview().openReviewActionGui(), 1);
+            }
         }
+    }
 
-        return false;
+    @EventHandler
+    public void swapHands(PlayerSwapHandItemsEvent e) {
+        e.setCancelled(cancelEvent(e.getPlayer(), e.getOffHandItem()) || cancelEvent(e.getPlayer(), e.getMainHandItem()));
+    }
+
+    @EventHandler
+    public void dropItem(PlayerDropItemEvent e) {
+        e.setCancelled(cancelEvent(e.getPlayer(), e.getItemDrop().getItemStack()));
+    }
+
+    @EventHandler
+    public void moveItem(InventoryMoveItemEvent e) {
+        if (e.getInitiator().getHolder() instanceof Player player) {
+            e.setCancelled(cancelEvent(player, e.getItem()));
+        }
+    }
+
+    @EventHandler
+    public void dragItem(InventoryDragEvent e) {
+        e.setCancelled(cancelEvent(e.getWhoClicked(), e.getOldCursor()) || cancelEvent(e.getWhoClicked(), e.getCursor()));
+    }
+
+    private boolean cancelEvent(HumanEntity humanEntity, ItemStack item) {
+        // Check if player is the reviewer and the item is one of the required items.
+        return item != null && (user.player.equals(humanEntity) && requiredItems.stream().anyMatch(item::equals));
+    }
+
+    private void initReviewItems() {
+        requiredItems.add(reviewGui);
+
+        // Set the hotbar items in the player's inventory.
+        user.player.getInventory().setItem(0, reviewGui);
+
+        user.player.getInventory().setItem(2, new ItemStack(Material.ORANGE_CONCRETE));
+        user.player.getInventory().setItem(3, new ItemStack(Material.SPRUCE_SIGN));
     }
 }
