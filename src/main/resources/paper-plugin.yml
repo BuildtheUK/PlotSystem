@@ -1,7 +1,7 @@
 name: PlotSystem
 version: '${project.version}'
 main: net.bteuk.plotsystem.PlotSystem
-api-version: '1.21.1'
+api-version: '1.21.4'
 
 dependencies:
   server:

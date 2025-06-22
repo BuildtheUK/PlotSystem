@@ -11,6 +11,7 @@ import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
 import net.bteuk.plotsystem.utils.User;
 import net.bteuk.plotsystem.utils.plugins.WorldGuardFunctions;
+import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -50,10 +51,15 @@ public class TeleportEvent {
 
             // If the plot is on the current server teleport them directly.
             // Else teleport them to the correct server and them teleport them to the plot.
-            if (server.equals(SERVER_NAME)) {
+            if (StringUtils.equals(server, SERVER_NAME)) {
 
                 // Get world of plot.
                 World world = Bukkit.getWorld(u.plotSQL.getString("SELECT location FROM plot_data WHERE id=" + id + ";"));
+
+                if (world == null) {
+                    u.player.sendMessage(ChatUtils.error("An error occurred while teleporting to plot %s", String.valueOf(id)));
+                    return;
+                }
 
                 // Get the plot status
                 PlotStatus status = PlotStatus.fromDatabaseValue(u.plotSQL.getString("SELECT status FROM plot_data WHERE id=" + id + ";"));
@@ -72,6 +78,11 @@ public class TeleportEvent {
                     }
                     double x = sumX / (double) corners.length;
                     double z = sumZ / (double) corners.length;
+
+                    // Add the coordinate transform to find the location in the build world.
+                    x += u.plotSQL.getInt("SELECT xTransform FROM location_data WHERE name='" + world.getName() + "';");
+                    z += u.plotSQL.getInt("SELECT zTransform FROM location_data WHERE name='" + world.getName() + "';");
+
                     Location l = new Location(world, x, Utils.getHighestYAt(world, (int) x, (int) z), z);
                     PaperLib.teleportAsync(u.player, l);
                 } else {
@@ -146,5 +157,4 @@ public class TeleportEvent {
         }
 
     }
-
 }
