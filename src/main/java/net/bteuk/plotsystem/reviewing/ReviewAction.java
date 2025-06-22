@@ -4,7 +4,6 @@ import com.sk89q.worldedit.math.BlockVector2;
 import lombok.Getter;
 import net.bteuk.network.Network;
 import net.bteuk.network.gui.Gui;
-import net.bteuk.network.gui.tutorials.RecommendedTutorialsGui;
 import net.bteuk.network.lib.dto.DirectMessage;
 import net.bteuk.network.lib.dto.DiscordDirectMessage;
 import net.bteuk.network.lib.enums.PlotDifficulties;
@@ -60,8 +59,6 @@ public abstract class ReviewAction {
     private final ReviewBook reviewBook;
     // Previous feedback Gui.
     protected PreviousFeedbackGui previousFeedbackGui;
-    // Recommend tutorials Gui.
-    protected RecommendedTutorialsGui recommendedTutorialsGui;
     protected PlotDifficulties plotDifficulty = PlotDifficulties.EASY;
 
     public ReviewAction(PlotSystem instance, int plotID, User user) {
@@ -219,7 +216,7 @@ public abstract class ReviewAction {
         NetworkUser networkUser = Network.getInstance().getUser(user.player);
         if (networkUser != null) {
             networkUser.player.closeInventory();
-            previousFeedbackGui.open(networkUser);
+            previousFeedbackGui.open(Network.getInstance().getUser(user.player));
         }
     }
 
@@ -228,20 +225,6 @@ public abstract class ReviewAction {
             save(accept);
         }
         user.player.closeInventory();
-    }
-
-    public void openRecommendTutorialsGui() {
-        NetworkUser networkUser = Network.getInstance().getUser(user.player);
-
-        if (recommendedTutorialsGui == null) {
-            recommendedTutorialsGui = new RecommendedTutorialsGui(getReviewActionGui(), plotID, networkUser, plotOwner, true);
-        } else
-            recommendedTutorialsGui.refresh();
-
-        if (networkUser != null) {
-            networkUser.player.closeInventory();
-            recommendedTutorialsGui.open(networkUser);
-        }
     }
 
     /**
@@ -394,7 +377,7 @@ public abstract class ReviewAction {
         try {
             copyVector = WorldGuardFunctions.getPoints(String.valueOf(plotID), plotWorld);
         } catch (RegionManagerNotFoundException | RegionNotFoundException e) {
-            // u.player.sendMessage(ChatUtils.error("An error occurred in the plot accepting process, please contact an admin."));
+            //u.player.sendMessage(ChatUtils.error("An error occurred in the plot accepting process, please contact an admin."));
             e.printStackTrace();
             return;
         }
@@ -417,7 +400,7 @@ public abstract class ReviewAction {
         String builderRole = Roles.builderRole(plotOwner).join();
         LOGGER.info(String.format("Plot owner %s has builder role %s", plotOwner, builderRole));
 
-        // Calculate the role the player will be promoted to, if any.
+        //Calculate the role the player will be promoted to, if any.
         String newRole = getNewRole(difficulty, builderRole);
 
         if (newRole != null) {
