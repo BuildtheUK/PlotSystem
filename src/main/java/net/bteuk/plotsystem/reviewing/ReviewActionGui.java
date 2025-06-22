@@ -5,6 +5,7 @@ import net.bteuk.network.gui.Gui;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.sql.GlobalSQL;
 import net.bteuk.network.sql.PlotSQL;
+import net.bteuk.network.utils.Constants;
 import net.bteuk.network.utils.Utils;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
@@ -54,9 +55,8 @@ public abstract class ReviewActionGui extends Gui {
                         ChatUtils.line("Deny the plot and return it to the plot owner.")),
                 u -> reviewAction.saveIfPossible(false));
 
-        //View previous feedback, if it exists.
+        // View previous feedback, if it exists.
         if (plotSQL.hasRow("SELECT 1 FROM plot_review WHERE uuid='" + reviewAction.getPlotOwner() + "' AND plot_id=" + reviewAction.getPlotID() + " AND accepted=0;")) {
-
             setItem(18, Utils.createItem(Material.LECTERN, 1,
                             ChatUtils.title("Previous Feedback"),
                             ChatUtils.line("Click to review previous"),
@@ -67,6 +67,11 @@ public abstract class ReviewActionGui extends Gui {
 
         // Cancel review action.
         createCancelReviewActionItem();
+
+        // Open recommend tutorials gui
+        if (Constants.TUTORIALS)
+            setItem(22, Utils.createItem(Material.KNOWLEDGE_BOOK, 1, ChatUtils.title("Recommend Tutorials")),
+                    u -> reviewAction.openRecommendTutorialsGui());
     }
 
     public void refresh() {

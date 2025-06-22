@@ -32,6 +32,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import teachingtutorials.utils.DBConnection;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,6 +55,9 @@ public class PlotSystem extends JavaPlugin {
     // SQL Classes.
     public GlobalSQL globalSQL;
     public PlotSQL plotSQL;
+    @Getter
+    private DBConnection tutorialsDBConnection;
+
     public Timers timers;
     // Listeners
     public ClaimEnter claimEnter;
@@ -96,6 +100,7 @@ public class PlotSystem extends JavaPlugin {
         // Set databases from Network dependency.
         globalSQL = Network.getInstance().getGlobalSQL();
         plotSQL = Network.getInstance().getPlotSQL();
+        tutorialsDBConnection = Network.getInstance().getTutorialsDBConnection();
 
         // Set the server name from config.
         SERVER_NAME = CONFIG.getString("server_name");
