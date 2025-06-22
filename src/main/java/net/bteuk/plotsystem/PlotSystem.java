@@ -139,9 +139,8 @@ public class PlotSystem extends JavaPlugin {
         // Create list of users.
         users = new ArrayList<>();
 
-        // Remove all plots 'under review' on this server.
-        plotSQL.update(
-                "UPDATE plot_data AS pd INNER JOIN location_data AS ld ON ld.name=pd.location SET pd.status='submitted' WHERE pd.status='reviewing' AND ld.server='" + SERVER_NAME + "';");
+        plotSQL.update("UPDATE plot_submission AS ps INNER JOIN plot_data AS pd ON ps.plot_id=pd.id SET ps.status='submitted' WHERE ps.status='under review' AND pd.location IN (SELECT name FROM location_data WHERE server='" + SERVER_NAME + "');");
+        plotSQL.update("UPDATE plot_submission AS ps INNER JOIN plot_data AS pd ON ps.plot_id=pd.id SET ps.status='awaiting verification' WHERE ps.status='under verification' AND pd.location IN (SELECT name FROM location_data WHERE server='" + SERVER_NAME + "');");
 
         // Create gui item
         gui = new ItemStack(Material.NETHER_STAR);
@@ -188,7 +187,7 @@ public class PlotSystem extends JavaPlugin {
 
         // Get all active plots (unclaimed, claimed, submitted, reviewing) and add holograms.
         List<Integer> active_plots = plotSQL.getIntList(
-                "SELECT pd.id FROM plot_data AS pd INNER JOIN location_data AS ld ON ld.name=pd.location WHERE pd.status IN ('unclaimed','claimed','submitted','reviewing') AND " +
+                "SELECT pd.id FROM plot_data AS pd INNER JOIN location_data AS ld ON ld.name=pd.location WHERE pd.status IN ('unclaimed','claimed','submitted') AND " +
                         "ld.server='" + SERVER_NAME + "';");
         active_plots.forEach(plot -> PlotHelper.addPlotHologram(new PlotHologram(plot)));
     }

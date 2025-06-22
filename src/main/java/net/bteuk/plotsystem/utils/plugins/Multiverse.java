@@ -72,6 +72,9 @@ public class Multiverse {
         // Disable random tick.
         world.setGameRule(GameRule.RANDOM_TICK_SPEED, 0);
 
+        // Disable wandering traders.
+        world.setGameRule(GameRule.DO_TRADER_SPAWNING, false);
+
         // Get worldguard.
         WorldGuard wg = WorldGuard.getInstance();
         RegionManager regions = wg.getPlatform().getRegionContainer().get(BukkitAdapter.adapt(world));
