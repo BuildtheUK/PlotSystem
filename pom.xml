@@ -6,7 +6,7 @@
 
     <groupId>net.bteuk</groupId>
     <artifactId>PlotSystem</artifactId>
-    <version>1.7.0</version>
+    <version>1.7.1</version>
     <packaging>jar</packaging>
 
     <name>PlotSystem</name>
@@ -113,7 +113,7 @@
         <dependency>
             <groupId>com.github.BTEUK</groupId>
             <artifactId>Network</artifactId>
-            <version>c8a9ff8b97</version>
+            <version>7f82648d73</version>
             <scope>provided</scope>
         </dependency>
 
