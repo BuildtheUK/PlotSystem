@@ -103,9 +103,6 @@ public class DeleteEvent {
                 // Remove the submitted plot if it is currently submitted.
                 plotSQL.update("DELETE FROM plot_submission WHERE plot_id=" + id + ";");
 
-                // Remove the submitted plot if it is currently submitted.
-                plotSQL.update("DELETE FROM tutorial_recommendations WHERE plot_id=" + id + ";");
-
                 // Set plot status to unclaimed.
                 PlotStatus currentStatus = PlotStatus.fromDatabaseValue(plotSQL.getString("SELECT status FROM plot_data WHERE id=" + id + ";"));
                 PlotHelper.updatePlotStatus(id, PlotStatus.UNCLAIMED);
