@@ -1,12 +1,11 @@
 package net.bteuk.plotsystem.utils;
 
 import lombok.Setter;
+import net.bteuk.network.api.plotsystem.PlotStatus;
+import net.bteuk.network.api.plotsystem.ReviewCategory;
+import net.bteuk.network.api.plotsystem.ReviewSelection;
+import net.bteuk.network.api.plotsystem.SubmittedStatus;
 import net.bteuk.network.lib.enums.PlotDifficulties;
-import net.bteuk.network.sql.PlotSQL;
-import net.bteuk.network.utils.enums.PlotStatus;
-import net.bteuk.network.utils.enums.SubmittedStatus;
-import net.bteuk.network.utils.plotsystem.ReviewCategory;
-import net.bteuk.network.utils.plotsystem.ReviewSelection;
 import net.bteuk.plotsystem.PlotSystem;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
@@ -27,21 +26,9 @@ import static net.bteuk.plotsystem.utils.Config.CONFIG;
 public class PlotHelper {
 
     @Setter
-    private static PlotSQL plotSQL;
+    private List<PlotHologram> holograms = new ArrayList<>();
 
-    @Setter
-    private static List<PlotHologram> holograms = new ArrayList<>();
-
-    private static Map<PlotDifficulties, ReviewCategoryThreshold> REVIEW_CATEGORY_THRESHOLDS;
-
-    /**
-     * Initialise the plot helper by setting the relevant variables.
-     *
-     * @param plotSQL {@link PlotSQL}
-     */
-    public static void init(PlotSQL plotSQL) {
-        setPlotSQL(plotSQL);
-    }
+    private Map<PlotDifficulties, ReviewCategoryThreshold> REVIEW_CATEGORY_THRESHOLDS;
 
     /**
      * Update the submitted status of a plot, will update any relevant holograms.
@@ -49,7 +36,7 @@ public class PlotHelper {
      * @param id              the plot id
      * @param submittedStatus the submitted status
      */
-    public static boolean updateSubmittedStatus(int id, SubmittedStatus submittedStatus) {
+    public boolean updateSubmittedStatus(int id, SubmittedStatus submittedStatus) {
         return updatePlotStatus(id, PlotStatus.SUBMITTED, submittedStatus);
     }
 
@@ -59,7 +46,7 @@ public class PlotHelper {
      * @param id         the plot id
      * @param plotStatus the plot status
      */
-    public static boolean updatePlotStatus(int id, PlotStatus plotStatus) {
+    public boolean updatePlotStatus(int id, PlotStatus plotStatus) {
         SubmittedStatus submittedStatus = null;
         if (plotStatus == PlotStatus.SUBMITTED) {
             submittedStatus = SubmittedStatus.SUBMITTED;
@@ -74,7 +61,7 @@ public class PlotHelper {
      * @param status          the plot status
      * @param submittedStatus the submitted status of the plot, if status is submitted
      */
-    private static boolean updatePlotStatus(int id, PlotStatus status, SubmittedStatus submittedStatus) {
+    private boolean updatePlotStatus(int id, PlotStatus status, SubmittedStatus submittedStatus) {
         boolean hasChanged = false;
         if (!plotSQL.hasRow("SELECT 1 FROM plot_data WHERE id=" + id + " AND status='" + status.database_value + "'")) {
             plotSQL.update("UPDATE plot_data SET status='" + status.database_value + "' WHERE id=" + id + ";");
@@ -104,23 +91,23 @@ public class PlotHelper {
         return hasChanged;
     }
 
-    public static void addPlotHologram(PlotHologram plotHologram) {
+    public void addPlotHologram(PlotHologram plotHologram) {
         holograms.add(plotHologram);
     }
 
-    public static void updatePlotHologram(int plot) {
+    public void updatePlotHologram(int plot) {
         holograms.stream().filter(plotHologram -> plotHologram.getPlot() == plot).forEach(PlotHologram::updateLocation);
     }
 
-    public static void addPlayer(Player player) {
+    public void addPlayer(Player player) {
         holograms.forEach(hologram -> hologram.setHologramVisibilityForPlayer(player));
     }
 
-    public static ReviewSelection getReviewCategoryThreshold(PlotDifficulties difficulty, ReviewCategory category) {
+    public ReviewSelection getReviewCategoryThreshold(PlotDifficulties difficulty, ReviewCategory category) {
         return REVIEW_CATEGORY_THRESHOLDS.get(difficulty).getThreshold(category);
     }
 
-    public static boolean reviewCategoryThresholdReached(PlotDifficulties difficulty, ReviewCategory category, ReviewSelection selection) {
+    public boolean reviewCategoryThresholdReached(PlotDifficulties difficulty, ReviewCategory category, ReviewSelection selection) {
         if (REVIEW_CATEGORY_THRESHOLDS == null) {
             loadReviewCategoryThresholds();
         }
@@ -133,7 +120,7 @@ public class PlotHelper {
         };
     }
 
-    private static void loadReviewCategoryThresholds() {
+    private void loadReviewCategoryThresholds() {
         ConfigurationSection categories = CONFIG.getConfigurationSection("categories");
         REVIEW_CATEGORY_THRESHOLDS = new HashMap<>();
         for (PlotDifficulties difficulty : PlotDifficulties.values()) {

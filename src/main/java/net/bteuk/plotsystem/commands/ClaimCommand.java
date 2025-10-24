@@ -1,7 +1,10 @@
 package net.bteuk.plotsystem.commands;
 
+import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import net.bteuk.network.Network;
+import net.bteuk.network.api.NetworkAPI;
+import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.commands.AbstractCommand;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.sql.PlotSQL;
@@ -15,36 +18,35 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 
-import static net.bteuk.network.utils.Constants.SERVER_NAME;
-import static net.bteuk.network.utils.Constants.TUTORIALS;
+import static net.bteuk.plotsystem.PlotSystem.SERVER_NAME;
 
-public class ClaimCommand extends AbstractCommand {
+public class ClaimCommand implements BasicCommand {
 
     public static final Component TUTORIAL_REQUIRED_MESSAGE =
             ChatUtils.error("To claim a plot you first complete the starter tutorial.")
                     .append(ChatUtils.error(" Click here to open the tutorial menu!").clickEvent(ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, "/nav tutorials")));
-    private final PlotSQL plotSQL;
+    private final PlotAPI plotAPI;
 
-    public ClaimCommand(PlotSQL plotSQL) {
-        this.plotSQL = plotSQL;
+    public ClaimCommand(NetworkAPI networkAPI) {
+        this.plotAPI = networkAPI.getPlotAPI();
     }
 
-    public static boolean hasClaimPermission(User u, NetworkUser user, int plot) {
+    public static boolean hasClaimPermission(NetworkAPI networkAPI, Player player, int plot) {
 
         // Make sure the player has permission to claim plots, else they must complete the tutorial first.
         // Only checked if tutorials are enabled.
-        if (!(user.hasPermission("uknet.plots.claim.all") || user.hasPermission("uknet.plots.claim.easy")) && TUTORIALS) {
-            user.player.sendMessage(TUTORIAL_REQUIRED_MESSAGE);
+        if (!(player.hasPermission("uknet.plots.claim.all") || player.hasPermission("uknet.plots.claim.easy")) && networkAPI.isTutorialsEnabled()) {
+            player.sendMessage(TUTORIAL_REQUIRED_MESSAGE);
             return false;
         }
 
         // Check if the player has permission to claim a plot of this difficulty.
-        if (!user.hasPermission("uknet.plots.claim.all")) {
+        if (!player.hasPermission("uknet.plots.claim.all")) {
             switch (u.plotSQL.getInt("SELECT difficulty FROM plot_data WHERE id=" + plot + ";")) {
 
                 case 1 -> {
-                    if (!user.hasPermission("uknet.plots.claim.easy")) {
-                        user.sendMessage(ChatUtils.error("You do not have permission to claim an ")
+                    if (!player.hasPermission("uknet.plots.claim.easy")) {
+                        player.sendMessage(ChatUtils.error("You do not have permission to claim an ")
                                 .append(Component.text("Easy", NamedTextColor.DARK_RED))
                                 .append(ChatUtils.error(" plot.")));
                         return false;
@@ -52,8 +54,8 @@ public class ClaimCommand extends AbstractCommand {
                 }
 
                 case 2 -> {
-                    if (!user.hasPermission("uknet.plots.claim.normal")) {
-                        user.sendMessage(ChatUtils.error("You do not have permission to claim a ")
+                    if (!player.hasPermission("uknet.plots.claim.normal")) {
+                        player.sendMessage(ChatUtils.error("You do not have permission to claim a ")
                                 .append(Component.text("Normal", NamedTextColor.DARK_RED))
                                 .append(ChatUtils.error(" plot.")));
                         return false;
@@ -61,8 +63,8 @@ public class ClaimCommand extends AbstractCommand {
                 }
 
                 case 3 -> {
-                    if (!user.hasPermission("uknet.plots.claim.hard")) {
-                        user.sendMessage(ChatUtils.error("You do not have permission to claim a ")
+                    if (!player.hasPermission("uknet.plots.claim.hard")) {
+                        player.sendMessage(ChatUtils.error("You do not have permission to claim a ")
                                 .append(Component.text("Hard", NamedTextColor.DARK_RED))
                                 .append(ChatUtils.error(" plot.")));
                         return false;
@@ -126,17 +128,17 @@ public class ClaimCommand extends AbstractCommand {
 
         // If the plot is already claimed tell them.
         // If they are the owner or a member tell them.
-        if (plotSQL.hasRow("SELECT id FROM plot_members WHERE id=" + plot + " AND uuid='" + u.player.getUniqueId() + "' AND is_owner=1;")) {
+        if (plotAPI.isPlotOwner(u.inPlot, u.uuid)) {
 
             u.player.sendMessage(ChatUtils.error("You are already the owner of this plot!"));
             return false;
 
-        } else if (plotSQL.hasRow("SELECT id FROM plot_members WHERE id=" + plot + " AND uuid='" + u.player.getUniqueId() + "' AND is_owner=0;")) {
+        } else if (plotAPI.isPlotMember(u.inPlot, u.uuid)) {
 
             u.player.sendMessage(ChatUtils.error("You are already a member of this plot!"));
             return false;
 
-        } else if (plotSQL.hasRow("SELECT id FROM plot_data WHERE id=" + plot + " AND status='claimed';")) {
+        } else if (plotAPI.isPlotClaimed(u.inPlot)) {
 
             u.player.sendMessage(ChatUtils.error("This plot is already claimed!"));
             return false;
@@ -144,7 +146,7 @@ public class ClaimCommand extends AbstractCommand {
         }
 
         // Check if you do not already have the maximum number of plots.
-        if (plotSQL.getInt("SELECT count(id) FROM plot_members WHERE uuid='" + u.uuid + "';") >= PlotSystem.getInstance().getConfig().getInt("plot_maximum")) {
+        if (plotAPI.getNumberOfPlots(u.uuid) >= PlotSystem.getInstance().getConfig().getInt("plot_maximum")) {
 
             u.player.sendMessage(ChatUtils.error("You have reached the maximum number of plots."));
             return false;

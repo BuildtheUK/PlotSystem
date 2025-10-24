@@ -1,9 +1,9 @@
 package net.bteuk.plotsystem.utils;
 
 import com.sk89q.worldedit.math.BlockVector2;
+import net.bteuk.network.api.CoordinateAPI;
+import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.sql.PlotSQL;
-import net.bteuk.network.utils.Time;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.plugins.WGCreatePlot;
 import net.kyori.adventure.text.Component;
@@ -16,6 +16,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.PlayerInventory;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class SelectionTool extends WGCreatePlot {
 
@@ -27,19 +28,20 @@ public class SelectionTool extends WGCreatePlot {
     private final User u;
     // This vector of BlockVector2 (2d points (x,z)) represent the selected points.
     private final ArrayList<BlockVector2> vector;
-    // PlotSQL
-    private final PlotSQL plotSQL;
     // Outlines
     private final Outlines outlines;
+
+    private final PlotAPI plotAPI;
     // Size and difficulty of the plot.
     // Represented by integer values of 1-3.
     // Size: 1=small, 2=medium, 3=large
     // Difficulty: 1=easy, 2=normal, 3=hard
     public int size;
     public int difficulty;
+
     // Zones settings.
     public int hours;
-    public boolean is_public;
+    public boolean isPublic;
     // The world where the selection is being made.
     private World world;
     // The location (plot system location) where the plot is.
@@ -47,22 +49,20 @@ public class SelectionTool extends WGCreatePlot {
     // Area of the plot (m^2).
     private int area;
 
-    // Constructor, sets up the basics of the selection tool, including default values fo size and difficulty.
-    public SelectionTool(User u, PlotSQL plotSQL) {
-
+    public SelectionTool(User u, PlotAPI plotAPI, PlotHelper plotHelper, CoordinateAPI coordinateAPI) {
+        super(plotAPI, plotHelper, coordinateAPI);
         this.u = u;
+        this.plotAPI = plotAPI;
         vector = new ArrayList<>();
-        this.plotSQL = plotSQL;
 
         // Set default size and difficulty
         size = 1;
         difficulty = 1;
 
         hours = 2;
-        is_public = false;
+        isPublic = false;
 
         outlines = PlotSystem.getInstance().getOutlines();
-
     }
 
     // Clear the selection.
@@ -76,7 +76,7 @@ public class SelectionTool extends WGCreatePlot {
         difficulty = 1;
 
         hours = 2;
-        is_public = false;
+        isPublic = false;
 
         // Remove outline blocks based on the previous selection.
         clearOutlines();
@@ -214,11 +214,11 @@ public class SelectionTool extends WGCreatePlot {
 
             if (i == (size() - 1)) {
 
-                sum += (((vector.get(i).getZ() + vector.getFirst().getZ()) / 2) * (vector.getFirst().getX() - vector.get(i).getX()));
+                sum += (((vector.get(i).z() + vector.getFirst().z()) / 2) * (vector.getFirst().x() - vector.get(i).x()));
 
             } else {
 
-                sum += (((vector.get(i).getZ() + vector.get(i + 1).getZ()) / 2) * (vector.get(i + 1).getX() - vector.get(i).getX()));
+                sum += (((vector.get(i).z() + vector.get(i + 1).z()) / 2) * (vector.get(i + 1).x() - vector.get(i).x()));
 
             }
         }
@@ -250,16 +250,15 @@ public class SelectionTool extends WGCreatePlot {
     public void createPlot() {
 
         // Create the plot.
-        if (createPlot(u.player, world, location, vector, plotSQL, size, difficulty)) {
+        if (createPlot(u.player, world, location, vector, size, difficulty)) {
 
-            int xTransform = plotSQL.getInt("SELECT xTransform FROM location_data WHERE name='" + location + "';");
-            int zTransform = plotSQL.getInt("SELECT zTransform FROM location_data WHERE name='" + location + "';");
+            int xTransform = plotAPI.getXTransform(location);
+            int zTransform = plotAPI.getZTransform(location);
 
             // Store the plot corners with coordinate transform.
             int i = 1;
             for (BlockVector2 point : vector) {
-                plotSQL.update("INSERT INTO plot_corners(id,corner,x,z) VALUES(" +
-                        plotID + "," + i + "," + (point.getX() - xTransform) + "," + (point.getZ() - zTransform) + ");");
+                plotAPI.createPlotCorner(plotID, i, (point.x() - xTransform), (point.z() - zTransform));
                 i++;
             }
 
@@ -267,9 +266,9 @@ public class SelectionTool extends WGCreatePlot {
             u.player.sendMessage(ChatUtils.success("Plot created with ID ")
                     .append(Component.text(plotID, NamedTextColor.DARK_AQUA))
                     .append(ChatUtils.success(", difficulty "))
-                    .append(Component.text(PlotValues.difficultyName(difficulty), NamedTextColor.DARK_AQUA))
+                    .append(Component.text(Objects.requireNonNull(PlotValues.difficultyName(difficulty)), NamedTextColor.DARK_AQUA))
                     .append(ChatUtils.success(" and size "))
-                    .append(Component.text(PlotValues.sizeName(size), NamedTextColor.DARK_AQUA)));
+                    .append(Component.text(Objects.requireNonNull(PlotValues.sizeName(size)), NamedTextColor.DARK_AQUA)));
             PlotSystem.LOGGER.info("Plot created with ID " + plotID +
                     ", difficulty " + PlotValues.difficultyName(difficulty) +
                     " and size " + PlotValues.sizeName(size));
@@ -287,32 +286,29 @@ public class SelectionTool extends WGCreatePlot {
     // This will make sure public/private and expiration time has been set.
     public void createZone() {
 
-        long expiration = Time.currentTime() + (hours * 1000L * 60L * 60L);
+        long expiration = System.currentTimeMillis() + (hours * 1000L * 60L * 60L);
 
         // Create the zone.
-        if (createZone(u.player, world, location, vector, plotSQL, expiration, is_public)) {
+        if (createZone(u.player, world, location, vector, expiration, isPublic)) {
 
             // Add owner.
-            plotSQL.update("INSERT INTO zone_members(id,uuid,is_owner) VALUES(" + plotID + ",'" + u.player.getUniqueId() + "',1);");
+            plotAPI.createZoneMember(plotID, u.player.getUniqueId().toString());
 
             // Store zone bounds.
             int i = 1;
             for (BlockVector2 point : vector) {
-
-                plotSQL.update("INSERT INTO zone_corners(id,corner,x,z) VALUES(" +
-                        plotID + "," + i + "," + point.getX() + "," + point.getZ() + ");");
+                plotAPI.createZoneCorner(plotID, i, point.x(), point.z());
                 i++;
-
             }
 
             // Send feedback.
             u.player.sendMessage(ChatUtils.success("Zone created with ID ")
                     .append(Component.text(plotID, NamedTextColor.DARK_AQUA))
                     .append(ChatUtils.success(", it will expire at "))
-                    .append(Component.text(Time.getDateTime(expiration), NamedTextColor.DARK_AQUA))
+                    .append(Component.text(Utils.getDateTime(expiration), NamedTextColor.DARK_AQUA))
                     .append(ChatUtils.success(", this can be extended in the Zone Menu.")));
             PlotSystem.LOGGER.info("Zone created with ID " + plotID +
-                    ", it will expire at " + Time.getDateTime(expiration));
+                    ", it will expire at " + Utils.getDateTime(expiration));
 
             // Clear previous blocks.
             clearOutlines();

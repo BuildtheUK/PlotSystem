@@ -1,24 +1,23 @@
 package net.bteuk.plotsystem.gui;
 
-import net.bteuk.network.gui.Gui;
+import net.bteuk.minecraft.gui.Gui;
+import net.bteuk.minecraft.gui.GuiManager;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.utils.Time;
-import net.bteuk.network.utils.Utils;
-import net.bteuk.network.utils.enums.PlotStatus;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
 import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.PlotValues;
 import net.bteuk.plotsystem.utils.User;
+import net.bteuk.plotsystem.utils.Utils;
 import net.bteuk.plotsystem.utils.plugins.WorldGuardFunctions;
 import net.buildtheearth.terraminusminus.generator.EarthGeneratorSettings;
 import net.buildtheearth.terraminusminus.projection.OutOfProjectionBoundsException;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 
 import static net.bteuk.plotsystem.PlotSystem.LOGGER;
 
@@ -28,15 +27,13 @@ public class ClaimGui extends Gui {
 
     private final int plot;
 
-    public ClaimGui(User user, int plot) {
-
-        super(27, Component.text("Claim Plot", NamedTextColor.AQUA, TextDecoration.BOLD));
+    public ClaimGui(User user, int plot, GuiManager guiManager) {
+        super(guiManager, 27, ChatUtils.title("Claim Plot"));
 
         this.user = user;
         this.plot = plot;
 
         createGui();
-
     }
 
     private void createGui() {
@@ -52,11 +49,12 @@ public class ClaimGui extends Gui {
         setItem(22, Utils.createItem(Material.ENDER_EYE, 1,
                         ChatUtils.title("View Plot in Google Maps"),
                         ChatUtils.line("Click to open a link to this plot in google maps.")),
-                u ->
+                clickEvent ->
 
                 {
+                    Player player = (Player) clickEvent.getWhoClicked();
 
-                    u.player.closeInventory();
+                    player.closeInventory();
 
                     // Get corners of the plot.
                     int[][] corners = user.plotSQL.getPlotCorners(plot);
@@ -84,7 +82,6 @@ public class ClaimGui extends Gui {
                     // Convert to irl coordinates.
 
                     try {
-
                         final EarthGeneratorSettings bteGeneratorSettings = EarthGeneratorSettings.parse(EarthGeneratorSettings.BTE_DEFAULT_SETTINGS);
                         double[] coords = bteGeneratorSettings.projection().toGeo(x, z);
 
@@ -92,7 +89,7 @@ public class ClaimGui extends Gui {
                         Component message = ChatUtils.success("Click here to open the plot in Google Maps.");
                         message = message.clickEvent(ClickEvent.clickEvent(ClickEvent.Action.OPEN_URL,
                                 "https://www.google.com/maps/@?api=1&map_action=map&basemap=satellite&zoom=21&center=" + coords[1] + "," + coords[0]));
-                        u.player.sendMessage(message);
+                        player.sendMessage(message);
 
                     } catch (OutOfProjectionBoundsException e) {
                         e.printStackTrace();

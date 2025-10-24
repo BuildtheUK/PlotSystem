@@ -1,9 +1,7 @@
 package net.bteuk.plotsystem.gui;
 
-import net.bteuk.network.gui.Gui;
-import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.utils.Utils;
-import net.bteuk.plotsystem.PlotSystem;
+import net.bteuk.minecraft.gui.Gui;
+import net.bteuk.minecraft.gui.GuiManager;
 import net.bteuk.plotsystem.utils.PlotValues;
 import net.bteuk.plotsystem.utils.User;
 import net.kyori.adventure.text.Component;
@@ -16,14 +14,13 @@ public class CreatePlotGui extends Gui {
     private final User user;
 
     // This gui handles the plot creation process, and will allow the user to set the parameters of the plot.
-    public CreatePlotGui(User user) {
+    public CreatePlotGui(GuiManager manager, User user) {
 
-        super(27, Component.text("Create Plot Menu", NamedTextColor.AQUA, TextDecoration.BOLD));
+        super(manager, 27, Component.text("Create Plot Menu", NamedTextColor.AQUA, TextDecoration.BOLD));
 
         this.user = user;
 
         createGui();
-
     }
 
     private void createGui() {
@@ -116,9 +113,7 @@ public class CreatePlotGui extends Gui {
     }
 
     public void refresh() {
-
-        clearGui();
+        this.clear();
         createGui();
-
     }
 }
