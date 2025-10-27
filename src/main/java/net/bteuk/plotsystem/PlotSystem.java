@@ -35,6 +35,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -163,7 +164,7 @@ public class PlotSystem extends JavaPlugin {
         // Listeners
         new JoinServer(this, plotHelper);
         new QuitServer(this);
-        new PlayerInteract(instance, plotSQL);
+        new PlayerInteract(instance, networkAPI.getPlotAPI());
         new CloseInventory(this);
 
         // Events
@@ -171,25 +172,23 @@ public class PlotSystem extends JavaPlugin {
         networkAPI.getEventAPI().registerEvent("close", new CloseEvent(networkAPI.getPlotAPI(), networkAPI.getChat()));
 
         // Deals with tracking where players are in relation to plots.
-        claimEnter = new ClaimEnter(this, plotSQL, globalSQL);
+        claimEnter = new ClaimEnter(this, networkAPI.getPlotAPI(), networkAPI.getGlobalSQL());
 
         // Commands
-        LifecycleEventManager<Plugin> manager = instance.getLifecycleManager();
+        LifecycleEventManager<@NotNull Plugin> manager = instance.getLifecycleManager();
         manager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             final Commands commands = event.registrar();
 
-            commands.register("plotsystem", "Deals will all plotsystem related commands.", List.of("ps"), new PlotSystemCommand(globalSQL, plotSQL));
-            commands.register("claim", "Used to claim the plot you're standing in.", List.of("claim"), new ClaimCommand(plotSQL));
+            commands.register("plotsystem", "Deals will all plotsystem related commands.", List.of("ps"), new PlotSystemCommand(networkAPI.getPlotAPI(), plotHelper, networkAPI.getCoordinateAPI(), guiManager));
+            commands.register("claim", "Used to claim the plot you're standing in.", List.of("claim"), new ClaimCommand(networkAPI, guiManager, plotHelper));
             commands.register("toggleoutlines", "Toggles the visibility of outlines.", new ToggleOutlines(this));
             commands.register("review", "Command for editing selections to reviewing categories during the reviewing process.", new ReviewCommand(this));
 
         });
 
         // Get all active plots (unclaimed, claimed, submitted, reviewing) and add holograms.
-        List<Integer> active_plots = plotSQL.getIntList(
-                "SELECT pd.id FROM plot_data AS pd INNER JOIN location_data AS ld ON ld.name=pd.location WHERE pd.status IN ('unclaimed','claimed','submitted') AND " +
-                        "ld.server='" + SERVER_NAME + "';");
-        active_plots.forEach(plot -> PlotHelper.addPlotHologram(new PlotHologram(plot)));
+        List<Integer> active_plots =  networkAPI.getPlotAPI().getActivePlots(SERVER_NAME);
+        active_plots.forEach(plot -> plotHelper.addPlotHologram(new PlotHologram(plot)));
     }
 
     public void onDisable() {

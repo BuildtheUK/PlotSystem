@@ -1,13 +1,13 @@
 package net.bteuk.plotsystem.commands;
 
 import com.sk89q.worldedit.math.BlockVector3;
-import net.bteuk.network.Network;
-import net.bteuk.network.eventing.events.EventManager;
+import net.bteuk.network.api.CoordinateAPI;
+import net.bteuk.network.api.EventAPI;
+import net.bteuk.network.api.NetworkAPI;
+import net.bteuk.network.api.PlotAPI;
+import net.bteuk.network.api.SQLAPI;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.sql.GlobalSQL;
-import net.bteuk.network.sql.PlotSQL;
-import net.bteuk.network.utils.Coordinate;
-import net.bteuk.network.utils.Utils;
+import net.bteuk.network.papercore.LocationAdapter;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.CopyRegionFormat;
 import net.bteuk.plotsystem.utils.plugins.Multiverse;
@@ -26,8 +26,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
-import static net.bteuk.network.utils.Constants.MAX_Y;
-import static net.bteuk.network.utils.Constants.MIN_Y;
 import static net.bteuk.plotsystem.PlotSystem.LOGGER;
 
 public final class LocationCommand {
@@ -35,11 +33,25 @@ public final class LocationCommand {
     private static final Component LOCATION_CREATE_COMMAND_FORMAT = ChatUtils.error("/plotsystem create location [name] <Xmin> <Ymin> <Zmin> <Xmax> <Ymax> <Zmax>");
     private static final Component LOCATION_UPDATE_COMMAND_FORMAT = ChatUtils.error("/plotsystem update location [name] <Xmin> <Ymin> <Zmin> <Xmax> <Ymax> <Zmax>");
 
-    private LocationCommand() {
-        // Do nothing
+    private final NetworkAPI networkAPI;
+
+    private final PlotAPI plotAPI;
+
+    private final CoordinateAPI coordinateAPI;
+
+    private final EventAPI eventAPI;
+
+    private final SQLAPI globalSQL;
+
+    public LocationCommand(NetworkAPI networkAPI) {
+        this.networkAPI = networkAPI;
+        this.plotAPI = networkAPI.getPlotAPI();
+        this.coordinateAPI = networkAPI.getCoordinateAPI();
+        this.eventAPI = networkAPI.getEventAPI();
+        this.globalSQL = networkAPI.getGlobalSQL();
     }
 
-    public static void createLocation(CommandSender sender, String[] args) {
+    public void createLocation(CommandSender sender, String[] args) {
 
         // Check if the sender is a player.
         // If so, check if they have permission.
@@ -55,10 +67,8 @@ public final class LocationCommand {
             return;
         }
 
-        final PlotSQL plotSQL = Network.getInstance().getPlotSQL();
-
         // Check if the location name is unique.
-        if (plotSQL.hasRow("SELECT name FROM location_data WHERE name='" + commandArguments.location() + "';")) {
+        if (plotAPI.hasLocation(commandArguments.location())) {
             sender.sendMessage(ChatUtils.error("The location ")
                     .append(Component.text(commandArguments.location(), NamedTextColor.DARK_RED))
                     .append(ChatUtils.error(" already exists.")));
@@ -117,20 +127,16 @@ public final class LocationCommand {
 
             copyRegions(sender, regions);
 
-            final GlobalSQL globalSQL = Network.getInstance().getGlobalSQL();
-
-            int coordMin = globalSQL.addCoordinate(new Location(
+            int coordMin = coordinateAPI.addCoordinate(LocationAdapter.adapt(new Location(
                     Bukkit.getWorld(commandArguments.location()),
-                    (regionXMin * 512), MIN_Y, (regionZMin * 512), 0, 0));
+                    (regionXMin * 512), networkAPI.getMinY(), (regionZMin * 512), 0, 0)));
 
-            int coordMax = globalSQL.addCoordinate(new Location(
+            int coordMax = coordinateAPI.addCoordinate(LocationAdapter.adapt(new Location(
                     Bukkit.getWorld(commandArguments.location()),
-                    ((regionXMax * 512) + 511), MAX_Y - 1, ((regionZMax * 512) + 511), 0, 0));
+                    ((regionXMax * 512) + 511), networkAPI.getMaxY() - 1, ((regionZMax * 512) + 511), 0, 0)));
 
             // Add the location to the database.
-            if (plotSQL.update("INSERT INTO location_data(name, alias, server, coordMin, coordMax, xTransform, zTransform) VALUES('"
-                    + commandArguments.location() + "','" + commandArguments.location() + "','" + PlotSystem.SERVER_NAME + "'," + coordMin + "," + coordMax + "," + xTransform +
-                    "," + zTransform + ");")) {
+            if (plotAPI.createLocation(commandArguments.location, commandArguments.location, PlotSystem.SERVER_NAME, coordMin, coordMax, xTransform, zTransform)) {
 
                 sender.sendMessage(ChatUtils.success("Created new location ")
                         .append(Component.text(commandArguments.location(), NamedTextColor.DARK_AQUA)));
@@ -143,14 +149,10 @@ public final class LocationCommand {
 
                         // Change region status in region database.
                         // If it already exists remove members.
-                        globalSQL.update("INSERT INTO server_events(uuid,type,server,event) VALUES(NULL,'network','"
-                                + globalSQL.getString("SELECT name FROM server_data WHERE type='EARTH';") + "'," +
-                                "'region set plotsystem " + region + "');");
+                        eventAPI.createEvent(null, globalSQL.getString("SELECT name FROM server_data WHERE type='EARTH';"), "region set plotsystem " + region);
 
                         // Add region to database.
-                        plotSQL.update(
-                                "INSERT INTO regions(region,server,location) VALUES('" + region + "','" + PlotSystem.SERVER_NAME + "','" + commandArguments.location() + "');");
-
+                        plotAPI.createPlotRegion(region, PlotSystem.SERVER_NAME, commandArguments.location());
                     }
                 }
 
@@ -165,7 +167,7 @@ public final class LocationCommand {
         });
     }
 
-    public static void updateLocation(CommandSender sender, String[] args) {
+    public void updateLocation(CommandSender sender, String[] args) {
 
         // Check if the sender is a player.
         // If so, check if they have permission.
@@ -181,11 +183,8 @@ public final class LocationCommand {
             return;
         }
 
-        final PlotSQL plotSQL = Network.getInstance().getPlotSQL();
-        final GlobalSQL globalSQL = Network.getInstance().getGlobalSQL();
-
         // Check if the location name exists.
-        if (!plotSQL.hasRow("SELECT name FROM location_data WHERE name='" + commandArguments.location() + "';")) {
+        if (!plotAPI.hasLocation(commandArguments.location())) {
             sender.sendMessage(ChatUtils.error("Location %s does not exist.", commandArguments.location()));
             return;
         }

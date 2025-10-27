@@ -1,7 +1,7 @@
 package net.bteuk.plotsystem.commands;
 
+import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
-import net.bteuk.network.commands.AbstractCommand;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.User;
@@ -11,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Command to toggle the plot outlines for the current session of the player.
  */
-public class ToggleOutlines extends AbstractCommand {
+public class ToggleOutlines implements BasicCommand {
 
     private final PlotSystem instance;
 
@@ -20,11 +20,10 @@ public class ToggleOutlines extends AbstractCommand {
     }
 
     @Override
-    public void execute(@NotNull CommandSourceStack stack, @NotNull String[] args) {
+    public void execute(@NotNull CommandSourceStack stack, String @NotNull [] args) {
 
         // Check if the sender is a player.
-        Player player = getPlayer(stack);
-        if (player == null) {
+        if (!(stack.getSender() instanceof Player player)) {
             return;
         }
 

@@ -1,10 +1,10 @@
 package net.bteuk.plotsystem.reviewing;
 
+import net.bteuk.network.api.PlotAPI;
+import net.bteuk.network.api.plotsystem.ReviewCategory;
+import net.bteuk.network.api.plotsystem.ReviewCategoryFeedback;
+import net.bteuk.network.api.plotsystem.ReviewSelection;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.sql.PlotSQL;
-import net.bteuk.network.utils.plotsystem.ReviewCategory;
-import net.bteuk.network.utils.plotsystem.ReviewCategoryFeedback;
-import net.bteuk.network.utils.plotsystem.ReviewSelection;
 import net.bteuk.plotsystem.PlotSystem;
 import net.kyori.adventure.inventory.Book;
 import net.kyori.adventure.text.Component;
@@ -26,7 +26,11 @@ import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.WritableBookMeta;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ReviewBook implements Listener {
 
@@ -35,8 +39,6 @@ public class ReviewBook implements Listener {
     private static final Component EDIT_FEEDBACK = Component.text("[+]", NamedTextColor.GRAY).hoverEvent(HoverEvent.showText(Component.text("Edit Category Feedback")));
 
     private static final ItemStack REVIEW_BOOK = createReviewBook();
-
-    private final PlotSQL plotSQL = PlotSystem.getInstance().plotSQL;
 
     private final HashMap<ReviewCategory, ReviewSelection> reviewCategorySelection = new LinkedHashMap<>();
 
@@ -48,13 +50,16 @@ public class ReviewBook implements Listener {
 
     private final ReviewHotbar reviewHotbar;
 
+    private final PlotAPI plotAPI;
+
     private Book book;
 
-    public ReviewBook(PlotSystem instance, Player player, ReviewHotbar reviewHotbar) {
+    public ReviewBook(PlotSystem instance, Player player, ReviewHotbar reviewHotbar, PlotAPI plotAPI) {
 
         this.instance = instance;
         this.player = player;
         this.reviewHotbar = reviewHotbar;
+        this.plotAPI = plotAPI;
 
         initReviewCategorySelection();
         updateReviewBook();
@@ -93,11 +98,11 @@ public class ReviewBook implements Listener {
     }
 
     private static ClickEvent getCategorySelectionClickEvent(ReviewCategory category, ReviewSelection selection) {
-        return ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, String.format("/review %s %s", category, selection));
+        return ClickEvent.runCommand(String.format("/review %s %s", category, selection));
     }
 
     private static ClickEvent getEditFeedbackClickEvent(ReviewCategory category) {
-        return ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, String.format("/review feedback %s", category));
+        return ClickEvent.runCommand(String.format("/review feedback %s", category));
     }
 
     public void unregister() {
@@ -115,7 +120,7 @@ public class ReviewBook implements Listener {
             reviewCategorySelection.put(categoryFeedback.category(), categoryFeedback.selection());
             if (categoryFeedback.bookId() != 0) {
                 // Get the pages of the book.
-                ArrayList<String> pages = plotSQL.getStringList("SELECT contents FROM book_data WHERE id=" + categoryFeedback.bookId() + " ORDER BY page ASC;");
+                List<String> pages = plotAPI.getBookPages(categoryFeedback.bookId());
 
                 reviewCategoryFeedback.put(categoryFeedback.category(), createCategoryFeedback(categoryFeedback.category(), pages.toArray(String[]::new)));
             }
@@ -185,7 +190,7 @@ public class ReviewBook implements Listener {
                 if (isEdited(newBook)) {
                     bookId = saveBook(newBook);
                 }
-                plotSQL.update("UPDATE plot_category_feedback SET selection='" + newSelection.name() + "', book_id=" + bookId + " WHERE review_id=" + reviewId + " AND category='" + category.name() + "';");
+                plotAPI.updatePlotCategoryFeedback(reviewId, category.name(), newSelection.name(), bookId);
                 updatedReviewFeedback.put(category, new ReviewCategoryFeedback(category, newSelection, bookId));
             }
         }
@@ -307,7 +312,7 @@ public class ReviewBook implements Listener {
         // Only save if there is at least a selection or feedback.
         // The General category can have no selection while having feedback.
         if (selection != ReviewSelection.NONE || bookId != 0) {
-            plotSQL.savePlotReviewCategoryFeedback(reviewId, category.name(), selection.name(), bookId);
+            plotAPI.savePlotReviewCategoryFeedback(reviewId, category.name(), selection.name(), bookId);
         }
     }
 
@@ -317,14 +322,14 @@ public class ReviewBook implements Listener {
         List<String> pages = book.getBookPages();
 
         // Create new book id.
-        int bookId = 1 + plotSQL.getInt("SELECT id FROM book_data ORDER BY id DESC;");
+        int bookId = 1 + plotAPI.getHighestBookId();
 
         // Iterate through all pages and store them in database.
         int i = 1;
 
         for (String page : pages) {
             if (!page.isBlank()) {
-                plotSQL.saveBook(bookId, i, page);
+                plotAPI.saveBook(bookId, i, page);
                 i++;
             }
         }

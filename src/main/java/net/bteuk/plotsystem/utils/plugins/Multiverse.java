@@ -1,8 +1,5 @@
 package net.bteuk.plotsystem.utils.plugins;
 
-import com.onarandombox.MultiverseCore.MultiverseCore;
-import com.onarandombox.MultiverseCore.api.MVWorldManager;
-import com.onarandombox.MultiverseCore.api.MultiverseWorld;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.protection.flags.Flag;
@@ -17,6 +14,8 @@ import org.bukkit.GameMode;
 import org.bukkit.GameRule;
 import org.bukkit.World;
 import org.bukkit.WorldType;
+import org.mvplugins.multiverse.core.MultiverseCore;
+import org.mvplugins.multiverse.core.world.MultiverseWorld;
 
 import java.util.HashMap;
 import java.util.Map;

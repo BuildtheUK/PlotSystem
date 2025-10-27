@@ -8,6 +8,7 @@ import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.managers.storage.StorageException;
 import com.sk89q.worldguard.protection.regions.ProtectedPolygonalRegion;
 import net.bteuk.network.api.CoordinateAPI;
+import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.papercore.LocationAdapter;
@@ -24,6 +25,8 @@ This class adds the implementation of plot creation using worldguard.
  */
 public class WGCreatePlot {
 
+    private final NetworkAPI networkAPI;
+
     protected final PlotAPI plotAPI;
 
     private final PlotHelper plotHelper;
@@ -33,8 +36,9 @@ public class WGCreatePlot {
     public int plotID;
 
     // Create a new instance of plots.
-    public WGCreatePlot(PlotAPI plotAPI, PlotHelper plotHelper, CoordinateAPI coordinateAPI) {
-        this.plotAPI = plotAPI;
+    public WGCreatePlot(NetworkAPI networkAPI, PlotHelper plotHelper) {
+        this.networkAPI = networkAPI;
+        this.plotAPI = networkAPI.getPlotAPI();
         this.plotHelper = plotHelper;
         this.coordinateAPI = coordinateAPI;
     }

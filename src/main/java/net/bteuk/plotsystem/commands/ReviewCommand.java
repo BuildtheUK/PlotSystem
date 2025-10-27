@@ -1,18 +1,19 @@
 package net.bteuk.plotsystem.commands;
 
+import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
-import net.bteuk.network.commands.AbstractCommand;
+import net.bteuk.network.api.plotsystem.ReviewCategory;
+import net.bteuk.network.api.plotsystem.ReviewSelection;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.utils.plotsystem.ReviewCategory;
-import net.bteuk.network.utils.plotsystem.ReviewSelection;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.User;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Command for editing selections to reviewing categories during the reviewing process.
  */
-public class ReviewCommand extends AbstractCommand {
+public class ReviewCommand implements BasicCommand {
 
     private final PlotSystem instance;
 
@@ -21,12 +22,10 @@ public class ReviewCommand extends AbstractCommand {
     }
 
     @Override
-    public void execute(CommandSourceStack stack, String[] args) {
+    public void execute(CommandSourceStack stack, String @NotNull [] args) {
 
         // Check if the player is actually reviewing, else ignore the command.
-        Player player = getPlayer(stack);
-
-        if (player == null) {
+        if (!(stack.getSender() instanceof Player player)) {
             return;
         }
 

@@ -1,9 +1,8 @@
 package net.bteuk.plotsystem.commands;
 
-import net.bteuk.network.Network;
+import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.lib.enums.PlotDifficulties;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.sql.PlotSQL;
 import net.bteuk.plotsystem.PlotSystem;
 import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
@@ -15,11 +14,13 @@ public final class UpdateCommand {
 
     private static final Component PLOT_ERROR_MESSAGE = ChatUtils.error("/plotsystem update plot <plotID> set difficulty [easy|normal|hard]");
 
-    private UpdateCommand() {
-        // Do nothing
+    private final PlotAPI plotAPI;
+
+    public UpdateCommand(PlotAPI plotAPI) {
+        this.plotAPI = plotAPI;
     }
 
-    public static void update(CommandSender sender, String[] args) {
+    public void update(CommandSender sender, String[] args) {
 
         if (args.length < 2) {
             sender.sendMessage(GENERIC_ERROR_MESSAGE);
@@ -33,7 +34,7 @@ public final class UpdateCommand {
         }
     }
 
-    private static void updatePlot(CommandSender sender, String[] args) {
+    private void updatePlot(CommandSender sender, String[] args) {
         // Check if the sender is a player.
         // If so, check if they have permission.
         if (sender instanceof Player p) {
@@ -66,16 +67,14 @@ public final class UpdateCommand {
             return;
         }
 
-        PlotSQL plotSQL = Network.getInstance().getPlotSQL();
-
         // Check if plot exists.
-        if (!plotSQL.hasRow("SELECT id FROM plot_data WHERE id=" + plotID + " AND status IN ('unclaimed','claimed','submitted');")) {
+        if (!plotAPI.plotExists(plotID)) {
             sender.sendMessage(ChatUtils.error("Plot %s does not exist.", args[2]));
             return;
         }
 
         // Update the plot difficulty.
-        plotSQL.update("UPDATE plot_data SET difficulty=" + plotDifficulty.getValue() + " WHERE id=" + plotID + ";");
+        plotAPI.setPlotDifficulty(plotID, plotDifficulty.getValue());
         sender.sendMessage(ChatUtils.success("Updated difficulty of plot %s to %s.", args[2], args[5]));
 
         // Update the plot outlines.

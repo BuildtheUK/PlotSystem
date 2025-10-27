@@ -2,21 +2,20 @@ package net.bteuk.plotsystem.commands;
 
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
-import net.bteuk.network.Network;
+import net.bteuk.minecraft.gui.GuiManager;
 import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.api.PlotAPI;
-import net.bteuk.network.commands.AbstractCommand;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.sql.PlotSQL;
-import net.bteuk.network.utils.NetworkUser;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.gui.ClaimGui;
 import net.bteuk.plotsystem.utils.ParseUtils;
+import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.User;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 import static net.bteuk.plotsystem.PlotSystem.SERVER_NAME;
 
@@ -24,14 +23,24 @@ public class ClaimCommand implements BasicCommand {
 
     public static final Component TUTORIAL_REQUIRED_MESSAGE =
             ChatUtils.error("To claim a plot you first complete the starter tutorial.")
-                    .append(ChatUtils.error(" Click here to open the tutorial menu!").clickEvent(ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, "/nav tutorials")));
+                    .append(ChatUtils.error(" Click here to open the tutorial menu!").clickEvent(ClickEvent.runCommand("/nav tutorials")));
+
+    private final NetworkAPI networkAPI;
+
     private final PlotAPI plotAPI;
 
-    public ClaimCommand(NetworkAPI networkAPI) {
+    private final GuiManager guiManager;
+
+    private final PlotHelper plotHelper;
+
+    public ClaimCommand(NetworkAPI networkAPI, GuiManager guiManager, PlotHelper plotHelper) {
+        this.networkAPI = networkAPI;
         this.plotAPI = networkAPI.getPlotAPI();
+        this.guiManager = guiManager;
+        this.plotHelper = plotHelper;
     }
 
-    public static boolean hasClaimPermission(NetworkAPI networkAPI, Player player, int plot) {
+    public static boolean hasClaimPermission(NetworkAPI networkAPI, Player player, PlotAPI plotAPI, int plot) {
 
         // Make sure the player has permission to claim plots, else they must complete the tutorial first.
         // Only checked if tutorials are enabled.
@@ -42,7 +51,7 @@ public class ClaimCommand implements BasicCommand {
 
         // Check if the player has permission to claim a plot of this difficulty.
         if (!player.hasPermission("uknet.plots.claim.all")) {
-            switch (u.plotSQL.getInt("SELECT difficulty FROM plot_data WHERE id=" + plot + ";")) {
+            switch (plotAPI.getPlotDifficulty(plot)) {
 
                 case 1 -> {
                     if (!player.hasPermission("uknet.plots.claim.easy")) {
@@ -77,16 +86,15 @@ public class ClaimCommand implements BasicCommand {
     }
 
     @Override
-    public void execute(CommandSourceStack stack, String[] args) {
+    public void execute(CommandSourceStack stack, String @NotNull [] args) {
 
         // Check if the sender is a player.
-        Player player = getPlayer(stack);
-        if (player == null) {
+        if (!(stack.getSender() instanceof Player player)) {
             return;
         }
 
         // Get the user.
-        User u = PlotSystem.getInstance().getUser(player);
+        User user = PlotSystem.getInstance().getUser(player);
 
         int plot = 0;
         boolean inPlot = false;
@@ -94,23 +102,19 @@ public class ClaimCommand implements BasicCommand {
             plot = ParseUtils.toInt(args[0]);
         }
         if (plot == 0) {
-            plot = u.inPlot;
+            plot = user.inPlot;
             inPlot = true;
         }
 
         // If the plot is valid open the claim plot gui.
-        if (validPlot(u, plot, inPlot)) {
-
-            NetworkUser user = Network.getInstance().getUser(u.player);
-
-            if (!hasClaimPermission(u, user, plot)) {
+        if (validPlot(user, plot, inPlot)) {
+            if (!hasClaimPermission(networkAPI, player, plotAPI, plot)) {
                 return;
             }
 
             // Open claim gui.
-            u.claimGui = new ClaimGui(u, plot);
-            u.claimGui.open(user);
-
+            user.claimGui = new ClaimGui(user, plot, guiManager, plotAPI, plotHelper);
+            user.claimGui.open(player);
         }
     }
 
@@ -153,8 +157,7 @@ public class ClaimCommand implements BasicCommand {
         }
 
         // Check if the plot is on this server.
-        if (!plotSQL.hasRow(
-                "SELECT pd.id FROM plot_data AS pd INNER JOIN location_data AS ld ON ld.name=pd.location WHERE pd.id=" + plot + " AND ld.server='" + SERVER_NAME + "';")) {
+        if (!SERVER_NAME.equals(plotAPI.getLocationServer(plotAPI.getPlotLocation(plot)))) {
             u.player.sendMessage(ChatUtils.error("This plot is on another server, unable to claim it from here."));
             return false;
         }

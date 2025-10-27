@@ -1,9 +1,8 @@
 package net.bteuk.plotsystem.commands;
 
+import net.bteuk.network.api.PlotAPI;
+import net.bteuk.network.api.plotsystem.PlotStatus;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.sql.GlobalSQL;
-import net.bteuk.network.sql.PlotSQL;
-import net.bteuk.network.utils.enums.PlotStatus;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.utils.PlotHelper;
@@ -20,12 +19,13 @@ import static net.bteuk.plotsystem.PlotSystem.LOGGER;
 
 public class DeleteCommand {
 
-    private final GlobalSQL globalSQL;
-    private final PlotSQL plotSQL;
+    private final PlotAPI plotAPI;
 
-    public DeleteCommand(GlobalSQL globalSQL, PlotSQL plotSQL) {
-        this.globalSQL = globalSQL;
-        this.plotSQL = plotSQL;
+    private final PlotHelper plotHelper;
+
+    public DeleteCommand(PlotAPI plotAPI, PlotHelper plotHelper) {
+        this.plotAPI = plotAPI;
+        this.plotHelper = plotHelper;
     }
 
     public void delete(CommandSender sender, String[] args) {
@@ -120,14 +120,14 @@ public class DeleteCommand {
             sender.sendMessage(ChatUtils.error("This plot does not exist."));
         }
 
-        // Check if plot is unclaimed
-        if (!(plotSQL.hasRow("SELECT id FROM plot_data WHERE id=" + plotID + " AND status='unclaimed'"))) {
+        // Check if the plot is unclaimed
+        if (!(plotAPI.isPlotUnclaimed(plotID))) {
             sender.sendMessage(ChatUtils.error("This plot is claimed, you can only delete unclaimed plots."));
             return;
         }
 
         // Get world of plot.
-        World world = Bukkit.getWorld(plotSQL.getString("SELECT location FROM plot_data WHERE id=" + plotID + ";"));
+        World world = Bukkit.getWorld(plotAPI.getPlotLocation(plotID));
 
         // If world is null then the plot is not on this server.
         if (world == null) {
@@ -140,7 +140,7 @@ public class DeleteCommand {
             if (WorldGuardFunctions.delete(String.valueOf(plotID), world)) {
 
                 // Set plot to deleted.
-                PlotHelper.updatePlotStatus(plotID, PlotStatus.DELETED);
+                plotHelper.updatePlotStatus(plotID, PlotStatus.DELETED);
                 sender.sendMessage(ChatUtils.success("Plot ")
                         .append(Component.text(plotID, NamedTextColor.DARK_AQUA))
                         .append(ChatUtils.success(" deleted.")));
