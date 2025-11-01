@@ -23,9 +23,12 @@ public class DeleteCommand {
 
     private final PlotHelper plotHelper;
 
-    public DeleteCommand(PlotAPI plotAPI, PlotHelper plotHelper) {
+    private final LocationCommand locationCommand;
+
+    public DeleteCommand(PlotAPI plotAPI, PlotHelper plotHelper, LocationCommand locationCommand) {
         this.plotAPI = plotAPI;
         this.plotHelper = plotHelper;
+        this.locationCommand = locationCommand;
     }
 
     public void delete(CommandSender sender, String[] args) {
@@ -46,7 +49,7 @@ public class DeleteCommand {
 
             case "location":
 
-                LocationCommand.deleteLocation(sender, args);
+                locationCommand.deleteLocation(sender, args);
                 break;
 
             case "zone":
@@ -116,7 +119,7 @@ public class DeleteCommand {
         }
 
         // Check if plot exists.
-        if (!plotSQL.hasRow("SELECT id FROM plot_data WHERE id=" + plotID + ";")) {
+        if (!plotAPI.plotExists(plotID)) {
             sender.sendMessage(ChatUtils.error("This plot does not exist."));
         }
 

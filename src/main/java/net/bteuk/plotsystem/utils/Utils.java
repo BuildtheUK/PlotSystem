@@ -2,6 +2,7 @@ package net.bteuk.plotsystem.utils;
 
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -42,5 +43,15 @@ public class Utils {
         formatter.setTimeZone(TimeZone.getTimeZone("Europe/London"));
         Date date = new Date(time);
         return formatter.format(date);
+    }
+
+    public static int getHighestYAt(World w, int x, int z) {
+        for (int i = (w.getMaxHeight() - 1); i >= w.getMinHeight(); i--) {
+            if (w.getBlockAt(x, i, z).getType() != Material.AIR) {
+                return i + 1;
+            }
+        }
+        // Return 65 as the default y.
+        return 65;
     }
 }

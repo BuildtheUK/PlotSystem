@@ -16,9 +16,12 @@ public class CreateCommand {
 
     private final PlotAPI plotAPI;
 
-    public CreateCommand(GuiManager guiManager, PlotAPI plotAPI) {
+    private final LocationCommand locationCommand;
+
+    public CreateCommand(GuiManager guiManager, PlotAPI plotAPI, LocationCommand locationCommand) {
         this.guiManager = guiManager;
         this.plotAPI = plotAPI;
+        this.locationCommand = locationCommand;
     }
 
     public void create(CommandSender sender, String[] args) {
@@ -32,7 +35,7 @@ public class CreateCommand {
 
         switch (args[1]) {
             case "plot" -> createPlot(sender);
-            case "location" -> LocationCommand.createLocation(sender, args);
+            case "location" -> locationCommand.createLocation(sender, args);
             case "zone" -> createZone(sender);
             default -> sender.sendMessage(ChatUtils.error("/plotsystem create [plot, location, zone]"));
         }

@@ -8,6 +8,7 @@ import net.bteuk.minecraft.gui.GuiManager;
 import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.plotsystem.commands.ClaimCommand;
+import net.bteuk.plotsystem.commands.LocationCommand;
 import net.bteuk.plotsystem.commands.PlotSystemCommand;
 import net.bteuk.plotsystem.commands.ReviewCommand;
 import net.bteuk.plotsystem.commands.ToggleOutlines;
@@ -179,7 +180,7 @@ public class PlotSystem extends JavaPlugin {
         manager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             final Commands commands = event.registrar();
 
-            commands.register("plotsystem", "Deals will all plotsystem related commands.", List.of("ps"), new PlotSystemCommand(networkAPI.getPlotAPI(), plotHelper, networkAPI.getCoordinateAPI(), guiManager));
+            commands.register("plotsystem", "Deals will all plotsystem related commands.", List.of("ps"), new PlotSystemCommand(networkAPI.getPlotAPI(), plotHelper, networkAPI.getCoordinateAPI(), guiManager, new LocationCommand(networkAPI)));
             commands.register("claim", "Used to claim the plot you're standing in.", List.of("claim"), new ClaimCommand(networkAPI, guiManager, plotHelper));
             commands.register("toggleoutlines", "Toggles the visibility of outlines.", new ToggleOutlines(this));
             commands.register("review", "Command for editing selections to reviewing categories during the reviewing process.", new ReviewCommand(this));

@@ -15,7 +15,11 @@ import org.bukkit.GameRule;
 import org.bukkit.World;
 import org.bukkit.WorldType;
 import org.mvplugins.multiverse.core.MultiverseCore;
+import org.mvplugins.multiverse.core.MultiverseCoreApi;
 import org.mvplugins.multiverse.core.world.MultiverseWorld;
+import org.mvplugins.multiverse.core.world.WorldManager;
+import org.mvplugins.multiverse.core.world.entity.EntitySpawnConfig;
+import org.mvplugins.multiverse.core.world.options.CreateWorldOptions;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,32 +30,26 @@ public class Multiverse {
 
     public static boolean createVoidWorld(String name) {
 
-        MultiverseCore core = (MultiverseCore) Bukkit.getServer().getPluginManager().getPlugin("Multiverse-Core");
+        MultiverseCoreApi core = MultiverseCoreApi.get();
 
         if (core == null) {
             LOGGER.severe("Multiverse is a dependency of PlotSystem!");
             return false;
         }
 
-        MVWorldManager worldManager = core.getMVWorldManager();
+        WorldManager worldManager = core.getWorldManager();
 
-        worldManager.addWorld(
-                name,
-                World.Environment.NORMAL,
-                null,
-                WorldType.FLAT,
-                false,
-                "VoidGen:{biome:PLAINS}"
-        );
+        worldManager.createWorld(
+                        CreateWorldOptions.worldName(name).environment(World.Environment.NORMAL).worldType(WorldType.FLAT).generateStructures(false).generator("VoidGen:{biome" +
+                                ":PLAINS}"))
+                .onSuccess(world -> {
+                    world.setGameMode(GameMode.CREATIVE);
+                    world.setDifficulty(Difficulty.PEACEFUL);
+                    world.setAllowWeather(false);
+                    world.setHunger(false);
+                    world.setKeepSpawnInMemory(false);
+                });
 
-        MultiverseWorld MVWorld = worldManager.getMVWorld(name);
-        MVWorld.setGameMode(GameMode.CREATIVE);
-        MVWorld.setAllowAnimalSpawn(false);
-        MVWorld.setAllowMonsterSpawn(false);
-        MVWorld.setDifficulty(Difficulty.PEACEFUL);
-        MVWorld.setEnableWeather(false);
-        MVWorld.setHunger(false);
-        MVWorld.setKeepSpawnInMemory(false);
 
         // Get world from bukkit.
         World world = Bukkit.getWorld(name);
@@ -71,8 +69,11 @@ public class Multiverse {
         // Disable random tick.
         world.setGameRule(GameRule.RANDOM_TICK_SPEED, 0);
 
-        // Disable wandering traders.
+        // Disable spawning.
+        world.setGameRule(GameRule.DO_MOB_SPAWNING, false);
         world.setGameRule(GameRule.DO_TRADER_SPAWNING, false);
+        world.setGameRule(GameRule.DO_WARDEN_SPAWNING, false);
+        world.setGameRule(GameRule.DO_PATROL_SPAWNING, false);
 
         // Get worldguard.
         WorldGuard wg = WorldGuard.getInstance();

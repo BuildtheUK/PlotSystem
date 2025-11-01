@@ -6,10 +6,12 @@ import net.bteuk.network.api.EventAPI;
 import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.SQLAPI;
+import net.bteuk.network.api.entity.NetworkLocation;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.papercore.LocationAdapter;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.CopyRegionFormat;
+import net.bteuk.plotsystem.utils.Utils;
 import net.bteuk.plotsystem.utils.plugins.Multiverse;
 import net.bteuk.plotsystem.utils.plugins.WorldEditor;
 import net.kyori.adventure.text.Component;
@@ -69,9 +71,8 @@ public final class LocationCommand {
 
         // Check if the location name is unique.
         if (plotAPI.hasLocation(commandArguments.location())) {
-            sender.sendMessage(ChatUtils.error("The location ")
-                    .append(Component.text(commandArguments.location(), NamedTextColor.DARK_RED))
-                    .append(ChatUtils.error(" already exists.")));
+            sender.sendMessage(
+                    ChatUtils.error("The location ").append(Component.text(commandArguments.location(), NamedTextColor.DARK_RED)).append(ChatUtils.error(" already exists.")));
             return;
         }
 
@@ -127,19 +128,16 @@ public final class LocationCommand {
 
             copyRegions(sender, regions);
 
-            int coordMin = coordinateAPI.addCoordinate(LocationAdapter.adapt(new Location(
-                    Bukkit.getWorld(commandArguments.location()),
-                    (regionXMin * 512), networkAPI.getMinY(), (regionZMin * 512), 0, 0)));
+            int coordMin = coordinateAPI.addCoordinate(
+                    LocationAdapter.adapt(new Location(Bukkit.getWorld(commandArguments.location()), (regionXMin * 512), networkAPI.getMinY(), (regionZMin * 512), 0, 0)));
 
-            int coordMax = coordinateAPI.addCoordinate(LocationAdapter.adapt(new Location(
-                    Bukkit.getWorld(commandArguments.location()),
-                    ((regionXMax * 512) + 511), networkAPI.getMaxY() - 1, ((regionZMax * 512) + 511), 0, 0)));
+            int coordMax = coordinateAPI.addCoordinate(LocationAdapter.adapt(
+                    new Location(Bukkit.getWorld(commandArguments.location()), ((regionXMax * 512) + 511), networkAPI.getMaxY() - 1, ((regionZMax * 512) + 511), 0, 0)));
 
             // Add the location to the database.
             if (plotAPI.createLocation(commandArguments.location, commandArguments.location, PlotSystem.SERVER_NAME, coordMin, coordMax, xTransform, zTransform)) {
 
-                sender.sendMessage(ChatUtils.success("Created new location ")
-                        .append(Component.text(commandArguments.location(), NamedTextColor.DARK_AQUA)));
+                sender.sendMessage(ChatUtils.success("Created new location ").append(Component.text(commandArguments.location(), NamedTextColor.DARK_AQUA)));
 
                 // Set the status of all effected regions in the region database.
                 for (int i = regionXMin; i <= regionXMax; i++) {
@@ -163,7 +161,7 @@ public final class LocationCommand {
 
             }
 
-            teleportToLocation(sender, globalSQL, plotSQL, commandArguments.location(), coordMin, coordMax);
+            teleportToLocation(sender, commandArguments.location(), coordMin, coordMax);
         });
     }
 
@@ -190,11 +188,11 @@ public final class LocationCommand {
         }
 
         // Check if the new area is equal or larger than the existing area.
-        final int minCoordinateId = plotSQL.getInt("SELECT coordMin FROM location_data WHERE name='" + commandArguments.location() + "';");
-        final int maxCoordinateId = plotSQL.getInt("SELECT coordMax FROM location_data WHERE name='" + commandArguments.location() + "';");
+        final int minCoordinateId = plotAPI.getLocationCoordMin(commandArguments.location());
+        final int maxCoordinateId = plotAPI.getLocationCoordMax(commandArguments.location());
 
-        Coordinate minCoordinate = globalSQL.getCoordinate(minCoordinateId);
-        Coordinate maxCoordinate = globalSQL.getCoordinate(maxCoordinateId);
+        NetworkLocation minCoordinate = coordinateAPI.getLocation(minCoordinateId);
+        NetworkLocation maxCoordinate = coordinateAPI.getLocation(maxCoordinateId);
 
         if (commandArguments.isSmallerThan(minCoordinate, maxCoordinate)) {
             sender.sendMessage(ChatUtils.error("The new area must not be smaller than the current area."));
@@ -209,8 +207,8 @@ public final class LocationCommand {
         int regionZMax = Math.floorDiv(commandArguments.zmax(), 512);
 
         // Get the coordinate transformation of the location.
-        int xTransform = plotSQL.getInt("SELECT xTransform FROM location_data WHERE name='" + commandArguments.location() + "';");
-        int zTransform = plotSQL.getInt("SELECT zTransform FROM location_data WHERE name='" + commandArguments.location() + "';");
+        int xTransform = plotAPI.getXTransform(commandArguments.location());
+        int zTransform = plotAPI.getZTransform(commandArguments.location());
 
         // Get the worlds.
         String saveWorld = PlotSystem.getInstance().getConfig().getString("save_world");
@@ -242,7 +240,7 @@ public final class LocationCommand {
         }
 
         // Create a list of regions to copy-paste.
-        RegionHolder regionHolder = new RegionHolder(regionsToAdd, (int) minCoordinate.getY(), (int) maxCoordinate.getY(), copy, paste, xTransform, zTransform);
+        RegionHolder regionHolder = new RegionHolder(regionsToAdd, (int) minCoordinate.y(), (int) maxCoordinate.y(), copy, paste, xTransform, zTransform);
         List<CopyRegionFormat> regions = getCopyRegions(sender, regionHolder);
 
         // Copy-paste the regions in the save world.
@@ -252,29 +250,28 @@ public final class LocationCommand {
 
             copyRegions(sender, regions);
 
-            globalSQL.updateCoordinate(minCoordinateId, new Location(Bukkit.getWorld(commandArguments.location()), (regionXMin * 512), MIN_Y, (regionZMin * 512), 0, 0));
-            globalSQL.updateCoordinate(maxCoordinateId,
-                    new Location(Bukkit.getWorld(commandArguments.location()), ((regionXMax * 512) + 511), MAX_Y - 1, ((regionZMax * 512) + 511), 0, 0));
+            World world = Bukkit.getWorld(commandArguments.location());
+            coordinateAPI.updateCoordinate(minCoordinateId, LocationAdapter.adapt(new Location(world, (regionXMin * 512), world.getMinHeight(), (regionZMin * 512), 0, 0)));
+            coordinateAPI.updateCoordinate(maxCoordinateId,
+                    LocationAdapter.adapt(new Location(world, ((regionXMax * 512) + 511), world.getMaxHeight() - 1, ((regionZMax * 512) + 511), 0, 0)));
 
             // Add the location to the database.
             for (Region region : regionsToAdd) {
                 // Change region status in region database.
                 // If it already exists remove members.
-                globalSQL.update("INSERT INTO server_events(uuid,type,server,event) VALUES(NULL,'network','" + globalSQL.getString(
-                        "SELECT name FROM server_data WHERE type='EARTH';") + "'," + "'region set plotsystem " + region.name() + "');");
+                eventAPI.createEvent(null, globalSQL.getString("SELECT name FROM server_data WHERE type='EARTH';"), "region set plotsystem " + region.name());
 
                 // Add region to database.
-                plotSQL.update(
-                        "INSERT INTO regions(region,server,location) VALUES('" + region.name() + "','" + PlotSystem.SERVER_NAME + "','" + commandArguments.location() + "');");
+                plotAPI.createPlotRegion(region.name(), PlotSystem.SERVER_NAME, commandArguments.location());
             }
 
             sender.sendMessage(ChatUtils.success("Updated location %s", commandArguments.location()));
 
-            teleportToLocation(sender, globalSQL, plotSQL, commandArguments.location(), minCoordinateId, maxCoordinateId);
+            teleportToLocation(sender, commandArguments.location(), minCoordinateId, maxCoordinateId);
         });
     }
 
-    public static void deleteLocation(CommandSender sender, String[] args) {
+    public void deleteLocation(CommandSender sender, String[] args) {
 
         // If sender is a player, check for permission.
         if (sender instanceof Player p) {
@@ -290,9 +287,6 @@ public final class LocationCommand {
             return;
         }
 
-        PlotSQL plotSQL = Network.getInstance().getPlotSQL();
-        GlobalSQL globalSQL = Network.getInstance().getGlobalSQL();
-
         // Check if location exists.
         if (!(plotSQL.hasRow("SELECT name FROM location_data WHERE name='" + args[2] + "';"))) {
             sender.sendMessage(ChatUtils.error("The location %s does not exist.", args[2]));
@@ -300,7 +294,7 @@ public final class LocationCommand {
         }
 
         // Check if the location is on this server.
-        if (!(plotSQL.getString("SELECT server FROM location_data WHERE name='" + args[2] + "';").equals(PlotSystem.SERVER_NAME))) {
+        if (!(plotAPI.getLocationServer(args[2]).equals(PlotSystem.SERVER_NAME))) {
             sender.sendMessage(ChatUtils.error("This location is not on this server."));
             return;
         }
@@ -322,15 +316,14 @@ public final class LocationCommand {
         // Get save world.
         World saveWorld = Bukkit.getWorld(saveWorldName);
 
-        teleportPlayersFromLocation(args[2], saveWorld, plotSQL, globalSQL);
+        teleportPlayersFromLocation(args[2], saveWorld);
 
         // Delete location.
         if (Multiverse.deleteWorld(args[2])) {
 
             // Delete location from database.
             plotSQL.update("DELETE FROM location_data WHERE name='" + args[2] + "';");
-            sender.sendMessage(ChatUtils.success("Deleted location ")
-                    .append(Component.text(args[2], NamedTextColor.DARK_AQUA)));
+            sender.sendMessage(ChatUtils.success("Deleted location ").append(Component.text(args[2], NamedTextColor.DARK_AQUA)));
             LOGGER.info("Deleted location " + args[2] + ".");
 
             // Get regions from database.
@@ -341,9 +334,7 @@ public final class LocationCommand {
 
             // Iterate through regions to unlock them on Earth.
             for (String region : regions) {
-                globalSQL.update("INSERT INTO server_events(uuid,type,server,event) VALUES(NULL,'network','"
-                        + globalSQL.getString("SELECT name FROM server_data WHERE type='earth';") + "'," +
-                        "'region set default " + region + "');");
+                eventAPI.createEvent(null, globalSQL.getString("SELECT name FROM server_data WHERE type='EARTH';"), "region set default " + region);
             }
         } else {
             sender.sendMessage(ChatUtils.error("An error occurred while deleting the world."));
@@ -383,11 +374,11 @@ public final class LocationCommand {
         return new CommandArguments(args[2], xmin, ymin, zmin, xmax, ymax, zmax);
     }
 
-    private static List<CopyRegionFormat> getCopyRegions(CommandSender sender, RegionHolder regionHolder) {
+    private List<CopyRegionFormat> getCopyRegions(CommandSender sender, RegionHolder regionHolder) {
         List<CopyRegionFormat> regionsToCopy = new ArrayList<>();
 
-        final int yMin = max(regionHolder.ymin(), MIN_Y);
-        final int yMax = min(regionHolder.ymax(), MAX_Y - 1);
+        final int yMin = max(regionHolder.ymin(), networkAPI.getMinY());
+        final int yMax = min(regionHolder.ymax(), networkAPI.getMaxY() - 1);
 
         for (Region region : regionHolder.regionsToAdd()) {
             // Split the region into 4 equal segments of 256x256.
@@ -448,18 +439,14 @@ public final class LocationCommand {
         sender.sendMessage(ChatUtils.success("Terrain transfer has been completed."));
     }
 
-    private static void teleportToLocation(CommandSender sender, GlobalSQL globalSQL, PlotSQL plotSQL, String location, int coordMin, int coordMax) {
+    private void teleportToLocation(CommandSender sender, String location, int coordMin, int coordMax) {
         // If sender is a player teleport them to the location.
         if (sender instanceof Player p) {
 
             // Get middle.
-            double x = ((globalSQL.getDouble("SELECT x FROM coordinates WHERE id=" + coordMax + ";") +
-                    globalSQL.getDouble("SELECT x FROM coordinates WHERE id=" + coordMin + ";")) / 2) +
-                    plotSQL.getInt("SELECT xTransform FROM location_data WHERE name='" + location + "';");
+            double x = ((coordinateAPI.getX(coordMax) + coordinateAPI.getX(coordMin)) / 2) + plotAPI.getXTransform(location);
 
-            double z = ((globalSQL.getDouble("SELECT z FROM coordinates WHERE id=" + coordMax + ";") +
-                    globalSQL.getDouble("SELECT z FROM coordinates WHERE id=" + coordMin + ";")) / 2) +
-                    plotSQL.getInt("SELECT zTransform FROM location_data WHERE name='" + location + "';");
+            double z = ((coordinateAPI.getZ(coordMax) + coordinateAPI.getZ(coordMin)) / 2) + plotAPI.getZTransform(location);
 
             // Teleport to the location.
             World world = Bukkit.getWorld(location);
@@ -470,27 +457,19 @@ public final class LocationCommand {
                 y++;
             }
 
-            EventManager.createTeleportEvent(false, p.getUniqueId().toString(), "network", "teleport " + location + " " + x + " " + y + " " + z + " "
-                            + p.getLocation().getYaw() + " " + p.getLocation().getPitch(),
-                    "&aTeleported to location &3" + plotSQL.getString("SELECT alias FROM location_data WHERE name='" + location + "';"), p.getLocation());
+            eventAPI.createTeleportEvent(false, p.getUniqueId().toString(),
+                    "teleport " + location + " " + x + " " + y + " " + z + " " + p.getLocation().getYaw() + " " + p.getLocation().getPitch(),
+                    "&aTeleported to location &3" + plotAPI.getLocationAlias(location), LocationAdapter.adapt(p.getLocation()));
         }
     }
 
-    private static void teleportPlayersFromLocation(String location, World saveWorld, PlotSQL plotSQL, GlobalSQL globalSQL) {
-        int coordMin = plotSQL.getInt("SELECT coordMin FROM location_data WHERE name='" + location + "';");
-        int coordMax = plotSQL.getInt("SELECT coordMax FROM location_data WHERE name='" + location + "';");
+    private void teleportPlayersFromLocation(String location, World saveWorld) {
+        int coordMin = plotAPI.getLocationCoordMin(location);
+        int coordMax = plotAPI.getLocationCoordMax(location);
 
         // Get middle.
-        double x = ((globalSQL.getDouble("SELECT x FROM coordinates WHERE id=" + coordMax + ";") +
-                globalSQL.getDouble("SELECT x FROM coordinates WHERE id=" + coordMin + ";")) / 2) +
-                plotSQL.getInt("SELECT xTransform FROM location_data WHERE name='" + location + "';");
-
-        double z = ((globalSQL.getDouble("SELECT z FROM coordinates WHERE id=" + coordMax + ";") +
-                globalSQL.getDouble("SELECT z FROM coordinates WHERE id=" + coordMin + ";")) / 2) +
-                plotSQL.getInt("SELECT zTransform FROM location_data WHERE name='" + location + "';");
-
-        x -= plotSQL.getInt("SELECT xTransform FROM location_data WHERE name='" + location + "';");
-        z -= plotSQL.getInt("SELECT zTransform FROM location_data WHERE name='" + location + "';");
+        double x = ((coordinateAPI.getX(coordMax) + coordinateAPI.getX(coordMin)) / 2);
+        double z = ((coordinateAPI.getZ(coordMax) + coordinateAPI.getZ(coordMin)) / 2);
 
         // Teleport all players away from the location.
         Location teleportLocation = new Location(saveWorld, x, Utils.getHighestYAt(saveWorld, (int) x, (int) z), z);
@@ -509,12 +488,12 @@ public final class LocationCommand {
          * @param coordMax the max coordinate
          * @return whether the area is smaller than the input coordinates
          */
-        private boolean isSmallerThan(Coordinate coordMin, Coordinate coordMax) {
+        private boolean isSmallerThan(NetworkLocation coordMin, NetworkLocation coordMax) {
             boolean smaller = coordMin == null || coordMax == null;
-            smaller = smaller || (xmin > coordMin.getX());
-            smaller = smaller || (zmin > coordMin.getZ());
-            smaller = smaller || (xmax < coordMax.getX());
-            smaller = smaller || (zmax < coordMax.getZ());
+            smaller = smaller || (xmin > coordMin.x());
+            smaller = smaller || (zmin > coordMin.z());
+            smaller = smaller || (xmax < coordMax.x());
+            smaller = smaller || (zmax < coordMax.z());
             return smaller;
         }
     }

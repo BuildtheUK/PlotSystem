@@ -16,8 +16,11 @@ public final class UpdateCommand {
 
     private final PlotAPI plotAPI;
 
-    public UpdateCommand(PlotAPI plotAPI) {
+    private final LocationCommand locationCommand;
+
+    public UpdateCommand(PlotAPI plotAPI, LocationCommand locationCommand) {
         this.plotAPI = plotAPI;
+        this.locationCommand = locationCommand;
     }
 
     public void update(CommandSender sender, String[] args) {
@@ -29,7 +32,7 @@ public final class UpdateCommand {
 
         switch (args[1]) {
             case "plot" -> updatePlot(sender, args);
-            case "location" -> LocationCommand.updateLocation(sender, args);
+            case "location" -> locationCommand.updateLocation(sender, args);
             default -> sender.sendMessage(GENERIC_ERROR_MESSAGE);
         }
     }

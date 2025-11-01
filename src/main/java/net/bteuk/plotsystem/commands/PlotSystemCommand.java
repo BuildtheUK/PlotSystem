@@ -42,14 +42,14 @@ public class PlotSystemCommand implements BasicCommand, TabCompleter {
 
     private final UpdateCommand updateCommand;
 
-    public PlotSystemCommand(PlotAPI plotAPI, PlotHelper plotHelper, CoordinateAPI coordinateAPI, GuiManager guiManager) {
+    public PlotSystemCommand(PlotAPI plotAPI, PlotHelper plotHelper, CoordinateAPI coordinateAPI, GuiManager guiManager, LocationCommand locationCommand) {
         this.plotAPI = plotAPI;
         this.plotHelper = plotHelper;
         this.coordinateAPI = coordinateAPI;
 
-        this.createCommand = new CreateCommand(guiManager, plotAPI);
-        this.deleteCommand = new DeleteCommand(plotAPI, plotHelper);
-        this.updateCommand = new UpdateCommand(plotAPI);
+        this.createCommand = new CreateCommand(guiManager, plotAPI, locationCommand);
+        this.deleteCommand = new DeleteCommand(plotAPI, plotHelper, locationCommand);
+        this.updateCommand = new UpdateCommand(plotAPI, locationCommand);
     }
 
     @Override
