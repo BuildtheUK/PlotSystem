@@ -14,6 +14,10 @@ import net.bteuk.plotsystem.commands.ReviewCommand;
 import net.bteuk.plotsystem.commands.ToggleOutlines;
 import net.bteuk.plotsystem.events.ClaimEvent;
 import net.bteuk.plotsystem.events.CloseEvent;
+import net.bteuk.plotsystem.events.DeleteEvent;
+import net.bteuk.plotsystem.events.PlotsystemTeleportEvent;
+import net.bteuk.plotsystem.events.RetractEvent;
+import net.bteuk.plotsystem.events.ReviewEvent;
 import net.bteuk.plotsystem.listeners.ClaimEnter;
 import net.bteuk.plotsystem.listeners.CloseInventory;
 import net.bteuk.plotsystem.listeners.HologramClickEvent;
@@ -130,7 +134,7 @@ public class PlotSystem extends JavaPlugin {
         final NetworkAPI networkAPI = networkProvider.getProvider();
 
         this.guiManager = new GuiManager();
-        this.plotHelper = new PlotHelper();
+        this.plotHelper = new PlotHelper(networkAPI.getPlotAPI());
 
         // Register hologram click event.
         new HologramClickEvent(this);
@@ -169,8 +173,12 @@ public class PlotSystem extends JavaPlugin {
         new CloseInventory(this);
 
         // Events
-        networkAPI.getEventAPI().registerEvent("claim", new ClaimEvent(networkAPI, guiManager));
+        networkAPI.getEventAPI().registerEvent("claim", new ClaimEvent(networkAPI, guiManager, plotHelper));
         networkAPI.getEventAPI().registerEvent("close", new CloseEvent(networkAPI.getPlotAPI(), networkAPI.getChat()));
+        networkAPI.getEventAPI().registerEvent("retract", new RetractEvent(networkAPI.getPlotAPI(), plotHelper, networkAPI.getChat()));
+        networkAPI.getEventAPI().registerEvent("plotsystemteleport", new PlotsystemTeleportEvent(networkAPI.getPlotAPI(), networkAPI.getEventAPI(), networkAPI.getServerAPI()));
+        networkAPI.getEventAPI().registerEvent("review", new ReviewEvent(networkAPI.getPlotAPI(), plotHelper));
+        networkAPI.getEventAPI().registerEvent("delete", new DeleteEvent(networkAPI.getPlotAPI(), plotHelper, networkAPI.getChat()));
 
         // Deals with tracking where players are in relation to plots.
         claimEnter = new ClaimEnter(this, networkAPI.getPlotAPI(), networkAPI.getGlobalSQL());
@@ -189,7 +197,7 @@ public class PlotSystem extends JavaPlugin {
 
         // Get all active plots (unclaimed, claimed, submitted, reviewing) and add holograms.
         List<Integer> active_plots =  networkAPI.getPlotAPI().getActivePlots(SERVER_NAME);
-        active_plots.forEach(plot -> plotHelper.addPlotHologram(new PlotHologram(plot)));
+        active_plots.forEach(plot -> plotHelper.addPlotHologram(new PlotHologram(plot, networkAPI.getPlotAPI(), networkAPI.getCoordinateAPI())));
     }
 
     public void onDisable() {

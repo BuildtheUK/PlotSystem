@@ -40,7 +40,7 @@ public class ClaimCommand implements BasicCommand {
         this.plotHelper = plotHelper;
     }
 
-    public static boolean hasClaimPermission(NetworkAPI networkAPI, Player player, PlotAPI plotAPI, int plot) {
+    public static boolean hasClaimPermission(NetworkAPI networkAPI, Player player, int plot) {
 
         // Make sure the player has permission to claim plots, else they must complete the tutorial first.
         // Only checked if tutorials are enabled.
@@ -51,7 +51,7 @@ public class ClaimCommand implements BasicCommand {
 
         // Check if the player has permission to claim a plot of this difficulty.
         if (!player.hasPermission("uknet.plots.claim.all")) {
-            switch (plotAPI.getPlotDifficulty(plot)) {
+            switch (networkAPI.getPlotAPI().getPlotDifficulty(plot)) {
 
                 case 1 -> {
                     if (!player.hasPermission("uknet.plots.claim.easy")) {
@@ -108,7 +108,7 @@ public class ClaimCommand implements BasicCommand {
 
         // If the plot is valid open the claim plot gui.
         if (validPlot(user, plot, inPlot)) {
-            if (!hasClaimPermission(networkAPI, player, plotAPI, plot)) {
+            if (!hasClaimPermission(networkAPI, player, plot)) {
                 return;
             }
 

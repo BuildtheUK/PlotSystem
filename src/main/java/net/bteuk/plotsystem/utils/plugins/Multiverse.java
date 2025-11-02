@@ -14,15 +14,14 @@ import org.bukkit.GameMode;
 import org.bukkit.GameRule;
 import org.bukkit.World;
 import org.bukkit.WorldType;
-import org.mvplugins.multiverse.core.MultiverseCore;
 import org.mvplugins.multiverse.core.MultiverseCoreApi;
-import org.mvplugins.multiverse.core.world.MultiverseWorld;
 import org.mvplugins.multiverse.core.world.WorldManager;
-import org.mvplugins.multiverse.core.world.entity.EntitySpawnConfig;
 import org.mvplugins.multiverse.core.world.options.CreateWorldOptions;
+import org.mvplugins.multiverse.core.world.options.RemoveWorldOptions;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static net.bteuk.plotsystem.PlotSystem.LOGGER;
 
@@ -134,42 +133,34 @@ public class Multiverse {
 
     public static boolean hasWorld(String name) {
 
-        MultiverseCore core = (MultiverseCore) Bukkit.getServer().getPluginManager().getPlugin("Multiverse-Core");
+        MultiverseCoreApi core = MultiverseCoreApi.get();
 
         if (core == null) {
             LOGGER.severe("Multiverse is a dependency of PlotSystem!");
             return false;
         }
 
-        // If the world exists return true.
+        WorldManager worldManager = core.getWorldManager();
 
-        MVWorldManager worldManager = core.getMVWorldManager();
-
-        MultiverseWorld world = worldManager.getMVWorld(name);
-
-        return world != null;
+        return worldManager.getWorld(name).isDefined();
     }
 
     public static boolean deleteWorld(String name) {
 
-        MultiverseCore core = (MultiverseCore) Bukkit.getServer().getPluginManager().getPlugin("Multiverse-Core");
+        MultiverseCoreApi core = MultiverseCoreApi.get();
 
         if (core == null) {
             LOGGER.severe("Multiverse is a dependency of PlotSystem!");
             return false;
         }
 
-        // If world exists delete it.
-        MVWorldManager worldManager = core.getMVWorldManager();
+        WorldManager worldManager = core.getWorldManager();
 
-        MultiverseWorld world = worldManager.getMVWorld(name);
+        AtomicBoolean success = new AtomicBoolean(false);
 
-        if (world == null) {
-            return false;
-        } else {
-            worldManager.deleteWorld(name);
-            return true;
-        }
-
+        worldManager.getWorld(name).peek(
+                world -> success.set(worldManager.removeWorld(RemoveWorldOptions.world(world)).isSuccess())
+        );
+        return success.get();
     }
 }

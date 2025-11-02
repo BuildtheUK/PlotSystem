@@ -8,6 +8,7 @@ import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.commands.ClaimCommand;
 import net.bteuk.plotsystem.gui.ClaimGui;
+import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.User;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -25,10 +26,13 @@ public class ClaimEvent implements Event {
 
     private final GuiManager guiManager;
 
-    public ClaimEvent(NetworkAPI networkAPI, GuiManager guiManager) {
+    private final PlotHelper plotHelper;
+
+    public ClaimEvent(NetworkAPI networkAPI, GuiManager guiManager, PlotHelper plotHelper) {
         this.networkAPI = networkAPI;
         this.plotAPI = networkAPI.getPlotAPI();
         this.guiManager = guiManager;
+        this.plotHelper = plotHelper;
     }
 
     public void event(String uuid, String[] event, String sMessage) {
@@ -98,9 +102,8 @@ public class ClaimEvent implements Event {
             }
 
             u.player.closeInventory();
-            u.claimGui = new ClaimGui(u, u.inPlot, guiManager);
+            u.claimGui = new ClaimGui(u, u.inPlot, guiManager, plotAPI, plotHelper);
             u.claimGui.open(p);
-
         }
     }
 }

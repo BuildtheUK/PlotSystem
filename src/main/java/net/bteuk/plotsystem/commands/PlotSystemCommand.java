@@ -190,7 +190,7 @@ public class PlotSystemCommand implements BasicCommand, TabCompleter {
                 coordinate_id = coordinateAPI.addCoordinate(LocationAdapter.adapt(l));
                 plotAPI.updatePlotCoordinate(plot, coordinate_id);
                 // Add the hologram.
-                plotHelper.addPlotHologram(new PlotHologram(plot));
+                plotHelper.addPlotHologram(new PlotHologram(plot, plotAPI, coordinateAPI));
                 p.sendMessage(ChatUtils.success("Added marker to plot " + plot));
             } else {
                 // Update the existing coordinate location.

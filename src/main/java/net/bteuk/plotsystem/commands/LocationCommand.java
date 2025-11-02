@@ -228,7 +228,7 @@ public final class LocationCommand {
         }
 
         // Determine which regions are new, only copy them.
-        List<String> existingRegions = plotSQL.getStringList("SELECT region FROM regions WHERE location='" + commandArguments.location() + "';");
+        List<String> existingRegions = plotAPI.getLocationRegions(commandArguments.location());
         List<Region> regionsToAdd = new ArrayList<>();
         for (int i = regionXMin; i <= regionXMax; i++) {
             for (int j = regionZMin; j <= regionZMax; j++) {
@@ -288,7 +288,7 @@ public final class LocationCommand {
         }
 
         // Check if location exists.
-        if (!(plotSQL.hasRow("SELECT name FROM location_data WHERE name='" + args[2] + "';"))) {
+        if (!(plotAPI.locationExists(args[2]))) {
             sender.sendMessage(ChatUtils.error("The location %s does not exist.", args[2]));
             return;
         }
@@ -300,7 +300,7 @@ public final class LocationCommand {
         }
 
         // If location has plots, cancel.
-        if (plotSQL.hasRow("SELECT id FROM plot_data WHERE location='" + args[2] + "' AND status<>'completed' AND status<>'deleted';")) {
+        if (!plotAPI.getActivePlotsForLocation(args[2]).isEmpty()) {
             sender.sendMessage(ChatUtils.error("This location active has plots, all plots must be deleted or completed to remove the location."));
             return;
         }
@@ -322,15 +322,15 @@ public final class LocationCommand {
         if (Multiverse.deleteWorld(args[2])) {
 
             // Delete location from database.
-            plotSQL.update("DELETE FROM location_data WHERE name='" + args[2] + "';");
+            plotAPI.deleteLocation(args[2]);
             sender.sendMessage(ChatUtils.success("Deleted location ").append(Component.text(args[2], NamedTextColor.DARK_AQUA)));
             LOGGER.info("Deleted location " + args[2] + ".");
 
-            // Get regions from database.
-            ArrayList<String> regions = plotSQL.getStringList("SELECT region FROM regions WHERE location='" + args[2] + "';");
+            // Get regions from the database.
+            List<String> regions = plotAPI.getLocationRegions(args[2]);
 
             // Delete regions from database.
-            plotSQL.update("DELETE FROM regions WHERE location='" + args[2] + "';");
+            plotAPI.deleteRegionsForLocation(args[2]);
 
             // Iterate through regions to unlock them on Earth.
             for (String region : regions) {

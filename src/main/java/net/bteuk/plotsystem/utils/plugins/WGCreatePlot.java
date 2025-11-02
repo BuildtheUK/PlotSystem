@@ -84,7 +84,7 @@ public class WGCreatePlot {
         plotID = plotAPI.createPlot(size, difficulty, location, coordinate_id);
 
         // Load the hologram for this plot.
-        plotHelper.addPlotHologram(new PlotHologram(plotID));
+        plotHelper.addPlotHologram(new PlotHologram(plotID, plotAPI, coordinateAPI));
 
         // Create the region with valid name.
         region = new ProtectedPolygonalRegion(String.valueOf(plotID), vector, MIN_Y, (MAX_Y - 1));

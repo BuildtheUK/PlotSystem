@@ -12,12 +12,8 @@ public class EventManager {
 
         // Start the execution process by looking at the event message structure.
         switch (event[0]) {
-            case "teleport" -> TeleportEvent.event(uuid, event); // TODO: also exists in Network
             case "submit" -> SubmitEvent.event(uuid, event);
-            case "retract" -> RetractEvent.event(uuid, event);
-            case "delete" -> DeleteEvent.event(uuid, event);
             case "leave" -> LeaveEvent.event(uuid, event);
-            case "review" -> ReviewEvent.event(uuid, event);
             case "join" -> JoinEvent.event(uuid, event);
             case "kick" -> KickEvent.event(uuid, event); // TODO: Also exists in Network
             case "outlines" -> OutlinesEvent.event(uuid, event);

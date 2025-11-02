@@ -114,7 +114,7 @@ public class DeleteEvent implements Event {
                 plotAPI.removePlotSubmission(id);
 
                 // Set plot status to unclaimed.
-                PlotStatus currentStatus = PlotStatus.fromDatabaseValue(plotSQL.getString("SELECT status FROM plot_data WHERE id=" + id + ";"));
+                PlotStatus currentStatus = plotAPI.getPlotStatus(id);
                 plotHelper.updatePlotStatus(id, PlotStatus.UNCLAIMED);
 
                 // Send message to plot owner.
@@ -138,7 +138,7 @@ public class DeleteEvent implements Event {
                 if (currentStatus == PlotStatus.SUBMITTED) {
                     // Send message to reviewers that a plot submission has been deleted.
                     PlotMessage plotMessage = new PlotMessage("A submitted plot has been deleted, there %s %s submitted %s.", false);
-                    Network.getInstance().getChat().sendSocketMesage(plotMessage);
+                    chatAPI.sendPlotMessage(plotMessage);
                 }
             });
         } else if (event[1].equals("zone")) {

@@ -1,6 +1,7 @@
 package net.bteuk.plotsystem.utils;
 
 import lombok.Setter;
+import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.plotsystem.PlotStatus;
 import net.bteuk.network.api.plotsystem.ReviewCategory;
 import net.bteuk.network.api.plotsystem.ReviewSelection;
@@ -30,14 +31,20 @@ public class PlotHelper {
 
     private Map<PlotDifficulties, ReviewCategoryThreshold> REVIEW_CATEGORY_THRESHOLDS;
 
+    private final PlotAPI plotAPI;
+
+    public PlotHelper(PlotAPI plotAPI) {
+        this.plotAPI = plotAPI;
+    }
+
     /**
      * Update the submitted status of a plot, will update any relevant holograms.
      *
      * @param id              the plot id
      * @param submittedStatus the submitted status
      */
-    public boolean updateSubmittedStatus(int id, SubmittedStatus submittedStatus) {
-        return updatePlotStatus(id, PlotStatus.SUBMITTED, submittedStatus);
+    public void updateSubmittedStatus(int id, SubmittedStatus submittedStatus) {
+        updatePlotStatus(id, PlotStatus.SUBMITTED, submittedStatus);
     }
 
     /**
@@ -63,12 +70,12 @@ public class PlotHelper {
      */
     private boolean updatePlotStatus(int id, PlotStatus status, SubmittedStatus submittedStatus) {
         boolean hasChanged = false;
-        if (!plotSQL.hasRow("SELECT 1 FROM plot_data WHERE id=" + id + " AND status='" + status.database_value + "'")) {
-            plotSQL.update("UPDATE plot_data SET status='" + status.database_value + "' WHERE id=" + id + ";");
+        if (plotAPI.getPlotStatus(id) != status) {
+            plotAPI.setPlotStatus(id, status.database_value);
             hasChanged = true;
         }
-        if (submittedStatus != null && !plotSQL.hasRow("SELECT 1 FROM plot_submission WHERE plot_id=" + id + " AND status='" + submittedStatus.database_value + "'")) {
-            plotSQL.update("UPDATE plot_submission SET status='" + submittedStatus.database_value + "' WHERE plot_id=" + id + ";");
+        if (submittedStatus != null && plotAPI.getPlotSubmissionStatus(id) != submittedStatus) {
+            plotAPI.setPlotSubmissionStatus(id, submittedStatus.database_value);
             hasChanged = true;
         }
         // Delay the hologram update until the plot has been completely updated.
