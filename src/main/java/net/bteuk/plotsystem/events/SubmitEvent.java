@@ -1,7 +1,10 @@
 package net.bteuk.plotsystem.events;
 
+import net.bteuk.network.api.ChatAPI;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.SQLAPI;
+import net.bteuk.network.api.entity.Event;
+import net.bteuk.network.api.plotsystem.PlotStatus;
 import net.bteuk.network.lib.dto.DirectMessage;
 import net.bteuk.network.lib.dto.PlotMessage;
 import net.bteuk.network.lib.utils.ChatUtils;
@@ -9,7 +12,7 @@ import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.PlotHelper;
 import net.kyori.adventure.text.Component;
 
-public class SubmitEvent {
+public class SubmitEvent implements Event {
 
     private final PlotAPI plotAPI;
 
@@ -17,13 +20,16 @@ public class SubmitEvent {
 
     private final SQLAPI globalSQL;
 
-    public SubmitEvent(PlotAPI plotAPI, PlotHelper plotHelper, SQLAPI globalSQL) {
+    private final ChatAPI chatAPI;
+
+    public SubmitEvent(PlotAPI plotAPI, PlotHelper plotHelper, SQLAPI globalSQL, ChatAPI chatAPI) {
         this.plotAPI = plotAPI;
         this.plotHelper = plotHelper;
         this.globalSQL = globalSQL;
+        this.chatAPI = chatAPI;
     }
 
-    public void event(String uuid, String[] event) {
+    public void event(String uuid, String[] event, String sMessage) {
 
         // Events for submitting
         if (event[1].equals("plot")) {
@@ -64,20 +70,19 @@ public class SubmitEvent {
                 if (plotAPI.isPlotClaimed(plotID)) {
 
                     // Create new submitted plot key.
-                    PlotSystem.getInstance().plotSQL.update(
-                            "INSERT INTO plot_submission(plot_id,submit_time,status,last_query) VALUES(" + plotID + "," + Time.currentTime() + ",'submitted'," + Time.currentTime() + ");");
+                    plotAPI.createPlotSubmission(plotID);
 
                     // Set plot status to submitted.
-                    PlotHelper.updatePlotStatus(plotID, PlotStatus.SUBMITTED);
+                    plotHelper.updatePlotStatus(plotID, PlotStatus.SUBMITTED);
 
-                    // Update last submit time in playerdata.
-                    PlotSystem.getInstance().globalSQL.update("UPDATE player_data SET last_submit=" + Time.currentTime() + " WHERE uuid='" + uuid + "';");
+                    // Update last submit time.
+                    plotAPI.updateLastSubmit(uuid, System.currentTimeMillis());
 
                     message = ChatUtils.success("Submitted plot %s", String.valueOf(plotID));
 
                     // Send message to reviewers that a plot has been submitted.
                     PlotMessage plotMessage = new PlotMessage("A plot has been submitted, there %s %s submitted %s.", false);
-                    Network.getInstance().getChat().sendSocketMesage(plotMessage);
+                    chatAPI.sendPlotMessage(plotMessage);
 
                 } else {
 
@@ -89,7 +94,7 @@ public class SubmitEvent {
 
             DirectMessage directMessage = new DirectMessage("global", uuid, "server",
                     message, true);
-            Network.getInstance().getChat().sendSocketMesage(directMessage);
+            chatAPI.sendDirectMessage(directMessage);
 
         }
     }

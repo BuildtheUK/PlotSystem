@@ -15,9 +15,15 @@ import net.bteuk.plotsystem.commands.ToggleOutlines;
 import net.bteuk.plotsystem.events.ClaimEvent;
 import net.bteuk.plotsystem.events.CloseEvent;
 import net.bteuk.plotsystem.events.DeleteEvent;
+import net.bteuk.plotsystem.events.JoinEvent;
+import net.bteuk.plotsystem.events.LeaveEvent;
+import net.bteuk.plotsystem.events.OutlinesEvent;
+import net.bteuk.plotsystem.events.PlotsystemKickEvent;
 import net.bteuk.plotsystem.events.PlotsystemTeleportEvent;
 import net.bteuk.plotsystem.events.RetractEvent;
 import net.bteuk.plotsystem.events.ReviewEvent;
+import net.bteuk.plotsystem.events.SubmitEvent;
+import net.bteuk.plotsystem.events.VerifyEvent;
 import net.bteuk.plotsystem.listeners.ClaimEnter;
 import net.bteuk.plotsystem.listeners.CloseInventory;
 import net.bteuk.plotsystem.listeners.HologramClickEvent;
@@ -60,7 +66,6 @@ public class PlotSystem extends JavaPlugin {
     // Returns an instance of the plugin.
     @Getter
     static PlotSystem instance;
-    public Timers timers;
     // Listeners
     public ClaimEnter claimEnter;
     // Returns the User ArrayList.
@@ -154,9 +159,6 @@ public class PlotSystem extends JavaPlugin {
         // Outlines, this will be accessed from other classes, so it must have a getter and setter.
         outlines = new Outlines();
 
-        // Setup Timers
-        timers = new Timers(this, networkAPI);
-
         // Create bungeecord channel
         this.getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
 
@@ -167,7 +169,7 @@ public class PlotSystem extends JavaPlugin {
         selectionTool.setItemMeta(meta);
 
         // Listeners
-        new JoinServer(this, plotHelper);
+        new JoinServer(this, networkAPI, plotHelper);
         new QuitServer(this);
         new PlayerInteract(instance, networkAPI.getPlotAPI());
         new CloseInventory(this);
@@ -177,8 +179,14 @@ public class PlotSystem extends JavaPlugin {
         networkAPI.getEventAPI().registerEvent("close", new CloseEvent(networkAPI.getPlotAPI(), networkAPI.getChat()));
         networkAPI.getEventAPI().registerEvent("retract", new RetractEvent(networkAPI.getPlotAPI(), plotHelper, networkAPI.getChat()));
         networkAPI.getEventAPI().registerEvent("plotsystemteleport", new PlotsystemTeleportEvent(networkAPI.getPlotAPI(), networkAPI.getEventAPI(), networkAPI.getServerAPI()));
-        networkAPI.getEventAPI().registerEvent("review", new ReviewEvent(networkAPI.getPlotAPI(), plotHelper));
+        networkAPI.getEventAPI().registerEvent("review", new ReviewEvent(networkAPI, plotHelper, guiManager));
         networkAPI.getEventAPI().registerEvent("delete", new DeleteEvent(networkAPI.getPlotAPI(), plotHelper, networkAPI.getChat()));
+        networkAPI.getEventAPI().registerEvent("submit", new SubmitEvent(networkAPI.getPlotAPI(), plotHelper, networkAPI.getGlobalSQL(), networkAPI.getChat()));
+        networkAPI.getEventAPI().registerEvent("leave", new LeaveEvent(networkAPI.getPlotAPI(), plotHelper, networkAPI.getChat()));
+        networkAPI.getEventAPI().registerEvent("join", new JoinEvent(networkAPI.getPlotAPI(), plotHelper, networkAPI.getChat(), networkAPI.getGlobalSQL()));
+        networkAPI.getEventAPI().registerEvent("plotsystemkick", new PlotsystemKickEvent(networkAPI.getPlotAPI(), networkAPI.getChat(), networkAPI.getGlobalSQL()));
+        networkAPI.getEventAPI().registerEvent("outlines", new OutlinesEvent(networkAPI.getPlotAPI()));
+        networkAPI.getEventAPI().registerEvent("verify", new VerifyEvent(networkAPI, plotHelper, guiManager));
 
         // Deals with tracking where players are in relation to plots.
         claimEnter = new ClaimEnter(this, networkAPI.getPlotAPI(), networkAPI.getGlobalSQL());
@@ -190,7 +198,7 @@ public class PlotSystem extends JavaPlugin {
 
             commands.register("plotsystem", "Deals will all plotsystem related commands.", List.of("ps"), new PlotSystemCommand(networkAPI.getPlotAPI(), plotHelper, networkAPI.getCoordinateAPI(), guiManager, new LocationCommand(networkAPI)));
             commands.register("claim", "Used to claim the plot you're standing in.", List.of("claim"), new ClaimCommand(networkAPI, guiManager, plotHelper));
-            commands.register("toggleoutlines", "Toggles the visibility of outlines.", new ToggleOutlines(this));
+            commands.register("toggleoutlines", "Toggles the visibility of outlines.", new ToggleOutlines(this, networkAPI.getPlotAPI()));
             commands.register("review", "Command for editing selections to reviewing categories during the reviewing process.", new ReviewCommand(this));
 
         });
@@ -198,6 +206,9 @@ public class PlotSystem extends JavaPlugin {
         // Get all active plots (unclaimed, claimed, submitted, reviewing) and add holograms.
         List<Integer> active_plots =  networkAPI.getPlotAPI().getActivePlots(SERVER_NAME);
         active_plots.forEach(plot -> plotHelper.addPlotHologram(new PlotHologram(plot, networkAPI.getPlotAPI(), networkAPI.getCoordinateAPI())));
+
+        // Setup Timers
+        Timers.registerTimers(networkAPI, plotHelper, outlines, users);
     }
 
     public void onDisable() {

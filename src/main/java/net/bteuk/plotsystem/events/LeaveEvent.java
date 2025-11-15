@@ -1,9 +1,10 @@
 package net.bteuk.plotsystem.events;
 
-import net.bteuk.network.Network;
+import net.bteuk.network.api.ChatAPI;
+import net.bteuk.network.api.PlotAPI;
+import net.bteuk.network.api.entity.Event;
 import net.bteuk.network.lib.dto.DirectMessage;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
 import net.bteuk.plotsystem.utils.PlotHelper;
@@ -17,9 +18,21 @@ import java.util.UUID;
 
 import static net.bteuk.plotsystem.PlotSystem.LOGGER;
 
-public class LeaveEvent {
+public class LeaveEvent implements Event {
 
-    public static void event(String uuid, String[] event) {
+    private final PlotAPI plotAPI;
+
+    private final PlotHelper plotHelper;
+
+    private final ChatAPI chatAPI;
+
+    public LeaveEvent(PlotAPI plotAPI, PlotHelper plotHelper, ChatAPI chatAPI) {
+        this.plotAPI = plotAPI;
+        this.plotHelper = plotHelper;
+        this.chatAPI = chatAPI;
+    }
+
+    public void event(String uuid, String[] event, String message) {
 
         // Events for leaving
         if (event[1].equals("plot")) {
@@ -28,7 +41,7 @@ public class LeaveEvent {
             int id = Integer.parseInt(event[2]);
 
             // Get worlds of plot.
-            World world = Bukkit.getWorld(PlotSystem.getInstance().plotSQL.getString("SELECT location FROM plot_data WHERE id=" + id + ";"));
+            World world = Bukkit.getWorld(plotAPI.getPlotLocation(id));
 
             if (world == null) {
 
@@ -39,30 +52,30 @@ public class LeaveEvent {
 
             }
 
-            // Remove member from plot.
+            // Remove member from the plot.
             try {
                 WorldGuardFunctions.removeMember(event[2], uuid, world);
             } catch (RegionManagerNotFoundException | RegionNotFoundException e) {
                 DirectMessage directMessage = new DirectMessage("global", uuid, "server",
                         ChatUtils.error("An error occurred while removing you from the plot, please contact an administrator."), false);
-                Network.getInstance().getChat().sendSocketMesage(directMessage);
+                chatAPI.sendDirectMessage(directMessage);
                 return;
             }
 
             // Remove members from plot in database.
-            PlotSystem.getInstance().plotSQL.update("DELETE FROM plot_members WHERE id=" + id + " AND uuid='" + uuid + "';");
+            plotAPI.removePlotMember(id, uuid);
 
             // Send message to plot owner.
             Player p = Bukkit.getPlayer(UUID.fromString(uuid));
 
             if (p != null) {
                 // Update the hologram since they are on the server.
-                PlotHelper.updatePlotHologram(id);
+                plotHelper.updatePlotHologram(id);
             }
 
             DirectMessage directMessage = new DirectMessage("global", uuid, "server",
                     ChatUtils.success("You have left Plot %s", String.valueOf(id)), true);
-            Network.getInstance().getChat().sendSocketMesage(directMessage);
+            chatAPI.sendDirectMessage(directMessage);
 
         } else if (event[1].equals("zone")) {
 
@@ -70,7 +83,7 @@ public class LeaveEvent {
             int id = Integer.parseInt(event[2]);
 
             // Get worlds of plot.
-            World world = Bukkit.getWorld(PlotSystem.getInstance().plotSQL.getString("SELECT location FROM zones WHERE id=" + id + ";"));
+            World world = Bukkit.getWorld(plotAPI.getZoneLocation(id));
 
             if (world == null) {
 
@@ -87,16 +100,16 @@ public class LeaveEvent {
             } catch (RegionManagerNotFoundException | RegionNotFoundException e) {
                 DirectMessage directMessage = new DirectMessage("global", uuid, "server",
                         ChatUtils.error("An error occurred while removing you from the zone, please contact an administrator."), false);
-                Network.getInstance().getChat().sendSocketMesage(directMessage);
+                chatAPI.sendDirectMessage(directMessage);
                 return;
             }
 
             // Remove members from zone in database.
-            PlotSystem.getInstance().plotSQL.update("DELETE FROM zone_members WHERE id=" + id + " AND uuid='" + uuid + "';");
+            plotAPI.removeZoneMember(id, uuid);
 
             DirectMessage directMessage = new DirectMessage("global", uuid, "server",
                     ChatUtils.success("You have left Zone %s", String.valueOf(id)), true);
-            Network.getInstance().getChat().sendSocketMesage(directMessage);
+            chatAPI.sendDirectMessage(directMessage);
         }
     }
 }

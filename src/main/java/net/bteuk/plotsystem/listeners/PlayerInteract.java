@@ -20,12 +20,9 @@ import java.util.Objects;
 
 public class PlayerInteract implements Listener {
 
-    private final PlotSystem instance;
-
     private final PlotAPI plotAPI;
 
     public PlayerInteract(PlotSystem instance, PlotAPI plotAPI) {
-        this.instance = instance;
         this.plotAPI = plotAPI;
 
         // Register the listener.

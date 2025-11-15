@@ -10,13 +10,12 @@ import com.sk89q.worldguard.protection.managers.storage.StorageException;
 import com.sk89q.worldguard.protection.regions.ProtectedPolygonalRegion;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import com.sk89q.worldguard.protection.regions.RegionContainer;
-import net.bteuk.network.Network;
-import net.bteuk.network.sql.PlotSQL;
-import net.bteuk.network.utils.Utils;
+import net.bteuk.network.api.PlotAPI;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
 import net.bteuk.plotsystem.exceptions.WorldNotFoundException;
+import net.bteuk.plotsystem.utils.Utils;
 import net.bteuk.plotsystem.utils.math.Point;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -56,25 +55,25 @@ public class WorldGuardFunctions {
 
         BlockVector2 bv = Point.getAveragePoint(region.getPoints());
 
-        return (new Location(world, bv.getX(), Utils.getHighestYAt(world, bv.getX(), bv.getZ()), bv.getZ()));
+        return (new Location(world, bv.x(), Utils.getHighestYAt(world, bv.x(), bv.z()), bv.z()));
 
     }
 
-    public static Location getBeforeLocation(String regionName, World buildWorld) throws WorldNotFoundException, RegionNotFoundException, RegionManagerNotFoundException {
+    public static Location getBeforeLocation(String regionName, World buildWorld, PlotAPI plotAPI) throws WorldNotFoundException, RegionNotFoundException, RegionManagerNotFoundException {
 
         // Get instance of plugin and config
         PlotSystem instance = PlotSystem.getInstance();
         FileConfiguration config = instance.getConfig();
 
         // Get worlds from config
-        String save_world = config.getString("save_world");
-        if (save_world == null) {
+        String saveWorldName = config.getString("save_world");
+        if (saveWorldName == null) {
 
             throw new WorldNotFoundException("Save World is not defined in config, plot delete event has therefore failed!");
 
         }
 
-        World saveWorld = Bukkit.getServer().getWorld(save_world);
+        World saveWorld = Bukkit.getServer().getWorld(saveWorldName);
 
         // Get worldguard instance
         WorldGuard wg = WorldGuard.getInstance();
@@ -100,14 +99,12 @@ public class WorldGuardFunctions {
         BlockVector2 bv = Point.getAveragePoint(region.getPoints());
 
         // To get the actual location we need to take the negative coordinate transform of the plot.
-        PlotSQL plotSQL = Network.getInstance().getPlotSQL();
+        int xTransform = -plotAPI.getXTransform(buildWorld.getName());
+        int zTransform = -plotAPI.getZTransform(buildWorld.getName());
 
-        int xTransform = -plotSQL.getInt("SELECT xTransform FROM location_data WHERE name='" + buildWorld.getName() + "';");
-        int zTransform = -plotSQL.getInt("SELECT zTransform FROM location_data WHERE name='" + buildWorld.getName() + "';");
+        BlockVector2 bv2 = BlockVector2.at(bv.x() + xTransform, bv.z() + zTransform);
 
-        BlockVector2 bv2 = BlockVector2.at(bv.getX() + xTransform, bv.getZ() + zTransform);
-
-        return (new Location(saveWorld, bv2.getX(), Utils.getHighestYAt(saveWorld, bv2.getX(), bv2.getZ()), bv2.getZ()));
+        return (new Location(saveWorld, bv2.x(), Utils.getHighestYAt(saveWorld, bv2.x(), bv2.z()), bv2.z()));
 
     }
 
@@ -312,19 +309,17 @@ public class WorldGuardFunctions {
      * @param regionName the name of the plot or zone
      * @param world      the name of the world where the plot or zone exists, NOT the world of the save world
      */
-    public static List<BlockVector2> getPointsTransformedToSaveWorld(String regionName, World world) throws RegionNotFoundException, RegionManagerNotFoundException {
+    public static List<BlockVector2> getPointsTransformedToSaveWorld(String regionName, World world, PlotAPI plotAPI) throws RegionNotFoundException, RegionManagerNotFoundException {
 
         List<BlockVector2> vector = getPoints(regionName, world);
         List<BlockVector2> newVector = new ArrayList<>();
 
         // Get the negative coordinate transform.
-        PlotSQL plotSQL = Network.getInstance().getPlotSQL();
-
-        int xTransform = -plotSQL.getInt("SELECT xTransform FROM location_data WHERE name='" + world.getName() + "';");
-        int zTransform = -plotSQL.getInt("SELECT zTransform FROM location_data WHERE name='" + world.getName() + "';");
+        int xTransform = -plotAPI.getXTransform(world.getName());
+        int zTransform = -plotAPI.getZTransform(world.getName());
 
         // Apply to transform to each coordinate.
-        vector.forEach(bv -> newVector.add(BlockVector2.at(bv.getX() + xTransform, bv.getZ() + zTransform)));
+        vector.forEach(bv -> newVector.add(BlockVector2.at(bv.x() + xTransform, bv.z() + zTransform)));
 
         return newVector;
 

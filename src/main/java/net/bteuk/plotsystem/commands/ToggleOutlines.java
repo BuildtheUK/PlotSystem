@@ -2,6 +2,7 @@ package net.bteuk.plotsystem.commands;
 
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
+import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.User;
@@ -15,8 +16,11 @@ public class ToggleOutlines implements BasicCommand {
 
     private final PlotSystem instance;
 
-    public ToggleOutlines(PlotSystem instance) {
+    private final PlotAPI plotAPI;
+
+    public ToggleOutlines(PlotSystem instance, PlotAPI plotAPI) {
         this.instance = instance;
+        this.plotAPI = plotAPI;
     }
 
     @Override
@@ -37,7 +41,7 @@ public class ToggleOutlines implements BasicCommand {
         if (u.isDisableOutlines()) {
             // Enable outlines.
             u.setDisableOutlines(false);
-            instance.getOutlines().addNearbyOutlines(u);
+            instance.getOutlines().addNearbyOutlines(u, plotAPI);
             player.sendMessage(ChatUtils.success("Enabled outlines"));
         } else {
             // Disable outlines.

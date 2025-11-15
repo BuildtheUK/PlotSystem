@@ -34,29 +34,27 @@ public class RetractEvent implements Event {
 
             Component message;
 
-            // Check if plot is submitted.
+            // Check if the plot is submitted.
             if (plotAPI.getPlotStatus(id) == PlotStatus.SUBMITTED) {
 
-                // Set plot status to claimed.
+                // Set plot status to 'claimed'.
                 plotHelper.updatePlotStatus(id, PlotStatus.CLAIMED);
 
-                // Remove submitted plot entry.
+                // Remove the submitted plot entry.
                 plotAPI.removePlotSubmission(id);
 
-                // Update last submit time in playerdata so the player doesn't have a cooldown anymore.
+                // Update last submit time in player data so the player doesn't have a cooldown any more.
                 plotAPI.updateLastSubmit(uuid, 0);
 
                 message = ChatUtils.success("Retracted submission for Plot %s", String.valueOf(id));
 
-                // Send message to reviewers that a plot submission has been retracted.
+                // Send a message to reviewers that a plot submission has been retracted.
                 PlotMessage plotMessage = new PlotMessage("A submitted plot has been retracted, there %s %s submitted %s.", false);
                 chatAPI.sendPlotMessage(plotMessage);
 
             } else {
-
                 // If plot is not submitted set the message accordingly.
                 message = ChatUtils.error("Plot submission can not be retracted as it is not currently submitted.");
-
             }
 
             DirectMessage directMessage = new DirectMessage("global", uuid, "server",

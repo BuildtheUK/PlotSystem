@@ -1,13 +1,14 @@
 package net.bteuk.plotsystem.reviewing;
 
 import lombok.Getter;
-import net.bteuk.network.Network;
+import net.bteuk.minecraft.gui.GuiManager;
+import net.bteuk.network.api.NetworkAPI;
+import net.bteuk.network.api.plotsystem.ReviewCategory;
+import net.bteuk.network.api.plotsystem.ReviewCategoryFeedback;
+import net.bteuk.network.api.plotsystem.ReviewSelection;
+import net.bteuk.network.api.plotsystem.SubmittedStatus;
 import net.bteuk.network.lib.dto.PlotMessage;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.utils.enums.SubmittedStatus;
-import net.bteuk.network.utils.plotsystem.ReviewCategory;
-import net.bteuk.network.utils.plotsystem.ReviewCategoryFeedback;
-import net.bteuk.network.utils.plotsystem.ReviewSelection;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.User;
@@ -42,27 +43,23 @@ public class Verification extends ReviewAction {
      * @param plotID   the plot to review
      * @param user     the reviewer
      */
-    public Verification(PlotSystem instance, int plotID, User user) {
-        super(instance, plotID, user);
+    public Verification(PlotSystem instance, int plotID, User user, NetworkAPI networkAPI, PlotHelper plotHelper, GuiManager guiManager) {
+        super(instance, plotID, user, networkAPI, plotHelper, guiManager);
 
-        this.reviewId = plotSQL.getInt("SELECT id FROM plot_review WHERE plot_id=" + plotID + " AND completed=0;");
-        this.reviewer = plotSQL.getString("SELECT reviewer FROM plot_review WHERE id=" + this.reviewId + ";");
+        this.reviewId = networkAPI.getPlotAPI().getActiveReviewId(plotID);
+        this.reviewer = networkAPI.getPlotAPI().getPlotReviewer(reviewId);
 
         // Get the feedback from the reviewer.
-        List<String> reviewCategories = plotSQL.getStringList("SELECT category FROM plot_category_feedback WHERE review_id=" + reviewId + ";");
-        for (String category : reviewCategories) {
-            previousReviewFeedback.put(ReviewCategory.valueOf(category), new ReviewCategoryFeedback(
-                    ReviewCategory.valueOf(category),
-                    ReviewSelection.valueOf(plotSQL.getString("SELECT selection FROM plot_category_feedback WHERE review_id=" + reviewId + " AND category='" + category + "';")),
-                    plotSQL.getInt("SELECT book_id FROM plot_category_feedback WHERE review_id=" + reviewId + " AND category='" + category + "';")
-            ));
+        List<ReviewCategory> reviewCategories = networkAPI.getPlotAPI().getReviewCategories(reviewId);
+        for (ReviewCategory category : reviewCategories) {
+            previousReviewFeedback.put(category, new ReviewCategoryFeedback(category, networkAPI.getPlotAPI().getReviewSelection(reviewId, category),
+                    networkAPI.getPlotAPI().getReviewBookId(reviewId, category)));
         }
 
         getReviewBook().initReviewBook(previousReviewFeedback.values());
 
         // Create the review gui.
-        reviewActionGui = new VerificationGui(this);
-
+        reviewActionGui = new VerificationGui(this, guiManager, networkAPI.getPlotAPI(), networkAPI.getGlobalSQL());
     }
 
     @Override
@@ -71,14 +68,14 @@ public class Verification extends ReviewAction {
         // Determine whether changes have been made in the verification.
         determineChanges(accept);
 
-        int verificationId = plotSQL.createVerification(reviewId, user.uuid, changedOutcome != accept, accept);
+        int verificationId = plotAPI.createVerification(reviewId, user.uuid, changedOutcome != accept, accept);
         updateFeedback(verificationId, reviewId, previousReviewFeedback);
-        plotSQL.update("UPDATE plot_review SET accepted=" + accept + ", completed=1 WHERE id=" + reviewId + ";");
+        plotAPI.completeReview(reviewId, accept);
 
         completeReview(accept);
 
         // Update the reviewer reputation.
-        plotSQL.update("UPDATE reviewers SET reputation=" + getReputationChange() + " WHERE uuid='" + reviewer + "';");
+        plotAPI.updateReviewerReputation(reviewer, getReputationChange());
 
         // Close gui and clear review if exists.
         this.closeReviewAction();
@@ -87,7 +84,7 @@ public class Verification extends ReviewAction {
     @Override
     public void cancel() {
         // Set the plot back to 'awaiting verification'.
-        PlotHelper.updateSubmittedStatus(plotID, SubmittedStatus.AWAITING_VERIFICATION);
+        plotHelper.updateSubmittedStatus(plotID, SubmittedStatus.AWAITING_VERIFICATION);
 
         // Send feedback.
         user.player.sendMessage(ChatUtils.success("Cancelled verification of plot ")
@@ -106,9 +103,8 @@ public class Verification extends ReviewAction {
 
             // Only store the category if there is updated feedback and the category is required.
             if (updatedCategoryFeedback != null && categoryFeedback.category().isRequired()) {
-                plotSQL.savePlotVerificationCategory(verificationId, categoryFeedback.category().name(),
-                        categoryFeedback.selection().name(), updatedCategoryFeedback.selection().name(),
-                        categoryFeedback.bookId(), updatedCategoryFeedback.bookId());
+                plotAPI.savePlotVerificationCategory(verificationId, categoryFeedback.category().name(), categoryFeedback.selection().name(),
+                        updatedCategoryFeedback.selection().name(), categoryFeedback.bookId(), updatedCategoryFeedback.bookId());
             }
         }
     }
@@ -117,12 +113,12 @@ public class Verification extends ReviewAction {
     protected void notifyReviewers() {
         // Send message to reviewers that a plot has been verified.
         PlotMessage plotMessage = new PlotMessage("A plot has been verified, there %s %s %s awaiting verification.", true);
-        Network.getInstance().getChat().sendSocketMesage(plotMessage);
+        chatAPI.sendPlotMessage(plotMessage);
     }
 
     private void determineChanges(boolean accept) {
         // Determine what changes were made to the review.
-        changedOutcome = accept != plotSQL.getBoolean("SELECT accepted FROM plot_review WHERE id=" + reviewId + ";");
+        changedOutcome = accept != plotAPI.getReviewOutcome(reviewId);
 
         for (ReviewCategory category : ReviewCategory.values()) {
             if (category.isRequired()) {
@@ -132,7 +128,7 @@ public class Verification extends ReviewAction {
                 }
 
                 ReviewSelection selection = getReviewBook().getReviewSelectionForCategory(category);
-                boolean thresholdReached = selection != null && PlotHelper.reviewCategoryThresholdReached(plotDifficulty, category, selection);
+                boolean thresholdReached = selection != null && plotHelper.reviewCategoryThresholdReached(plotDifficulty, category, selection);
                 if (!accept && getReviewBook().isEdited(category) && !thresholdReached) {
                     changedFeedback++;
                 }
@@ -141,7 +137,7 @@ public class Verification extends ReviewAction {
     }
 
     private double getReputationChange() {
-        double reputation = plotSQL.getReviewerReputation(reviewer);
+        double reputation = plotAPI.getReviewerReputation(reviewer);
 
         if (changedOutcome) {
             reputation = Math.min(reputation - 1, reputation * 0.75);

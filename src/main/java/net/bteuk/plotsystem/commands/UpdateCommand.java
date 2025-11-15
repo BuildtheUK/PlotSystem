@@ -81,6 +81,6 @@ public final class UpdateCommand {
         sender.sendMessage(ChatUtils.success("Updated difficulty of plot %s to %s.", args[2], args[5]));
 
         // Update the plot outlines.
-        PlotSystem.getInstance().getUsers().forEach(PlotSystem.getInstance().getOutlines()::addNearbyOutlines);
+        PlotSystem.getInstance().getUsers().forEach(user -> PlotSystem.getInstance().getOutlines().addNearbyOutlines(user, plotAPI));
     }
 }

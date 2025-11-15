@@ -1,27 +1,27 @@
 package net.bteuk.plotsystem.reviewing;
 
-import net.bteuk.network.Network;
-import net.bteuk.network.gui.Gui;
+import net.bteuk.minecraft.gui.Gui;
+import net.bteuk.minecraft.gui.GuiManager;
+import net.bteuk.network.api.PlotAPI;
+import net.bteuk.network.api.SQLAPI;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.sql.GlobalSQL;
-import net.bteuk.network.sql.PlotSQL;
-import net.bteuk.network.utils.Utils;
+import net.bteuk.plotsystem.utils.Utils;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 
 public abstract class ReviewActionGui extends Gui {
 
-    protected final GlobalSQL globalSQL;
-    protected final PlotSQL plotSQL;
     protected ReviewAction reviewAction;
 
-    public ReviewActionGui(Component title, ReviewAction reviewAction) {
-        super(27, title);
+    protected final PlotAPI plotAPI;
+    protected final SQLAPI globalSQL;
+
+    public ReviewActionGui(GuiManager guiManager, Component title, ReviewAction reviewAction, PlotAPI plotAPI, SQLAPI globalSQL) {
+        super(guiManager, 27, title);
 
         this.reviewAction = reviewAction;
-
-        this.globalSQL = Network.getInstance().getGlobalSQL();
-        this.plotSQL = Network.getInstance().getPlotSQL();
+        this.plotAPI = plotAPI;
+        this.globalSQL = globalSQL;
 
         createGui();
     }
@@ -54,8 +54,8 @@ public abstract class ReviewActionGui extends Gui {
                         ChatUtils.line("Deny the plot and return it to the plot owner.")),
                 u -> reviewAction.saveIfPossible(false));
 
-        //View previous feedback, if it exists.
-        if (plotSQL.hasRow("SELECT 1 FROM plot_review WHERE uuid='" + reviewAction.getPlotOwner() + "' AND plot_id=" + reviewAction.getPlotID() + " AND accepted=0;")) {
+        // View previous feedback if it exists.
+        if (plotAPI.getDeniedPlotCount(reviewAction.getPlotID(), reviewAction.getPlotOwner()) > 0) {
 
             setItem(18, Utils.createItem(Material.LECTERN, 1,
                             ChatUtils.title("Previous Feedback"),
@@ -67,10 +67,5 @@ public abstract class ReviewActionGui extends Gui {
 
         // Cancel review action.
         createCancelReviewActionItem();
-    }
-
-    public void refresh() {
-        this.clearGui();
-        createGui();
     }
 }

@@ -1,10 +1,11 @@
 package net.bteuk.plotsystem.events;
 
-import net.bteuk.network.Network;
+import net.bteuk.network.api.ChatAPI;
+import net.bteuk.network.api.PlotAPI;
+import net.bteuk.network.api.SQLAPI;
+import net.bteuk.network.api.entity.Event;
 import net.bteuk.network.lib.dto.DirectMessage;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.sql.PlotSQL;
-import net.bteuk.network.utils.Time;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
@@ -16,9 +17,24 @@ import org.bukkit.entity.Player;
 
 import java.util.UUID;
 
-public class JoinEvent {
+public class JoinEvent implements Event {
 
-    public static void event(String uuid, String[] event) {
+    private final PlotAPI plotAPI;
+
+    private final PlotHelper plotHelper;
+
+    private final ChatAPI chatAPI;
+
+    private final SQLAPI globalAPI;
+
+    public JoinEvent(PlotAPI plotAPI, PlotHelper plotHelper, ChatAPI chatAPI, SQLAPI globalAPI) {
+        this.plotAPI = plotAPI;
+        this.plotHelper = plotHelper;
+        this.chatAPI = chatAPI;
+        this.globalAPI = globalAPI;
+    }
+
+    public void event(String uuid, String[] event, String sMessage) {
 
         // Events for retracting
         if (event[1].equals("plot")) {
@@ -31,46 +47,44 @@ public class JoinEvent {
 
             Component message = ChatUtils.success("You have joined Plot %s", String.valueOf(id));
 
-            PlotSQL plotSQL = Network.getInstance().getPlotSQL();
-
             // Check if you have not already reached the maximum number of plots.
-            if (plotSQL.getInt("SELECT count(id) FROM plot_members WHERE uuid='" + uuid + "';") >= PlotSystem.getInstance().getConfig().getInt("plot_maximum")) {
+            if (plotAPI.getNumberOfPlots(uuid) >= PlotSystem.getInstance().getConfig().getInt("plot_maximum")) {
 
                 message = ChatUtils.error("You have reached the maximum number of plots.");
 
             } else {
 
                 // Add the player to the database.
-                plotSQL.update("INSERT INTO plot_members(id,uuid,is_owner,last_enter) VALUES(" + id + ",'" + uuid + "',0," + Time.currentTime() + ");");
+                plotAPI.createPlotMember(id, uuid);
 
                 // Add the player to the worldguard region.
                 try {
-                    WorldGuardFunctions.addMember(String.valueOf(id), uuid, Bukkit.getWorld(plotSQL.getString("SELECT location FROM plot_data WHERE id=" + id + ";")));
+                    WorldGuardFunctions.addMember(String.valueOf(id), uuid, Bukkit.getWorld(plotAPI.getPlotLocation(id)));
                 } catch (RegionManagerNotFoundException | RegionNotFoundException e) {
 
                     DirectMessage directMessage = new DirectMessage("global", uuid, "server",
                             ChatUtils.error("An error occurred while adding you to the plot, please contact an administrator."), false);
-                    Network.getInstance().getChat().sendSocketMesage(directMessage);
+                    chatAPI.sendDirectMessage(directMessage);
                     return;
 
                 }
 
                 // Send a message to the plot owner.
-                DirectMessage directMessage = new DirectMessage("global", plotSQL.getString("SELECT uuid FROM plot_members WHERE id=" + id + " AND is_owner=1;"), "server",
-                        ChatUtils.success("%s has joined your plot %s", Network.getInstance().getGlobalSQL().getString("SELECT name FROM player_data WHERE uuid='" + uuid + "';"),
+                DirectMessage directMessage = new DirectMessage("global", plotAPI.getPlotOwner(id), "server",
+                        ChatUtils.success("%s has joined your plot %s", globalAPI.getString("SELECT name FROM player_data WHERE uuid='" + uuid + "';"),
                                 String.valueOf(id)), false);
-                Network.getInstance().getChat().sendSocketMesage(directMessage);
+                chatAPI.sendDirectMessage(directMessage);
 
                 // If the player is on the server, update the hologram.
                 if (p != null) {
-                    PlotHelper.updatePlotHologram(id);
+                    plotHelper.updatePlotHologram(id);
                 }
 
             }
 
             DirectMessage directMessage = new DirectMessage("global", uuid, "server",
                     message, false);
-            Network.getInstance().getChat().sendSocketMesage(directMessage);
+            chatAPI.sendDirectMessage(directMessage);
 
         } else if (event[1].equals("zone")) {
 
@@ -79,30 +93,28 @@ public class JoinEvent {
 
             Component message = ChatUtils.success("You have joined Zone %s", String.valueOf(id));
 
-            PlotSQL plotSQL = Network.getInstance().getPlotSQL();
-
             // Add the player to the database.
-            plotSQL.update("INSERT INTO zone_members(id,uuid,is_owner) VALUES(" + id + ",'" + uuid + "',0);");
+            plotAPI.createZoneMember(id, uuid);
 
             // Add the player to the worldguard region.
             try {
-                WorldGuardFunctions.addMember("z" + id, uuid, Bukkit.getWorld(plotSQL.getString("SELECT location FROM zones WHERE id=" + id + ";")));
+                WorldGuardFunctions.addMember("z" + id, uuid, Bukkit.getWorld(plotAPI.getZoneLocation(id)));
             } catch (RegionManagerNotFoundException | RegionNotFoundException e) {
                 DirectMessage directMessage = new DirectMessage("global", uuid, "server",
                         ChatUtils.error("An error occurred while adding you to the zone, please contact an administrator."), false);
-                Network.getInstance().getChat().sendSocketMesage(directMessage);
+                chatAPI.sendDirectMessage(directMessage);
                 return;
             }
 
             // Send a message to the zone owner.
-            DirectMessage ownerMessage = new DirectMessage("global", plotSQL.getString("SELECT uuid FROM zone_members WHERE id=" + id + " AND is_owner=1;"), "server",
-                    ChatUtils.success("%s has joined your Zone %s", Network.getInstance().getGlobalSQL().getString("SELECT name FROM player_data WHERE uuid='" + uuid + "';"),
+            DirectMessage ownerMessage = new DirectMessage("global", plotAPI.getZoneOwner(id), "server",
+                    ChatUtils.success("%s has joined your Zone %s", globalAPI.getString("SELECT name FROM player_data WHERE uuid='" + uuid + "';"),
                             String.valueOf(id)), true);
-            Network.getInstance().getChat().sendSocketMesage(ownerMessage);
+            chatAPI.sendDirectMessage(ownerMessage);
 
             DirectMessage directMessage = new DirectMessage("global", uuid, "server",
                     message, false);
-            Network.getInstance().getChat().sendSocketMesage(directMessage);
+            chatAPI.sendDirectMessage(directMessage);
 
         }
     }

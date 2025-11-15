@@ -41,11 +41,11 @@ public class BlockLocations {
 
         // min and max must be within 128 blocks of the player,
         // this is to prevent outlines for very large regions, when they aren't necessary.
-        int minX = region.getMinimumPoint().getX() < (player.getLocation().getX() - 128) ? (player.getLocation().getBlockX() - 128) : region.getMinimumPoint().getX();
-        int minZ = region.getMinimumPoint().getZ() < (player.getLocation().getZ() - 128) ? (player.getLocation().getBlockZ() - 128) : region.getMinimumPoint().getZ();
+        int minX = region.getMinimumPoint().x() < (player.getLocation().x() - 128) ? (player.getLocation().getBlockX() - 128) : region.getMinimumPoint().x();
+        int minZ = region.getMinimumPoint().z() < (player.getLocation().z() - 128) ? (player.getLocation().getBlockZ() - 128) : region.getMinimumPoint().z();
 
-        int maxX = region.getMaximumPoint().getX() > (player.getLocation().getX() + 128) ? (player.getLocation().getBlockX() + 128) : region.getMaximumPoint().getX();
-        int maxZ = region.getMaximumPoint().getZ() > (player.getLocation().getZ() + 128) ? (player.getLocation().getBlockZ() + 128) : region.getMaximumPoint().getZ();
+        int maxX = region.getMaximumPoint().x() > (player.getLocation().x() + 128) ? (player.getLocation().getBlockX() + 128) : region.getMaximumPoint().x();
+        int maxZ = region.getMaximumPoint().z() > (player.getLocation().z() + 128) ? (player.getLocation().getBlockZ() + 128) : region.getMaximumPoint().z();
 
         // Iterate in the bounding box.
         for (int i = minX; i <= maxX; i++) {
@@ -60,7 +60,7 @@ public class BlockLocations {
                     if (!(region.contains(BlockVector2.at(i - 1, j)) && region.contains(BlockVector2.at(i + 1, j)) && region.contains(BlockVector2.at(i, j - 1)) && region.contains(
                             BlockVector2.at(i, j + 1)))) {
 
-                        BlockLocation bl = new BlockLocation(i, j, block);
+                        BlockLocation bl = new BlockLocation(block, i, j);
 
                         locations.add(bl);
 
@@ -75,11 +75,11 @@ public class BlockLocations {
     // Additionally replace the fake block with air.
     public void removeOutline(ProtectedRegion region) {
 
-        int minX = region.getMinimumPoint().getX() < (player.getLocation().getX() - 128) ? (player.getLocation().getBlockX() - 128) : region.getMinimumPoint().getX();
-        int minZ = region.getMinimumPoint().getZ() < (player.getLocation().getZ() - 128) ? (player.getLocation().getBlockZ() - 128) : region.getMinimumPoint().getZ();
+        int minX = region.getMinimumPoint().x() < (player.getLocation().x() - 128) ? (player.getLocation().getBlockX() - 128) : region.getMinimumPoint().x();
+        int minZ = region.getMinimumPoint().z() < (player.getLocation().z() - 128) ? (player.getLocation().getBlockZ() - 128) : region.getMinimumPoint().z();
 
-        int maxX = region.getMaximumPoint().getX() > (player.getLocation().getX() + 128) ? (player.getLocation().getBlockX() + 128) : region.getMaximumPoint().getX();
-        int maxZ = region.getMaximumPoint().getZ() > (player.getLocation().getZ() + 128) ? (player.getLocation().getBlockZ() + 128) : region.getMaximumPoint().getZ();
+        int maxX = region.getMaximumPoint().x() > (player.getLocation().x() + 128) ? (player.getLocation().getBlockX() + 128) : region.getMaximumPoint().x();
+        int maxZ = region.getMaximumPoint().z() > (player.getLocation().z() + 128) ? (player.getLocation().getBlockZ() + 128) : region.getMaximumPoint().z();
 
         // Iterate in the bounding box.
         for (int i = minX; i <= maxX; i++) {
@@ -94,7 +94,7 @@ public class BlockLocations {
                     if (!(region.contains(BlockVector2.at(i - 1, j)) && region.contains(BlockVector2.at(i + 1, j)) && region.contains(BlockVector2.at(i, j - 1)) && region.contains(
                             BlockVector2.at(i, j + 1)))) {
 
-                        BlockLocation bl = new BlockLocation(i, j, Material.AIR.createBlockData());
+                        BlockLocation bl = new BlockLocation(Material.AIR.createBlockData(), i, j);
                         locations.remove(bl);
 
                         drawBlock(bl);
@@ -110,7 +110,7 @@ public class BlockLocations {
      */
     public void removeOutlines() {
         for (BlockLocation loc : locations) {
-            BlockLocation bl = new BlockLocation(loc.getX(), loc.getZ(), Material.AIR.createBlockData());
+            BlockLocation bl = new BlockLocation(Material.AIR.createBlockData(), loc.x(), loc.z());
             drawBlock(bl);
         }
         locations.clear();
@@ -120,7 +120,7 @@ public class BlockLocations {
     public void addPoint(BlockVector2 bv, BlockData block) {
 
         // Add the point to the list.
-        BlockLocation bl = new BlockLocation(bv.getX(), bv.getZ(), block);
+        BlockLocation bl = new BlockLocation(block, bv.x(), bv.z());
         tempLocations.add(bl);
 
         // Draw the point.
@@ -132,7 +132,7 @@ public class BlockLocations {
     public void removePoint(BlockVector2 bv) {
 
         // Remove the points from the list.
-        BlockLocation bl = new BlockLocation(bv.getX(), bv.getZ(), Material.AIR.createBlockData());
+        BlockLocation bl = new BlockLocation(Material.AIR.createBlockData(), bv.x(), bv.z());
         tempLocations.remove(bl);
 
         // Set the block to air.
@@ -144,8 +144,8 @@ public class BlockLocations {
     public void addLine(BlockVector2 bv1, BlockVector2 bv2, BlockData block) {
 
         // Get length in x and z direction.
-        int lengthX = bv2.getX() - bv1.getX();
-        int lengthZ = bv2.getZ() - bv1.getZ();
+        int lengthX = bv2.x() - bv1.x();
+        int lengthZ = bv2.z() - bv1.z();
 
         int length = max(abs(lengthX), abs(lengthZ));
 
@@ -153,10 +153,9 @@ public class BlockLocations {
         for (int i = 0; i <= length; i++) {
 
             // Remove the points from the list.
-            BlockLocation bl = new BlockLocation(
-                    ((int) (round(bv1.getX() + ((i * lengthX) / (double) length)))),
-                    ((int) (round(bv1.getZ() + ((i * lengthZ) / (double) length)))),
-                    block);
+            BlockLocation bl = new BlockLocation(block,
+                    ((int) (round(bv1.x() + ((i * lengthX) / (double) length)))),
+                    ((int) (round(bv1.z() + ((i * lengthZ) / (double) length)))));
             tempLocations.add(bl);
 
             drawBlock(bl);
@@ -168,8 +167,8 @@ public class BlockLocations {
     public void removeLine(BlockVector2 bv1, BlockVector2 bv2) {
 
         // Get length in x and z direction.
-        int lengthX = bv2.getX() - bv1.getX();
-        int lengthZ = bv2.getZ() - bv1.getZ();
+        int lengthX = bv2.x() - bv1.x();
+        int lengthZ = bv2.z() - bv1.z();
 
         int length = max(abs(lengthX), abs(lengthZ));
 
@@ -177,10 +176,9 @@ public class BlockLocations {
         for (int i = 0; i <= length; i++) {
 
             // Remove the points from the list.
-            BlockLocation bl = new BlockLocation(
-                    ((int) (round(bv1.getX() + ((i * lengthX) / (double) length)))),
-                    ((int) (round(bv1.getZ() + ((i * lengthZ) / (double) length)))),
-                    Material.AIR.createBlockData());
+            BlockLocation bl = new BlockLocation(Material.AIR.createBlockData(),
+                    ((int) (round(bv1.x() + ((i * lengthX) / (double) length)))),
+                    ((int) (round(bv1.z() + ((i * lengthZ) / (double) length)))));
             tempLocations.remove(bl);
 
             drawBlock(bl);
@@ -191,11 +189,11 @@ public class BlockLocations {
     // Add all the block locations that make up the outline of the region.
     public void addTempOutline(ProtectedRegion region, BlockData block) {
 
-        int minX = region.getMinimumPoint().getX();
-        int minZ = region.getMinimumPoint().getZ();
+        int minX = region.getMinimumPoint().x();
+        int minZ = region.getMinimumPoint().z();
 
-        int maxX = region.getMaximumPoint().getX();
-        int maxZ = region.getMaximumPoint().getZ();
+        int maxX = region.getMaximumPoint().x();
+        int maxZ = region.getMaximumPoint().z();
 
         // Iterate in the bounding box.
         for (int i = minX; i <= maxX; i++) {
@@ -210,7 +208,7 @@ public class BlockLocations {
                     if (!(region.contains(BlockVector2.at(i - 1, j)) && region.contains(BlockVector2.at(i + 1, j)) && region.contains(BlockVector2.at(i, j - 1)) && region.contains(
                             BlockVector2.at(i, j + 1)))) {
 
-                        BlockLocation bl = new BlockLocation(i, j, block);
+                        BlockLocation bl = new BlockLocation(block, i, j);
 
                         tempLocations.add(bl);
 
@@ -225,11 +223,11 @@ public class BlockLocations {
     // Additionally replace the fake block with air.
     public void removeTempOutline(ProtectedRegion region) {
 
-        int minX = region.getMinimumPoint().getX();
-        int minZ = region.getMinimumPoint().getZ();
+        int minX = region.getMinimumPoint().x();
+        int minZ = region.getMinimumPoint().z();
 
-        int maxX = region.getMaximumPoint().getX();
-        int maxZ = region.getMaximumPoint().getZ();
+        int maxX = region.getMaximumPoint().x();
+        int maxZ = region.getMaximumPoint().z();
 
         // Iterate in the bounding box.
         for (int i = minX; i <= maxX; i++) {
@@ -244,7 +242,7 @@ public class BlockLocations {
                     if (!(region.contains(BlockVector2.at(i - 1, j)) && region.contains(BlockVector2.at(i + 1, j)) && region.contains(BlockVector2.at(i, j - 1)) && region.contains(
                             BlockVector2.at(i, j + 1)))) {
 
-                        BlockLocation bl = new BlockLocation(i, j, Material.AIR.createBlockData());
+                        BlockLocation bl = new BlockLocation(Material.AIR.createBlockData(), i, j);
                         tempLocations.remove(bl);
 
                         drawBlock(bl);
@@ -289,9 +287,9 @@ public class BlockLocations {
     private void drawBlock(BlockLocation bl) {
         player.sendBlockChange(
                 new Location(
-                        world, bl.getX(),
-                        (world.getHighestBlockYAt(bl.getX(), bl.getZ()) + 1),
-                        bl.getZ()
-                ), bl.getBlock());
+                        world, bl.x(),
+                        (world.getHighestBlockYAt(bl.x(), bl.z()) + 1),
+                        bl.z()
+                ), bl.block());
     }
 }

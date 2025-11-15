@@ -2,6 +2,7 @@ package net.bteuk.plotsystem.utils;
 
 import lombok.Getter;
 import lombok.Setter;
+import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.gui.ClaimGui;
 import net.bteuk.plotsystem.gui.CreatePlotGui;
@@ -42,7 +43,7 @@ public class User {
     @Setter
     private boolean disableOutlines;
 
-    public User(Player player) {
+    public User(Player player, NetworkAPI networkAPI, PlotHelper plotHelper) {
 
         // Set player, uuid and name variable.
         this.player = player;
@@ -50,12 +51,12 @@ public class User {
         name = player.getName();
 
         // Set selection tool, only players with the valid roles can use it.
-        selectionTool = new SelectionTool(this);
+        selectionTool = new SelectionTool(this, networkAPI, plotHelper);
 
         // Set last location to current location.
         lastLocation = player.getLocation();
         // Set outlines for player.
-        PlotSystem.getInstance().getOutlines().addNearbyOutlines(this);
+        PlotSystem.getInstance().getOutlines().addNearbyOutlines(this, networkAPI.getPlotAPI());
 
     }
 }

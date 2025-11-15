@@ -1,6 +1,8 @@
 package net.bteuk.plotsystem.events;
 
 import io.papermc.lib.PaperLib;
+import net.bteuk.minecraft.gui.GuiManager;
+import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.entity.Event;
 import net.bteuk.network.api.plotsystem.SubmittedStatus;
@@ -25,13 +27,16 @@ import static net.bteuk.plotsystem.PlotSystem.LOGGER;
 
 public class ReviewEvent implements Event {
 
+    private final NetworkAPI networkAPI;
     private final PlotAPI plotAPI;
-
     private final PlotHelper plotHelper;
+    private final GuiManager guiManager;
 
-    public ReviewEvent(PlotAPI plotAPI, PlotHelper plotHelper) {
-        this.plotAPI = plotAPI;
+    public ReviewEvent(NetworkAPI networkAPI, PlotHelper plotHelper, GuiManager guiManager) {
+        this.networkAPI = networkAPI;
+        this.plotAPI = networkAPI.getPlotAPI();
         this.plotHelper = plotHelper;
+        this.guiManager = guiManager;
     }
 
     public void event(String uuid, String[] event, String message) {
@@ -75,7 +80,7 @@ public class ReviewEvent implements Event {
                 plotHelper.updateSubmittedStatus(id, SubmittedStatus.UNDER_REVIEW);
 
                 // Create new review instance for user.
-                user.setReview(new Review(PlotSystem.getInstance(), id, user));
+                user.setReview(new Review(PlotSystem.getInstance(), id, user, networkAPI, plotHelper, guiManager));
 
                 // Add the reviewer to the plot.
                 try {

@@ -1,5 +1,6 @@
 package net.bteuk.plotsystem.listeners;
 
+import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.User;
@@ -17,19 +18,20 @@ an alternative server which does have a tutorial.
  */
 public class JoinServer implements Listener {
     private final PlotSystem instance;
-
+    private final NetworkAPI networkAPI;
     private final PlotHelper plotHelper;
 
-    public JoinServer(PlotSystem plugin, PlotHelper plotHelper) {
+    public JoinServer(PlotSystem plugin, NetworkAPI networkAPI, PlotHelper plotHelper) {
         Bukkit.getServer().getPluginManager().registerEvents(this, plugin);
         this.instance = plugin;
+        this.networkAPI = networkAPI;
         this.plotHelper = plotHelper;
     }
 
     @EventHandler
     public void joinEvent(PlayerJoinEvent e) {
         // Create instance of User and add it to list.
-        User u = new User(e.getPlayer());
+        User u = new User(e.getPlayer(), networkAPI, plotHelper);
         instance.addUser(u);
 
         // Add the player to relevant holograms.

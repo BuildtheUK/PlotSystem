@@ -1,8 +1,7 @@
 package net.bteuk.plotsystem.utils;
 
 import com.sk89q.worldedit.math.BlockVector2;
-import net.bteuk.network.api.CoordinateAPI;
-import net.bteuk.network.api.PlotAPI;
+import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.plugins.WGCreatePlot;
@@ -31,7 +30,6 @@ public class SelectionTool extends WGCreatePlot {
     // Outlines
     private final Outlines outlines;
 
-    private final PlotAPI plotAPI;
     // Size and difficulty of the plot.
     // Represented by integer values of 1-3.
     // Size: 1=small, 2=medium, 3=large
@@ -49,10 +47,9 @@ public class SelectionTool extends WGCreatePlot {
     // Area of the plot (m^2).
     private int area;
 
-    public SelectionTool(User u, PlotAPI plotAPI, PlotHelper plotHelper, CoordinateAPI coordinateAPI) {
-        super(plotAPI, plotHelper, coordinateAPI);
+    public SelectionTool(User u, NetworkAPI networkAPI, PlotHelper plotHelper) {
+        super(networkAPI, plotHelper);
         this.u = u;
-        this.plotAPI = plotAPI;
         vector = new ArrayList<>();
 
         // Set default size and difficulty

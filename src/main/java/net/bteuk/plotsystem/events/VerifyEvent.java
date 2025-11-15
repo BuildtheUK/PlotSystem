@@ -1,10 +1,12 @@
 package net.bteuk.plotsystem.events;
 
 import io.papermc.lib.PaperLib;
-import net.bteuk.network.Network;
+import net.bteuk.minecraft.gui.GuiManager;
+import net.bteuk.network.api.NetworkAPI;
+import net.bteuk.network.api.PlotAPI;
+import net.bteuk.network.api.entity.Event;
+import net.bteuk.network.api.plotsystem.SubmittedStatus;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.sql.PlotSQL;
-import net.bteuk.network.utils.enums.SubmittedStatus;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
@@ -23,9 +25,21 @@ import java.util.concurrent.CompletableFuture;
 
 import static net.bteuk.plotsystem.PlotSystem.LOGGER;
 
-public class VerifyEvent {
+public class VerifyEvent implements Event {
 
-    public static void event(String uuid, String[] event) {
+    private final NetworkAPI networkAPI;
+    private final PlotAPI plotAPI;
+    private final PlotHelper plotHelper;
+    private final GuiManager guiManager;
+
+    public VerifyEvent(NetworkAPI networkAPI, PlotHelper plotHelper, GuiManager guiManager) {
+        this.networkAPI = networkAPI;
+        this.plotAPI = networkAPI.getPlotAPI();
+        this.plotHelper = plotHelper;
+        this.guiManager = guiManager;
+    }
+
+    public void event(String uuid, String[] event, String message) {
 
         // Events for claiming
         if (event[1].equals("plot")) {
@@ -55,20 +69,17 @@ public class VerifyEvent {
             // Convert the string id to int id.
             int id = Integer.parseInt(event[2]);
 
-            // Get plotsql.
-            PlotSQL plotSQL = Network.getInstance().getPlotSQL();
-
             // Get world of plot.
-            World world = Bukkit.getWorld(plotSQL.getString("SELECT location FROM plot_data WHERE id=" + id + ";"));
+            World world = Bukkit.getWorld(plotAPI.getPlotLocation(id));
 
             // Check if the plot is still awaiting verification.
-            if (plotSQL.hasRow("SELECT 1 FROM plot_submission WHERE plot_id=" + id + " AND status='" + SubmittedStatus.AWAITING_VERIFICATION.database_value + "';")) {
+            if (plotAPI.getPlotSubmissionStatus(id) == SubmittedStatus.AWAITING_VERIFICATION) {
 
                 // Set the plot to under review.
-                PlotHelper.updateSubmittedStatus(id, SubmittedStatus.UNDER_VERIFICATION);
+                plotHelper.updateSubmittedStatus(id, SubmittedStatus.UNDER_VERIFICATION);
 
                 // Create new verification instance for user.
-                user.setReview(new Verification(PlotSystem.getInstance(), id, user));
+                user.setReview(new Verification(PlotSystem.getInstance(), id, user, networkAPI, plotHelper, guiManager));
 
                 // Add the reviewer to the plot.
                 try {

@@ -198,9 +198,8 @@ public class ClaimEnter implements Listener {
             }
 
         } else {
-
             // If you are the owner or member of this plot update your last enter time.
-            if (plotAPI.hasRow("SELECT id FROM plot_members WHERE id=" + u.inPlot + " AND uuid='" + u.uuid + "';")) {
+            if (plotAPI.isPlotOwner(u.inPlot, u.uuid) || plotAPI.isPlotMember(u.inPlot, u.uuid)) {
                 plotAPI.setPlotLastEnter(u.inPlot, u.uuid);
             }
         }
@@ -217,7 +216,7 @@ public class ClaimEnter implements Listener {
             u.inZone = zone;
 
             // Check if the zone is public.
-            if (plotAPI.hasRow("SELECT id FROM zones WHERE id=" + zone + " AND is_public=1;")) {
+            if (plotAPI.isZonePublic(zone)) {
 
                 u.player.sendActionBar(
                         ChatUtils.success("You have entered zone ")

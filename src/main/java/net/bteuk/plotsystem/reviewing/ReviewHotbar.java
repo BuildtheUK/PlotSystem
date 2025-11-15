@@ -1,9 +1,9 @@
 package net.bteuk.plotsystem.reviewing;
 
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.utils.Utils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.User;
+import net.bteuk.plotsystem.utils.Utils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.HumanEntity;

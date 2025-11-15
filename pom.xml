@@ -12,15 +12,18 @@
     <name>PlotSystem</name>
 
     <properties>
-        <java.version>21</java.version>
+        <java-version>21</java-version>
+        <maven.compiler.release>${java-version}</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <paper.api.version>1.21.8-R0.1-SNAPSHOT</paper.api.version>
 
-        <bteuk.network.version>66ae8e9052</bteuk.network.version>
+        <bteuk.network.version>0c82879524</bteuk.network.version>
         <bteuk.lib.version>5958727df9</bteuk.lib.version>
 
         <multiverse.version>5.3.3</multiverse.version>
+
+        <lombok.version>1.18.42</lombok.version>
     </properties>
 
     <build>
@@ -28,9 +31,15 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
+                <version>3.11.0</version>
                 <configuration>
-                    <release>${java.version}</release>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
             <plugin>
@@ -183,7 +192,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.42</version>
+            <version>${lombok.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

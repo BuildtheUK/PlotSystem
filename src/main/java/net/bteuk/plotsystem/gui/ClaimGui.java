@@ -5,7 +5,6 @@ import net.bteuk.minecraft.gui.GuiManager;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.plotsystem.PlotStatus;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
 import net.bteuk.plotsystem.utils.PlotHelper;
@@ -46,13 +45,15 @@ public class ClaimGui extends Gui {
 
     private void createGui() {
 
-        setItem(20, Utils.createItem(PlotValues.sizeMaterial(user.plotSQL.getInt("SELECT size FROM plot_data WHERE id=" + plot + ";")), 1,
+        int size = plotAPI.getPlotSize(plot);
+        setItem(20, Utils.createItem(PlotValues.sizeMaterial(size), 1,
                 ChatUtils.title("Plot Size"),
-                ChatUtils.line(PlotValues.sizeName(user.plotSQL.getInt("SELECT size FROM plot_data WHERE id=" + plot + ";")))));
+                ChatUtils.line(PlotValues.sizeName(size))));
 
-        setItem(24, Utils.createItem(PlotValues.difficultyMaterial(user.plotSQL.getInt("SELECT difficulty FROM plot_data WHERE id=" + plot + ";")), 1,
+        int difficulty = plotAPI.getPlotDifficulty(plot);
+        setItem(24, Utils.createItem(PlotValues.difficultyMaterial(difficulty), 1,
                 ChatUtils.title("Plot Difficulty"),
-                ChatUtils.line(PlotValues.difficultyName(user.plotSQL.getInt("SELECT difficulty FROM plot_data WHERE id=" + plot + ";")))));
+                ChatUtils.line(PlotValues.difficultyName(difficulty))));
 
         setItem(22, Utils.createItem(Material.ENDER_EYE, 1,
                         ChatUtils.title("View Plot in Google Maps"),
@@ -109,16 +110,16 @@ public class ClaimGui extends Gui {
                         player.closeInventory();
 
                         // Check if the plot is not already claimed, since it may happen that the gui is spammed.
-                        if (eUser.plotSQL.hasRow("SELECT id FROM plot_data WHERE id=" + plot + " AND status='unclaimed';")) {
+                        PlotStatus plotStatus = plotAPI.getPlotStatus(plot);
+                        if (plotStatus == PlotStatus.UNCLAIMED) {
 
                             // If the plot status can be updated, add the player as plot owner.
                             if (plotHelper.updatePlotStatus(plot, PlotStatus.CLAIMED)) {
 
                                 // If the player can't be given owner, set the plot status back to unclaimed.
-                                if (eUser.plotSQL.update(
-                                        "INSERT INTO plot_members(id,uuid,is_owner,last_enter) VALUES(" + plot + ",'" + eUser.uuid + "',1," + Time.currentTime() + ");")) {
+                                if (plotAPI.createPlotOwner(plot, user.uuid)) {
 
-                                    // Add player to worldguard region.
+                                    // Add player to the worldguard region.
                                     try {
                                         if (WorldGuardFunctions.addMember(String.valueOf(plot), player.getUniqueId().toString(), player.getWorld())) {
 

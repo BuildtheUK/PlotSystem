@@ -75,7 +75,7 @@ public class PlotHelper {
             hasChanged = true;
         }
         if (submittedStatus != null && plotAPI.getPlotSubmissionStatus(id) != submittedStatus) {
-            plotAPI.setPlotSubmissionStatus(id, submittedStatus.database_value);
+            plotAPI.setPlotSubmissionStatus(id, submittedStatus.getDatabaseValue());
             hasChanged = true;
         }
         // Delay the hologram update until the plot has been completely updated.
