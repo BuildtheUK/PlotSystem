@@ -4,6 +4,7 @@ import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import lombok.Getter;
+import net.bteuk.minecraft.gui.GuiListener;
 import net.bteuk.minecraft.gui.GuiManager;
 import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.lib.utils.ChatUtils;
@@ -139,6 +140,7 @@ public class PlotSystem extends JavaPlugin {
         final NetworkAPI networkAPI = networkProvider.getProvider();
 
         this.guiManager = new GuiManager();
+        new GuiListener(guiManager).register(this);
         this.plotHelper = new PlotHelper(networkAPI.getPlotAPI());
 
         // Register hologram click event.

@@ -80,12 +80,7 @@ public class ClaimGui extends Gui {
                     double x = sumX / (double) corners.length;
                     double z = sumZ / (double) corners.length;
 
-                    // Subtract the coordinate transform to make the coordinates in the real location.
-                    x -= plotAPI.getXTransform(plotAPI.getPlotLocation(plot));
-                    z -= plotAPI.getZTransform(plotAPI.getPlotLocation(plot));
-
                     // Convert to irl coordinates.
-
                     try {
                         final EarthGeneratorSettings bteGeneratorSettings = EarthGeneratorSettings.parse(EarthGeneratorSettings.BTE_DEFAULT_SETTINGS);
                         double[] coords = bteGeneratorSettings.projection().toGeo(x, z);
