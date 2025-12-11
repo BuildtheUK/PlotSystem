@@ -18,7 +18,7 @@ public class CreateZoneGui extends Gui {
     // This gui handles the plot creation process and will allow the user to set the parameters of the plot.
     public CreateZoneGui(GuiManager manager, User user) {
 
-        super(manager, 27, Component.text("Create Plot Menu", NamedTextColor.AQUA, TextDecoration.BOLD));
+        super(manager, 27, Component.text("Create Zone Menu", NamedTextColor.AQUA, TextDecoration.BOLD));
 
         this.user = user;
 
@@ -38,7 +38,7 @@ public class CreateZoneGui extends Gui {
                     // Close the inventory.
                     player.closeInventory();
 
-                    // Create plot with the selection created by the user.
+                    // Create a zone with the selection created by the user.
                     user.selectionTool.createZone();
 
                 });
