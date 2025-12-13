@@ -21,7 +21,7 @@ public class VerificationGui extends ReviewActionGui {
         setItem(4, Utils.createItem(Material.BOOK, 1, ChatUtils.title("Plot Info"),
                 ChatUtils.line("Plot ID: " + reviewAction.getPlotID()),
                 ChatUtils.line("Plot Owner: " + globalSQL.getString("SELECT name FROM player_data WHERE uuid='" + reviewAction.getPlotOwner() + "';")),
-                ChatUtils.line("Plot Reviewer: " + globalSQL.getString("SELECT name FROM player_data WHERE uuid='" + plotAPI.getPlotReviewer(reviewId))),
+                ChatUtils.line("Plot Reviewer: " + globalSQL.getString("SELECT name FROM player_data WHERE uuid='" + plotAPI.getPlotReviewer(reviewId) + "';")),
                 ChatUtils.line("The reviewer ").append(ChatUtils.line(plotAPI.getReviewOutcome(reviewId) ? "accepted" : "denied")).append(ChatUtils.line(" this plot."))));
     }
 
