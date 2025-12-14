@@ -289,7 +289,7 @@ public class SelectionTool extends WGCreatePlot {
         if (createZone(u.player, world, location, vector, expiration, isPublic)) {
 
             // Add owner.
-            plotAPI.createZoneMember(plotID, u.player.getUniqueId().toString());
+            plotAPI.createZoneOwner(plotID, u.player.getUniqueId().toString());
 
             // Store zone bounds.
             int i = 1;
