@@ -18,6 +18,8 @@ import org.bukkit.configuration.file.FileConfiguration;
 import java.util.ArrayList;
 import java.util.List;
 
+import static net.bteuk.plotsystem.PlotSystem.LOGGER;
+
 public class Inactive {
 
     public static void cancelInactivePlots(NetworkAPI networkAPI, PlotHelper plotHelper) {
@@ -65,7 +67,7 @@ public class Inactive {
             return;
         }
 
-        PlotSystem.LOGGER.info("Found " + inactivePlots.size() + " inactive plots, clearing them.");
+        LOGGER.info("Found " + inactivePlots.size() + " inactive plots, clearing them.");
 
         // Iterate through all inactive plots and cancel them.
         for (int plot : inactivePlots) {
@@ -76,7 +78,7 @@ public class Inactive {
             // Get worlds of plot and save location.
             String save_world = config.getString("save_world");
             if (save_world == null) {
-                PlotSystem.LOGGER.warning("Save World is not defined in config, plot delete event has therefore failed!");
+                LOGGER.warning("Save World is not defined in config, plot delete event has therefore failed!");
                 continue;
             }
 
@@ -131,7 +133,7 @@ public class Inactive {
                 networkAPI.getChat().sendDiscordDirectMessage(discordDirectMessage);
 
                 // Log plot removal to console.
-                PlotSystem.LOGGER.info("Plot " + plot + " removed due to inactivity!");
+                LOGGER.info("Plot " + plot + " removed due to inactivity!");
 
             });
         }
@@ -162,7 +164,7 @@ public class Inactive {
             // Get worlds of plot and save location.
             String save_world = config.getString("save_world");
             if (save_world == null) {
-                PlotSystem.LOGGER.warning("Save World is not defined in config, plot delete event has therefore failed!");
+                LOGGER.warning("Save World is not defined in config, plot delete event has therefore failed!");
                 continue;
             }
 
@@ -192,7 +194,10 @@ public class Inactive {
 
             // Save the zone by copying from the building world to the save world.
             Bukkit.getScheduler().runTaskAsynchronously(PlotSystem.getInstance(), () -> {
+                LOGGER.info("Zone " + zone + " has expired, saving it.");
+                long start = System.currentTimeMillis();
                 WorldEditor.updateWorld(copyVector, pasteVector, copyWorld, pasteWorld);
+                LOGGER.info("Zone " + zone + " has expired, saved in " + (System.currentTimeMillis() - start) + "ms.");
 
                 // Delete the worldguard region.
                 try {
@@ -215,7 +220,7 @@ public class Inactive {
                 networkAPI.getChat().sendDirectMessage(directMessage);
 
                 // Log plot removal to console.
-                PlotSystem.LOGGER.info("Zone " + zone + " has expired.");
+                LOGGER.info("Zone " + zone + " has expired.");
             });
         }
     }

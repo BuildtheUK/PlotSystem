@@ -54,14 +54,14 @@ public final class Timers {
                 }
 
             }
-        }, 20L);
+        }, 1000L);
 
         // 1-hour timer.
         // Remove inactive plots.
         networkAPI.getTimerAPI().registerTimer(() -> {
             Inactive.cancelInactivePlots(networkAPI, plotHelper);
             Inactive.closeExpiredZones(networkAPI);
-        }, 1200L, 72000L);
+        }, 3600000L, 60000L);
 
         registered = true;
     }
