@@ -474,8 +474,10 @@ public final class LocationCommand {
         // Teleport all players away from the location.
         Location teleportLocation = new Location(saveWorld, x, Utils.getHighestYAt(saveWorld, (int) x, (int) z), z);
         PlotSystem.getInstance().getServer().getOnlinePlayers().forEach(player -> {
-            player.teleport(teleportLocation);
-            player.sendMessage(ChatUtils.success("Teleported to save world, location %s is being deleted.", location));
+            if (player.getWorld().getName().equals(location)) {
+                player.teleport(teleportLocation);
+                player.sendMessage(ChatUtils.success("Teleported to save world, location %s is being deleted.", location));
+            }
         });
     }
 
