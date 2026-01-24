@@ -8,27 +8,31 @@ import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.papercore.LocationAdapter;
 import net.bteuk.plotsystem.PlotSystem;
+import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.utils.ParseUtils;
 import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.PlotHologram;
 import net.bteuk.plotsystem.utils.User;
+import net.bteuk.plotsystem.utils.plugins.WorldGuardFunctions;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.command.Command;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
-public class PlotSystemCommand implements BasicCommand, TabCompleter {
+import static net.bteuk.plotsystem.PlotSystem.LOGGER;
 
-    private static final List<String> options = List.of("create", "selectiontool", "delete", "help", "setalias", "movemarker", "update");
+public class PlotSystemCommand implements BasicCommand {
+
+    private static final List<String> options = List.of("create", "selectiontool", "delete", "help", "setalias", "movemarker", "update", "updateflags");
 
     private final PlotAPI plotAPI;
 
@@ -63,7 +67,7 @@ public class PlotSystemCommand implements BasicCommand, TabCompleter {
             return;
         }
 
-        switch (args[0]) {
+        switch (args[0].toLowerCase()) {
 
             case "selectiontool" -> selectionTool(sender);
             case "create" -> createCommand.create(sender, args);
@@ -79,6 +83,7 @@ public class PlotSystemCommand implements BasicCommand, TabCompleter {
                 }
             }
             case "movemarker" -> moveHologram(sender, args);
+            case "updateflags" -> updateFlags(sender, args);
             default -> sender.sendMessage(ChatUtils.error("/plotsystem help"));
         }
     }
@@ -205,8 +210,34 @@ public class PlotSystemCommand implements BasicCommand, TabCompleter {
         }
     }
 
+    public void updateFlags(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("uknet.plots.updateflags")) {
+            sender.sendMessage(ChatUtils.error("You do not have permission to use this command."));
+            return;
+        }
+
+        if (args.length < 2) {
+            sender.sendMessage(ChatUtils.error("/plotsystem updateflags <location>"));
+            return;
+        }
+
+        World world = Bukkit.getWorld(args[1]);
+
+        if (world == null) {
+            sender.sendMessage(ChatUtils.error("Location " + args[1] + " does not exist on this server."));
+            return;
+        }
+
+        try {
+            WorldGuardFunctions.setWorldFlags(world);
+        } catch (RegionManagerNotFoundException e) {
+            sender.sendMessage(ChatUtils.error("An error occurred while updating flags, please contact an admin."));
+            LOGGER.severe("Unable to update flags for world " + args[1] + ":" + e.getMessage());
+        }
+    }
+
     @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
+    public @NotNull Collection<String> suggest(@NotNull CommandSourceStack commandSourceStack, String @NotNull [] args) {
         // Return list.
         List<String> returns = new ArrayList<>();
 
