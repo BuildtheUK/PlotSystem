@@ -16,6 +16,7 @@ import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -31,11 +32,15 @@ public class Outlines {
 
     final WorldGuard wg;
 
-    public Outlines() {
+    final boolean singleServer;
+
+    public Outlines(boolean singleServer) {
 
         outlineBlockLocations = new HashMap<>();
 
         wg = WorldGuard.getInstance();
+
+        this.singleServer = singleServer;
 
     }
 
@@ -115,6 +120,10 @@ public class Outlines {
      */
     public void addNearbyOutlines(User user, PlotAPI plotAPI) {
         Player player = user.player;
+
+        // On single server setup, we do not want to show the WG outlines if not on a plot world.
+        if (singleServer && !plotAPI.hasLocation(player.getWorld().getName()))
+            return;
 
         // If the player does not have a key, add it.
         BlockLocations locations;
