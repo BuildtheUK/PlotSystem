@@ -191,7 +191,7 @@ public class PlotSystem extends JavaPlugin {
         networkAPI.getEventAPI().registerEvent("verify", new VerifyEvent(networkAPI, plotHelper, guiManager));
 
         // Deals with tracking where players are in relation to plots.
-        claimEnter = new ClaimEnter(this, networkAPI.getPlotAPI(), networkAPI.getGlobalSQL());
+        claimEnter = new ClaimEnter(this, networkAPI.getPlotAPI(), networkAPI.getGlobalSQL(), networkAPI);
 
         // Commands
         LifecycleEventManager<@NotNull Plugin> manager = instance.getLifecycleManager();

@@ -18,7 +18,7 @@
 
         <paper.api.version>1.21.8-R0.1-SNAPSHOT</paper.api.version>
 
-        <bteuk.network.version>0c82879524</bteuk.network.version>
+        <bteuk.network.version>1f6850a5fa</bteuk.network.version>
         <bteuk.lib.version>5958727df9</bteuk.lib.version>
 
         <multiverse.version>5.3.3</multiverse.version>
