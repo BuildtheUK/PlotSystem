@@ -1,6 +1,6 @@
 package net.bteuk.plotsystem.listeners;
 
-import net.bteuk.network.utils.enums.PlotStatus;
+import net.bteuk.network.api.plotsystem.PlotStatus;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.ParseUtils;
 import org.bukkit.Bukkit;

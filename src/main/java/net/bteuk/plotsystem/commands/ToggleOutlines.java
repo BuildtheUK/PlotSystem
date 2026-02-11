@@ -1,7 +1,8 @@
 package net.bteuk.plotsystem.commands;
 
+import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
-import net.bteuk.network.commands.AbstractCommand;
+import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.User;
@@ -11,20 +12,22 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Command to toggle the plot outlines for the current session of the player.
  */
-public class ToggleOutlines extends AbstractCommand {
+public class ToggleOutlines implements BasicCommand {
 
     private final PlotSystem instance;
 
-    public ToggleOutlines(PlotSystem instance) {
+    private final PlotAPI plotAPI;
+
+    public ToggleOutlines(PlotSystem instance, PlotAPI plotAPI) {
         this.instance = instance;
+        this.plotAPI = plotAPI;
     }
 
     @Override
-    public void execute(@NotNull CommandSourceStack stack, @NotNull String[] args) {
+    public void execute(@NotNull CommandSourceStack stack, String @NotNull [] args) {
 
         // Check if the sender is a player.
-        Player player = getPlayer(stack);
-        if (player == null) {
+        if (!(stack.getSender() instanceof Player player)) {
             return;
         }
 
@@ -38,7 +41,7 @@ public class ToggleOutlines extends AbstractCommand {
         if (u.isDisableOutlines()) {
             // Enable outlines.
             u.setDisableOutlines(false);
-            instance.getOutlines().addNearbyOutlines(u);
+            instance.getOutlines().addNearbyOutlines(u, plotAPI);
             player.sendMessage(ChatUtils.success("Enabled outlines"));
         } else {
             // Disable outlines.

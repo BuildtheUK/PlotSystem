@@ -2,8 +2,7 @@ package net.bteuk.plotsystem.utils;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.bteuk.network.sql.GlobalSQL;
-import net.bteuk.network.sql.PlotSQL;
+import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.gui.ClaimGui;
 import net.bteuk.plotsystem.gui.CreatePlotGui;
@@ -23,8 +22,7 @@ public class User {
     public final String name;
 
     public final SelectionTool selectionTool;
-    public final GlobalSQL globalSQL;
-    public final PlotSQL plotSQL;
+
     // Skip outlines for these plots.
     @Getter
     private final List<String> skipOutlines = new ArrayList<>();
@@ -45,11 +43,7 @@ public class User {
     @Setter
     private boolean disableOutlines;
 
-    public User(Player player, GlobalSQL globalSQL, PlotSQL plotSQL) {
-
-        // Set sql
-        this.globalSQL = globalSQL;
-        this.plotSQL = plotSQL;
+    public User(Player player, NetworkAPI networkAPI, PlotHelper plotHelper) {
 
         // Set player, uuid and name variable.
         this.player = player;
@@ -57,12 +51,12 @@ public class User {
         name = player.getName();
 
         // Set selection tool, only players with the valid roles can use it.
-        selectionTool = new SelectionTool(this, plotSQL);
+        selectionTool = new SelectionTool(this, networkAPI, plotHelper);
 
         // Set last location to current location.
         lastLocation = player.getLocation();
         // Set outlines for player.
-        PlotSystem.getInstance().getOutlines().addNearbyOutlines(this);
+        PlotSystem.getInstance().getOutlines().addNearbyOutlines(this, networkAPI.getPlotAPI());
 
     }
 }

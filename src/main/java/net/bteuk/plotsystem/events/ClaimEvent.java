@@ -1,24 +1,41 @@
 package net.bteuk.plotsystem.events;
 
-import net.bteuk.network.Network;
+import net.bteuk.minecraft.gui.GuiManager;
+import net.bteuk.network.api.NetworkAPI;
+import net.bteuk.network.api.PlotAPI;
+import net.bteuk.network.api.entity.Event;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.utils.NetworkUser;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.commands.ClaimCommand;
 import net.bteuk.plotsystem.gui.ClaimGui;
+import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.User;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.UUID;
 
-import static net.bteuk.network.utils.Constants.TUTORIALS;
 import static net.bteuk.plotsystem.PlotSystem.LOGGER;
 import static net.bteuk.plotsystem.commands.ClaimCommand.TUTORIAL_REQUIRED_MESSAGE;
 
-public class ClaimEvent {
+public class ClaimEvent implements Event {
 
-    public static void event(String uuid, String[] event) {
+    private final NetworkAPI networkAPI;
+
+    private final PlotAPI plotAPI;
+
+    private final GuiManager guiManager;
+
+    private final PlotHelper plotHelper;
+
+    public ClaimEvent(NetworkAPI networkAPI, GuiManager guiManager, PlotHelper plotHelper) {
+        this.networkAPI = networkAPI;
+        this.plotAPI = networkAPI.getPlotAPI();
+        this.guiManager = guiManager;
+        this.plotHelper = plotHelper;
+    }
+
+    public void event(String uuid, String[] event, String sMessage) {
 
         // Events for claiming
         if (event[1].equals("plot")) {
@@ -35,7 +52,7 @@ public class ClaimEvent {
 
             // Make sure the player has permission to claim plots, else they must complete the tutorial first.
             // Only checked if tutorials are enabled.
-            if (!(p.hasPermission("uknet.plots.claim.all") || p.hasPermission("uknet.plots.claim.easy")) && TUTORIALS) {
+            if (!(p.hasPermission("uknet.plots.claim.all") || p.hasPermission("uknet.plots.claim.easy")) && networkAPI.isTutorialsEnabled()) {
 
                 p.sendMessage(TUTORIAL_REQUIRED_MESSAGE);
                 return;
@@ -54,17 +71,17 @@ public class ClaimEvent {
 
             // If the plot is already claimed tell them.
             // If they are the owner or a member tell them.
-            if (u.plotSQL.hasRow("SELECT id FROM plot_members WHERE id=" + u.inPlot + " AND uuid='" + u.player.getUniqueId() + "' AND is_owner=1;")) {
+            if (plotAPI.isPlotOwner(u.inPlot, uuid)) {
 
                 p.sendMessage(ChatUtils.error("You are already the owner of this plot!"));
                 return;
 
-            } else if (u.plotSQL.hasRow("SELECT id FROM plot_members WHERE id=" + u.inPlot + " AND uuid='" + u.player.getUniqueId() + "' AND is_owner=0;")) {
+            } else if (plotAPI.isPlotMember(u.inPlot, uuid)) {
 
                 p.sendMessage(ChatUtils.error("You are already a member of this plot!"));
                 return;
 
-            } else if (u.plotSQL.hasRow("SELECT id FROM plot_data WHERE id=" + u.inPlot + " AND status='claimed';")) {
+            } else if (plotAPI.isPlotClaimed(u.inPlot)) {
 
                 p.sendMessage(ChatUtils.error("This plot is already claimed!"));
                 return;
@@ -72,25 +89,21 @@ public class ClaimEvent {
             }
 
             // Check if you do not already have the maximum number of plots.
-            if (u.plotSQL.getInt("SELECT count(id) FROM plot_members WHERE uuid='" + uuid + "';") >= PlotSystem.getInstance().getConfig().getInt("plot_maximum")) {
+            if (plotAPI.getNumberOfPlots(uuid) >= PlotSystem.getInstance().getConfig().getInt("plot_maximum")) {
 
                 p.sendMessage(ChatUtils.error("You have reached the maximum number of plots."));
                 return;
 
             }
 
-            // Open the claim gui.
-            NetworkUser user = Network.getInstance().getUser(u.player);
-
             // Check if the player has permission to claim a plot of this difficulty.
-            if (!ClaimCommand.hasClaimPermission(u, user, u.inPlot)) {
+            if (!ClaimCommand.hasClaimPermission(networkAPI, p, u.inPlot)) {
                 return;
             }
 
             u.player.closeInventory();
-            u.claimGui = new ClaimGui(u, u.inPlot);
-            u.claimGui.open(user);
-
+            u.claimGui = new ClaimGui(u, u.inPlot, guiManager, plotAPI, plotHelper);
+            u.claimGui.open(p);
         }
     }
 }

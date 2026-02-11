@@ -1,35 +1,59 @@
 package net.bteuk.plotsystem.commands;
 
+import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
-import net.bteuk.network.Network;
-import net.bteuk.network.commands.AbstractCommand;
-import net.bteuk.network.commands.tabcompleters.FixedArgSelector;
+import net.bteuk.minecraft.gui.GuiManager;
+import net.bteuk.network.api.CoordinateAPI;
+import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.sql.GlobalSQL;
-import net.bteuk.network.sql.PlotSQL;
+import net.bteuk.network.papercore.LocationAdapter;
 import net.bteuk.plotsystem.PlotSystem;
+import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.utils.ParseUtils;
 import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.PlotHologram;
 import net.bteuk.plotsystem.utils.User;
+import net.bteuk.plotsystem.utils.plugins.WorldGuardFunctions;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.util.StringUtil;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
-public class PlotSystemCommand extends AbstractCommand {
+import static net.bteuk.plotsystem.PlotSystem.LOGGER;
 
-    private final PlotSQL plotSQL;
-    private final GlobalSQL globalSQL;
+public class PlotSystemCommand implements BasicCommand {
 
-    public PlotSystemCommand(GlobalSQL globalSQL, PlotSQL plotSQL) {
-        this.plotSQL = plotSQL;
-        this.globalSQL = globalSQL;
+    private static final List<String> options = List.of("create", "selectiontool", "delete", "help", "setalias", "movemarker", "update", "updateflags");
 
-        setTabCompleter(new FixedArgSelector(Arrays.asList("create", "selectiontool", "delete", "help", "setalias", "movemarker", "update"), 0));
+    private final PlotAPI plotAPI;
+
+    private final PlotHelper plotHelper;
+
+    private final CoordinateAPI coordinateAPI;
+
+    private final CreateCommand createCommand;
+
+    private final DeleteCommand deleteCommand;
+
+    private final UpdateCommand updateCommand;
+
+    public PlotSystemCommand(PlotAPI plotAPI, PlotHelper plotHelper, CoordinateAPI coordinateAPI, GuiManager guiManager, LocationCommand locationCommand) {
+        this.plotAPI = plotAPI;
+        this.plotHelper = plotHelper;
+        this.coordinateAPI = coordinateAPI;
+
+        this.createCommand = new CreateCommand(guiManager, plotAPI, locationCommand);
+        this.deleteCommand = new DeleteCommand(plotAPI, plotHelper, locationCommand);
+        this.updateCommand = new UpdateCommand(plotAPI, locationCommand);
     }
 
     @Override
@@ -37,21 +61,18 @@ public class PlotSystemCommand extends AbstractCommand {
 
         CommandSender sender = stack.getSender();
 
-        // If there are no arguments return.
+        // If there are no arguments, return.
         if (args.length == 0) {
             sender.sendMessage(ChatUtils.error("/plotsystem help"));
             return;
         }
 
-        switch (args[0]) {
+        switch (args[0].toLowerCase()) {
 
             case "selectiontool" -> selectionTool(sender);
-            case "create" -> CreateCommand.create(sender, args);
-            case "delete" -> {
-                DeleteCommand deleteCommand = new DeleteCommand(globalSQL, plotSQL);
-                deleteCommand.delete(sender, args);
-            }
-            case "update" -> UpdateCommand.update(sender, args);
+            case "create" -> createCommand.create(sender, args);
+            case "delete" -> deleteCommand.delete(sender, args);
+            case "update" -> updateCommand.update(sender, args);
             case "help" -> help(sender);
             case "setalias" -> {
 
@@ -62,6 +83,7 @@ public class PlotSystemCommand extends AbstractCommand {
                 }
             }
             case "movemarker" -> moveHologram(sender, args);
+            case "updateflags" -> updateFlags(sender, args);
             default -> sender.sendMessage(ChatUtils.error("/plotsystem help"));
         }
     }
@@ -115,9 +137,9 @@ public class PlotSystemCommand extends AbstractCommand {
             }
         }
 
-        if (plotSQL.hasRow("SELECT name FROM location_data WHERE name='" + location + "';")) {
+        if (plotAPI.hasLocation(location)) {
 
-            plotSQL.update("UPDATE location_data SET alias='" + alias.replace("'", "\\'") + "' WHERE name='" + location + "';");
+            plotAPI.setLocationAlias(location, alias);
             sender.sendMessage(ChatUtils.success("Set alias of location ")
                     .append(Component.text(location, NamedTextColor.DARK_AQUA))
                     .append(ChatUtils.success(" to "))
@@ -164,27 +186,66 @@ public class PlotSystemCommand extends AbstractCommand {
             }
 
             // Get the coordinate of the marker.
-            int coordinate_id = Network.getInstance().getPlotSQL().getInt("SELECT coordinate_id FROM plot_data WHERE id=" + plot + ";");
+            int coordinate_id = plotAPI.getPlotCoordinate(plot);
             Location l = p.getLocation().clone();
             l.setY(l.getY() + 2);
 
             if (coordinate_id == 0) {
                 // Create a new coordinate id and add it to the plot data.
-                coordinate_id = Network.getInstance().getGlobalSQL().addCoordinate(l);
-                Network.getInstance().getPlotSQL().update("UPDATE plot_data SET coordinate_id=" + coordinate_id + " WHERE id=" + plot + ";");
+                coordinate_id = coordinateAPI.addCoordinate(LocationAdapter.adapt(l));
+                plotAPI.updatePlotCoordinate(plot, coordinate_id);
                 // Add the hologram.
-                PlotHelper.addPlotHologram(new PlotHologram(plot));
+                plotHelper.addPlotHologram(new PlotHologram(plot, plotAPI, coordinateAPI));
                 p.sendMessage(ChatUtils.success("Added marker to plot " + plot));
             } else {
                 // Update the existing coordinate location.
-                Network.getInstance().getGlobalSQL().updateCoordinate(coordinate_id, l);
+                coordinateAPI.updateCoordinate(coordinate_id, LocationAdapter.adapt(l));
                 // Update the hologram.
-                PlotHelper.updatePlotHologram(plot);
+                plotHelper.updatePlotHologram(plot);
                 p.sendMessage(ChatUtils.success("Moved marker of plot " + plot));
             }
 
         } else {
             sender.sendMessage(ChatUtils.error("You must be a player to use this command."));
         }
+    }
+
+    public void updateFlags(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("uknet.plots.updateflags")) {
+            sender.sendMessage(ChatUtils.error("You do not have permission to use this command."));
+            return;
+        }
+
+        if (args.length < 2) {
+            sender.sendMessage(ChatUtils.error("/plotsystem updateflags <location>"));
+            return;
+        }
+
+        World world = Bukkit.getWorld(args[1]);
+
+        if (world == null) {
+            sender.sendMessage(ChatUtils.error("Location " + args[1] + " does not exist on this server."));
+            return;
+        }
+
+        try {
+            WorldGuardFunctions.setWorldFlags(world);
+        } catch (RegionManagerNotFoundException e) {
+            sender.sendMessage(ChatUtils.error("An error occurred while updating flags, please contact an admin."));
+            LOGGER.severe("Unable to update flags for world " + args[1] + ":" + e.getMessage());
+        }
+    }
+
+    @Override
+    public @NotNull Collection<String> suggest(@NotNull CommandSourceStack commandSourceStack, String @NotNull [] args) {
+        // Return list.
+        List<String> returns = new ArrayList<>();
+
+        if (args.length == 1) {
+            StringUtil.copyPartialMatches(args[0], options, returns);
+        } else if (args.length == 0) {
+            return options;
+        }
+        return returns;
     }
 }

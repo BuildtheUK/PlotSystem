@@ -4,14 +4,27 @@ import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import lombok.Getter;
-import net.bteuk.network.Network;
+import net.bteuk.minecraft.gui.GuiListener;
+import net.bteuk.minecraft.gui.GuiManager;
+import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.sql.GlobalSQL;
-import net.bteuk.network.sql.PlotSQL;
 import net.bteuk.plotsystem.commands.ClaimCommand;
+import net.bteuk.plotsystem.commands.LocationCommand;
 import net.bteuk.plotsystem.commands.PlotSystemCommand;
 import net.bteuk.plotsystem.commands.ReviewCommand;
 import net.bteuk.plotsystem.commands.ToggleOutlines;
+import net.bteuk.plotsystem.events.ClaimEvent;
+import net.bteuk.plotsystem.events.CloseEvent;
+import net.bteuk.plotsystem.events.DeleteEvent;
+import net.bteuk.plotsystem.events.JoinEvent;
+import net.bteuk.plotsystem.events.LeaveEvent;
+import net.bteuk.plotsystem.events.OutlinesEvent;
+import net.bteuk.plotsystem.events.PlotsystemKickEvent;
+import net.bteuk.plotsystem.events.PlotsystemTeleportEvent;
+import net.bteuk.plotsystem.events.RetractEvent;
+import net.bteuk.plotsystem.events.ReviewEvent;
+import net.bteuk.plotsystem.events.SubmitEvent;
+import net.bteuk.plotsystem.events.VerifyEvent;
 import net.bteuk.plotsystem.listeners.ClaimEnter;
 import net.bteuk.plotsystem.listeners.CloseInventory;
 import net.bteuk.plotsystem.listeners.HologramClickEvent;
@@ -24,6 +37,7 @@ import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.PlotHologram;
 import net.bteuk.plotsystem.utils.User;
 import net.bteuk.plotsystem.utils.plugins.Multiverse;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
@@ -31,7 +45,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,10 +67,6 @@ public class PlotSystem extends JavaPlugin {
     // Returns an instance of the plugin.
     @Getter
     static PlotSystem instance;
-    // SQL Classes.
-    public GlobalSQL globalSQL;
-    public PlotSQL plotSQL;
-    public Timers timers;
     // Listeners
     public ClaimEnter claimEnter;
     // Returns the User ArrayList.
@@ -66,6 +78,10 @@ public class PlotSystem extends JavaPlugin {
 
     @Getter
     private boolean isClosing = false;
+
+    private GuiManager guiManager;
+
+    private PlotHelper plotHelper;;
 
     @Override
     public void onEnable() {
@@ -93,54 +109,48 @@ public class PlotSystem extends JavaPlugin {
 
         }
 
-        // Set databases from Network dependency.
-        globalSQL = Network.getInstance().getGlobalSQL();
-        plotSQL = Network.getInstance().getPlotSQL();
-
         // Set the server name from config.
         SERVER_NAME = CONFIG.getString("server_name");
 
-        // If the server is in the database.
-        if (globalSQL.hasRow("SELECT name FROM server_data WHERE name='" + SERVER_NAME + "';")) {
+        // Add save world if it does not yet exist.
+        // Save world name is in config.
+        // This implies first launch with plugin.
+        if (!Multiverse.hasWorld(CONFIG.getString("save_world"))) {
+            // Create save world.
+            if (!Multiverse.createVoidWorld(CONFIG.getString("save_world"))) {
 
-            // Add save world if it does not yet exist.
-            // Save world name is in config.
-            // This implies first launch with plugin.
-            if (!Multiverse.hasWorld(CONFIG.getString("save_world"))) {
-                // Create save world.
-                if (!Multiverse.createVoidWorld(CONFIG.getString("save_world"))) {
+                LOGGER.warning("Failed to create save world!");
 
-                    LOGGER.warning("Failed to create save world!");
-
-                }
             }
-
-            LOGGER.info("Enabling Plugin");
-            enablePlugin();
-
-        } else {
-
-            // If the server is not in the database the network plugin was not successful.
-            LOGGER.severe("Server is not in database, check that the Network plugin is working correctly.");
-
         }
+
+        LOGGER.info("Enabling Plugin");
+        enablePlugin();
     }
 
     // Server enabling procedure when the config has been set up.
     public void enablePlugin() {
 
+        // Get the NetworkAPI.
+        RegisteredServiceProvider<NetworkAPI> networkProvider = Bukkit.getServicesManager().getRegistration(NetworkAPI.class);
+        if (networkProvider == null) {
+            LOGGER.severe("Failed to get NetworkAPI, disabling plugin!");
+            return;
+        }
+        final NetworkAPI networkAPI = networkProvider.getProvider();
+
+        this.guiManager = new GuiManager();
+        new GuiListener(guiManager).register(this);
+        this.plotHelper = new PlotHelper(networkAPI.getPlotAPI());
+
         // Register hologram click event.
         new HologramClickEvent(this);
-
-        // Initialise the plot helper.
-        PlotHelper.init(plotSQL);
 
         // General Setup
         // Create list of users.
         users = new ArrayList<>();
 
-        plotSQL.update("UPDATE plot_submission AS ps INNER JOIN plot_data AS pd ON ps.plot_id=pd.id SET ps.status='submitted' WHERE ps.status='under review' AND pd.location IN (SELECT name FROM location_data WHERE server='" + SERVER_NAME + "');");
-        plotSQL.update("UPDATE plot_submission AS ps INNER JOIN plot_data AS pd ON ps.plot_id=pd.id SET ps.status='awaiting verification' WHERE ps.status='under verification' AND pd.location IN (SELECT name FROM location_data WHERE server='" + SERVER_NAME + "');");
+        networkAPI.getPlotAPI().resetPlotSubmissions(SERVER_NAME);
 
         // Create gui item
         gui = new ItemStack(Material.NETHER_STAR);
@@ -150,10 +160,6 @@ public class PlotSystem extends JavaPlugin {
 
         // Outlines, this will be accessed from other classes, so it must have a getter and setter.
         outlines = new Outlines();
-
-        // Setup Timers
-        timers = new Timers(this, globalSQL);
-        timers.startTimers();
 
         // Create bungeecord channel
         this.getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
@@ -165,31 +171,46 @@ public class PlotSystem extends JavaPlugin {
         selectionTool.setItemMeta(meta);
 
         // Listeners
-        new JoinServer(this, globalSQL, plotSQL);
+        new JoinServer(this, networkAPI, plotHelper);
         new QuitServer(this);
-        new PlayerInteract(instance, plotSQL);
+        new PlayerInteract(instance, networkAPI.getPlotAPI());
         new CloseInventory(this);
 
+        // Events
+        networkAPI.getEventAPI().registerEvent("claim", new ClaimEvent(networkAPI, guiManager, plotHelper));
+        networkAPI.getEventAPI().registerEvent("close", new CloseEvent(networkAPI.getPlotAPI(), networkAPI.getChat()));
+        networkAPI.getEventAPI().registerEvent("retract", new RetractEvent(networkAPI.getPlotAPI(), plotHelper, networkAPI.getChat()));
+        networkAPI.getEventAPI().registerEvent("plotsystemteleport", new PlotsystemTeleportEvent(networkAPI.getPlotAPI(), networkAPI.getEventAPI(), networkAPI.getServerAPI()));
+        networkAPI.getEventAPI().registerEvent("review", new ReviewEvent(networkAPI, plotHelper, guiManager));
+        networkAPI.getEventAPI().registerEvent("delete", new DeleteEvent(networkAPI.getPlotAPI(), plotHelper, networkAPI.getChat()));
+        networkAPI.getEventAPI().registerEvent("submit", new SubmitEvent(networkAPI.getPlotAPI(), plotHelper, networkAPI.getGlobalSQL(), networkAPI.getChat()));
+        networkAPI.getEventAPI().registerEvent("leave", new LeaveEvent(networkAPI.getPlotAPI(), plotHelper, networkAPI.getChat()));
+        networkAPI.getEventAPI().registerEvent("join", new JoinEvent(networkAPI.getPlotAPI(), plotHelper, networkAPI.getChat(), networkAPI.getGlobalSQL()));
+        networkAPI.getEventAPI().registerEvent("plotsystemkick", new PlotsystemKickEvent(networkAPI.getPlotAPI(), networkAPI.getChat(), networkAPI.getGlobalSQL()));
+        networkAPI.getEventAPI().registerEvent("outlines", new OutlinesEvent(networkAPI.getPlotAPI()));
+        networkAPI.getEventAPI().registerEvent("verify", new VerifyEvent(networkAPI, plotHelper, guiManager));
+
         // Deals with tracking where players are in relation to plots.
-        claimEnter = new ClaimEnter(this, plotSQL, globalSQL);
+        claimEnter = new ClaimEnter(this, networkAPI.getPlotAPI(), networkAPI.getGlobalSQL());
 
         // Commands
-        LifecycleEventManager<Plugin> manager = instance.getLifecycleManager();
+        LifecycleEventManager<@NotNull Plugin> manager = instance.getLifecycleManager();
         manager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             final Commands commands = event.registrar();
 
-            commands.register("plotsystem", "Deals will all plotsystem related commands.", List.of("ps"), new PlotSystemCommand(globalSQL, plotSQL));
-            commands.register("claim", "Used to claim the plot you're standing in.", List.of("claim"), new ClaimCommand(plotSQL));
-            commands.register("toggleoutlines", "Toggles the visibility of outlines.", new ToggleOutlines(this));
+            commands.register("plotsystem", "Deals will all plotsystem related commands.", List.of("ps"), new PlotSystemCommand(networkAPI.getPlotAPI(), plotHelper, networkAPI.getCoordinateAPI(), guiManager, new LocationCommand(networkAPI)));
+            commands.register("claim", "Used to claim the plot you're standing in.", List.of("claim"), new ClaimCommand(networkAPI, guiManager, plotHelper));
+            commands.register("toggleoutlines", "Toggles the visibility of outlines.", new ToggleOutlines(this, networkAPI.getPlotAPI()));
             commands.register("review", "Command for editing selections to reviewing categories during the reviewing process.", new ReviewCommand(this));
 
         });
 
         // Get all active plots (unclaimed, claimed, submitted, reviewing) and add holograms.
-        List<Integer> active_plots = plotSQL.getIntList(
-                "SELECT pd.id FROM plot_data AS pd INNER JOIN location_data AS ld ON ld.name=pd.location WHERE pd.status IN ('unclaimed','claimed','submitted') AND " +
-                        "ld.server='" + SERVER_NAME + "';");
-        active_plots.forEach(plot -> PlotHelper.addPlotHologram(new PlotHologram(plot)));
+        List<Integer> active_plots =  networkAPI.getPlotAPI().getActivePlots(SERVER_NAME);
+        active_plots.forEach(plot -> plotHelper.addPlotHologram(new PlotHologram(plot, networkAPI.getPlotAPI(), networkAPI.getCoordinateAPI())));
+
+        // Setup Timers
+        Timers.registerTimers(networkAPI, plotHelper, outlines, users);
     }
 
     public void onDisable() {
