@@ -3,6 +3,7 @@ package net.bteuk.plotsystem.utils;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -53,5 +54,9 @@ public class Utils {
         }
         // Return 65 as the default y.
         return 65;
+    }
+
+    public static void enchant(ItemStack itemStack) {
+        itemStack.addUnsafeEnchantment(Enchantment.MENDING, 1);
     }
 }
