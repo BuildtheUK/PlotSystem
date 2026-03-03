@@ -288,7 +288,7 @@ public final class LocationCommand {
         }
 
         // Check if location exists.
-        if (!(plotAPI.locationExists(args[2]))) {
+        if (!(plotAPI.hasLocation(args[2]))) {
             sender.sendMessage(ChatUtils.error("The location %s does not exist.", args[2]));
             return;
         }

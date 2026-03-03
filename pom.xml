@@ -18,7 +18,7 @@
 
         <paper.api.version>1.21.8-R0.1-SNAPSHOT</paper.api.version>
 
-        <bteuk.network.version>0c82879524</bteuk.network.version>
+        <bteuk.network.version>9569bd79f9</bteuk.network.version>
         <bteuk.lib.version>5958727df9</bteuk.lib.version>
 
         <multiverse.version>5.3.3</multiverse.version>
@@ -147,12 +147,14 @@
             <groupId>com.github.BTEUK.BTEUKLib</groupId>
             <artifactId>Minecraft</artifactId>
             <version>${bteuk.lib.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>net.buildtheearth.terraminusminus</groupId>
             <artifactId>terraminusminus-core</artifactId>
             <version>2.0.0-1.21.4</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -182,6 +184,7 @@
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <version>2.20.0</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.mvplugins.multiverse.core</groupId>
