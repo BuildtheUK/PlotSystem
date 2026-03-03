@@ -6,7 +6,7 @@
 
     <groupId>net.bteuk</groupId>
     <artifactId>PlotSystem</artifactId>
-    <version>1.8.0</version>
+    <version>1.8.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>PlotSystem</name>
@@ -147,7 +147,6 @@
             <groupId>com.github.BTEUK.BTEUKLib</groupId>
             <artifactId>Minecraft</artifactId>
             <version>${bteuk.lib.version}</version>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -184,7 +183,6 @@
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <version>2.20.0</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.mvplugins.multiverse.core</groupId>

@@ -2,28 +2,31 @@ package net.bteuk.plotsystem.reviewing;
 
 import lombok.Getter;
 import net.bteuk.plotsystem.PlotSystem;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerEditBookEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.WritableBookMeta;
+import org.bukkit.persistence.PersistentDataType;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class EditableBook implements Listener {
+
+    private static final NamespacedKey EDITABLE_BOOK_ID_KEY =
+            new NamespacedKey(PlotSystem.getInstance(), "editable_book_id");
 
     private final Player bookEditor;
 
@@ -33,6 +36,8 @@ public class EditableBook implements Listener {
     private final BookResetAction bookResetAction;
 
     private final WritableBookMeta editableBookData;
+
+    private final UUID editableBookId;
 
     @Getter
     private boolean edited;
@@ -49,15 +54,17 @@ public class EditableBook implements Listener {
         this.bookEditor = bookEditor;
         this.editableBook = editableBook;
         this.bookResetAction = bookResetAction;
-        editableBookData = (WritableBookMeta) editableBook.getItemMeta();
+        this.editableBookData = (WritableBookMeta) editableBook.getItemMeta();
 
         // Add the random uuid as obfuscated lore text as a unique identifier.
-        editableBookData.lore(Collections.singletonList(Component.text(UUID.randomUUID().toString()).decorate(TextDecoration.OBFUSCATED)));
+        this.editableBookId = UUID.randomUUID();
+        this.editableBookData.getPersistentDataContainer().set(EDITABLE_BOOK_ID_KEY, PersistentDataType.STRING, editableBookId.toString());
+
         editableBook.setItemMeta(editableBookData);
     }
 
     public void unregister() {
-        PlayerEditBookEvent.getHandlerList().unregister(this);
+        HandlerList.unregisterAll(this);
     }
 
     public List<String> getBookPages() {
@@ -69,18 +76,24 @@ public class EditableBook implements Listener {
     }
 
     public boolean hasChanged(List<String> newPages) {
-        // Compare the total content of the book.
-        // Trim all the leading and trailing whitespace first.
         String previousBookContent = String.join("", getBookPages());
         String currentBookContent = String.join("", newPages);
-
         return !Objects.equals(previousBookContent, currentBookContent);
+    }
+
+    private boolean bookNotEquals(WritableBookMeta meta) {
+        if (meta == null) return true;
+        String id = meta.getPersistentDataContainer().get(EDITABLE_BOOK_ID_KEY, PersistentDataType.STRING);
+        return id == null || !id.equals(editableBookId.toString());
     }
 
     @EventHandler
     public void onBookEdit(PlayerEditBookEvent e) {
-        // Check if the player is the editor and that this book was edited.
-        if (!bookEditor.equals(e.getPlayer()) || !e.getPreviousBookMeta().equals(editableBookData)) {
+        if (!bookEditor.equals(e.getPlayer())) {
+            return;
+        }
+
+        if (bookNotEquals(e.getPreviousBookMeta())) {
             return;
         }
 
@@ -93,6 +106,8 @@ public class EditableBook implements Listener {
 
         // Add the pages of the book to the book meta.
         editableBookData.setPages(pages);
+        // Ensure the ID stays on the item meta
+        editableBookData.getPersistentDataContainer().set(EDITABLE_BOOK_ID_KEY, PersistentDataType.STRING, editableBookId.toString());
         editableBook.setItemMeta(editableBookData);
 
 
@@ -107,12 +122,26 @@ public class EditableBook implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void dropItem(PlayerDropItemEvent e) {
-        // Check if the item is a writable book, that the player equals the book editor and that the book meta equals the item meta.
-        if (e.getItemDrop().getItemStack().getType() == Material.WRITABLE_BOOK && bookEditor.equals(e.getPlayer()) && editableBookData.equals(e.getItemDrop().getItemStack().getItemMeta())) {
-            e.setCancelled(true);
-            if (bookResetAction != null) {
-                bookResetAction.onBookReset();
-            }
+        if (!bookEditor.equals(e.getPlayer())) {
+            return;
+        }
+
+        ItemStack dropped = e.getItemDrop().getItemStack();
+        if (dropped.getType() != Material.WRITABLE_BOOK) {
+            return;
+        }
+
+        if (!(dropped.getItemMeta() instanceof WritableBookMeta droppedMeta)) {
+            return;
+        }
+
+        if (bookNotEquals(droppedMeta)) {
+            return;
+        }
+
+        e.setCancelled(true);
+        if (bookResetAction != null) {
+            bookResetAction.onBookReset();
         }
     }
 
