@@ -10,7 +10,6 @@ import net.bteuk.plotsystem.utils.User;
 import net.kyori.adventure.inventory.Book;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
-import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -32,7 +31,6 @@ import java.util.logging.Logger;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -67,9 +65,6 @@ public class VerificationTest {
     private PlayerInventory inventory;
 
     @Mock
-    private Server server;
-
-    @Mock
     private World world;
 
     @Mock
@@ -79,15 +74,10 @@ public class VerificationTest {
     private BookMeta reviewBookMeta;
 
     @Mock
-    private ReviewHotbar reviewHotbar;
-
-    @Mock
     private Book book;
 
     @Mock
     private Logger logger;
-
-    private ReviewBook reviewBook;
 
     private Verification verification;
 
@@ -114,8 +104,6 @@ public class VerificationTest {
 
             when(reviewBookItem.getItemMeta()).thenReturn(reviewBookMeta);
             when(player.getInventory()).thenReturn(inventory);
-
-            reviewBook = mock(ReviewBook.class);
 
             try (
                     MockedConstruction<ReviewHotbar> reviewHotbarConstruction = mockConstruction(ReviewHotbar.class);

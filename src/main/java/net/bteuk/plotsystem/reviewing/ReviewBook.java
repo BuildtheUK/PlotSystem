@@ -196,7 +196,7 @@ public class ReviewBook implements Listener {
         }
         // Additionally, insert any new categories with feedback (this could be used to add general feedback).
         reviewCategorySelection.forEach((category, selection) -> {
-            if (!updatedReviewFeedback.containsKey(category)) {
+            if (!previousReviewFeedback.containsKey(category)) {
                 EditableBook newBook = reviewCategoryFeedback.get(category);
                 if (isEdited(newBook)) {
                     int bookId = saveBook(newBook);
