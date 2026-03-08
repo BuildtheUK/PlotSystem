@@ -31,6 +31,7 @@ import java.util.logging.Logger;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -102,7 +103,8 @@ public class VerificationTest {
             itemStackMockedStatic.when(() -> ItemStack.of(any(), anyInt())).thenReturn(reviewBookItem);
             bookMockedStatic.when(() -> Book.book(any(), any(), any(Component.class))).thenReturn(book);
 
-            when(reviewBookItem.getItemMeta()).thenReturn(reviewBookMeta);
+            // Must be lenient since this method is only called on class init, if other tests init the class before this, the stub is not needed.
+            lenient().when(reviewBookItem.getItemMeta()).thenReturn(reviewBookMeta);
             when(player.getInventory()).thenReturn(inventory);
 
             try (

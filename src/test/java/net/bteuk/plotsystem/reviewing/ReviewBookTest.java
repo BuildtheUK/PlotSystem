@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
@@ -73,7 +74,9 @@ class ReviewBookTest {
             bukkitMockedStatic.when(Bukkit::getServer).thenReturn(server);
             itemStackMockedStatic.when(() -> ItemStack.of(any(), anyInt())).thenReturn(reviewBookItem);
 
-            when(reviewBookItem.getItemMeta()).thenReturn(reviewBookMeta);
+            // Must be lenient since this method is only called on class init, if other tests init the class before this, the stub is not needed.
+            lenient().when(reviewBookItem.getItemMeta()).thenReturn(reviewBookMeta);
+
             when(player.getName()).thenReturn(PLAYER_NAME);
             when(server.getPluginManager()).thenReturn(pluginManager);
 
