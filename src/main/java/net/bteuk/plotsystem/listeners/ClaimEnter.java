@@ -5,6 +5,7 @@ import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.protection.ApplicableRegionSet;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import com.sk89q.worldguard.protection.regions.RegionQuery;
+import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.SQLAPI;
 import net.bteuk.network.lib.utils.ChatUtils;
@@ -24,11 +25,13 @@ public class ClaimEnter implements Listener {
 
     final PlotAPI plotAPI;
     final SQLAPI globalSQL;
+    final NetworkAPI networkAPI;
 
-    public ClaimEnter(PlotSystem plugin, PlotAPI plotAPI, SQLAPI globalSQl) {
+    public ClaimEnter(PlotSystem plugin, PlotAPI plotAPI, SQLAPI globalSQl, NetworkAPI networkAPI) {
         Bukkit.getServer().getPluginManager().registerEvents(this, plugin);
         this.plotAPI = plotAPI;
         this.globalSQL = globalSQl;
+        this.networkAPI = networkAPI;
     }
 
     @EventHandler
@@ -101,8 +104,9 @@ public class ClaimEnter implements Listener {
                     }
                 } catch (NumberFormatException e) {
 
-                    PlotSystem.LOGGER.warning("ApplicableRegionSet found a region that is not a plot or zone, the region name is " + regionName);
-
+                    // In standalone mode, we expect to find non-plot regions
+                    if (!networkAPI.isStandalone())
+                        PlotSystem.LOGGER.warning("ApplicableRegionSet found a region that is not a plot or zone, the region name is " + regionName);
                 }
             }
         }

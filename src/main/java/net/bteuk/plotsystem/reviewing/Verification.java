@@ -1,6 +1,7 @@
 package net.bteuk.plotsystem.reviewing;
 
 import lombok.Getter;
+import lombok.Setter;
 import net.bteuk.minecraft.gui.GuiManager;
 import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.api.plotsystem.ReviewCategory;
@@ -35,6 +36,9 @@ public class Verification extends ReviewAction {
     private int changedSelection = 0;
 
     private int changedFeedback = 0;
+
+    @Setter
+    private boolean disableReputationChange = false;
 
     /**
      * Constructor to create a new review.
@@ -75,7 +79,9 @@ public class Verification extends ReviewAction {
         completeReview(accept);
 
         // Update the reviewer reputation.
-        plotAPI.updateReviewerReputation(reviewer, getReputationChange());
+        if (!disableReputationChange) {
+            plotAPI.updateReviewerReputation(reviewer, getReputationChange());
+        }
 
         // Close gui and clear review if exists.
         this.closeReviewAction();

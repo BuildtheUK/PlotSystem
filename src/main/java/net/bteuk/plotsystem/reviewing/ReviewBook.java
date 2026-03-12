@@ -194,6 +194,16 @@ public class ReviewBook implements Listener {
                 updatedReviewFeedback.put(category, new ReviewCategoryFeedback(category, newSelection, bookId));
             }
         }
+        // Additionally, insert any new categories with feedback (this could be used to add general feedback).
+        reviewCategorySelection.forEach((category, selection) -> {
+            if (!previousReviewFeedback.containsKey(category)) {
+                EditableBook newBook = reviewCategoryFeedback.get(category);
+                if (isEdited(newBook)) {
+                    int bookId = saveBook(newBook);
+                    plotAPI.savePlotReviewCategoryFeedback(reviewId, category.name(), selection.name(), bookId);
+                }
+            }
+        });
         return updatedReviewFeedback;
     }
 
