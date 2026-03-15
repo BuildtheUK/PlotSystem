@@ -16,11 +16,12 @@
         <maven.compiler.release>${java-version}</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <paper.api.version>1.21.8-R0.1-SNAPSHOT</paper.api.version>
+        <paper.api.version>1.21.10-R0.1-SNAPSHOT</paper.api.version>
 
-        <bteuk.network.version>9569bd79f9</bteuk.network.version>
+        <bteuk.network.version>develop-d213a081ad-1</bteuk.network.version>
         <bteuk.lib.version>5958727df9</bteuk.lib.version>
 
+        <kyori.version>4.26.1</kyori.version>
         <multiverse.version>5.3.3</multiverse.version>
 
         <lombok.version>1.18.42</lombok.version>
@@ -153,6 +154,13 @@
             <groupId>net.buildtheearth.terraminusminus</groupId>
             <artifactId>terraminusminus-core</artifactId>
             <version>2.0.0-1.21.4</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-api</artifactId>
+            <version>${kyori.version}</version>
             <scope>provided</scope>
         </dependency>
 
