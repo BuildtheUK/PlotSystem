@@ -1,11 +1,12 @@
 package net.bteuk.plotsystem.reviewing;
 
 import lombok.Getter;
-import net.bteuk.network.Network;
+import net.bteuk.minecraft.gui.GuiManager;
+import net.bteuk.network.api.NetworkAPI;
+import net.bteuk.network.api.plotsystem.SubmittedStatus;
 import net.bteuk.network.lib.dto.PlotMessage;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.lib.utils.Reviewing;
-import net.bteuk.network.utils.enums.SubmittedStatus;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
@@ -30,18 +31,17 @@ public class Review extends ReviewAction {
      * @param plotID   the plot to review
      * @param user     the reviewer
      */
-    public Review(PlotSystem instance, int plotID, User user) {
-        super(instance, plotID, user);
+    public Review(PlotSystem instance, int plotID, User user, NetworkAPI networkAPI, PlotHelper plotHelper, GuiManager guiManager) {
+        super(instance, plotID, user, networkAPI, plotHelper, guiManager);
 
         // Create the review gui.
-        reviewActionGui = new ReviewGui(this);
-
+        reviewActionGui = new ReviewGui(this, guiManager, networkAPI.getPlotAPI(), networkAPI.getGlobalSQL());
     }
 
     @Override
     public void cancel() {
         // Set the plot back to 'submitted'.
-        PlotHelper.updateSubmittedStatus(plotID, SubmittedStatus.SUBMITTED);
+        plotHelper.updateSubmittedStatus(plotID, SubmittedStatus.SUBMITTED);
 
         // Send feedback.
         if (user.player.isOnline()) {
@@ -59,14 +59,14 @@ public class Review extends ReviewAction {
      */
     public void save(boolean accept) {
 
-        double verificationChance = Reviewing.getReassessmentChance(plotSQL.getReviewerReputation(user.uuid));
+        double verificationChance = Reviewing.getReassessmentChance(plotAPI.getReviewerReputation(user.uuid));
         boolean requiresVerification = false;
         if (CONFIG.getBoolean("reviewer_verification", true) || !user.player.hasPermission("group.reviewer")) {
             requiresVerification = Math.random() < verificationChance;
         }
 
         // Create a review entry in the database.
-        int reviewId = plotSQL.createReview(plotID, plotOwner, user.uuid, accept, !requiresVerification);
+        int reviewId = plotAPI.createReview(plotID, plotOwner, user.uuid, accept, !requiresVerification);
 
         // Save feedback for each category.
         saveFeedback(reviewId);
@@ -85,7 +85,7 @@ public class Review extends ReviewAction {
     protected void notifyReviewers() {
         // Send message to reviewers that a plot has been reviewed.
         PlotMessage plotMessage = new PlotMessage("A plot has been reviewed, there %s %s submitted %s.", false);
-        Network.getInstance().getChat().sendSocketMesage(plotMessage);
+        chatAPI.sendPlotMessage(plotMessage);
     }
 
     private void saveFeedback(int reviewId) {
@@ -101,13 +101,13 @@ public class Review extends ReviewAction {
         }
 
         // Update the submitted status of the plot to 'awaiting verification'.
-        plotSQL.update("UPDATE plot_submission SET status='" + SubmittedStatus.AWAITING_VERIFICATION.database_value + "' WHERE plot_id=" + plotID + ";");
+        plotHelper.updateSubmittedStatus(plotID, SubmittedStatus.AWAITING_VERIFICATION);
 
         notifyReviewers();
 
         // Send message to reviewers that a plot has been verified.
         PlotMessage plotMessage = new PlotMessage("A plot has been reviewed and is awaiting verification, there %s %s %s awaiting verification.", true);
-        Network.getInstance().getChat().sendSocketMesage(plotMessage);
+        chatAPI.sendPlotMessage(plotMessage);
 
         sendReviewerVerificationMessage(accept);
     }

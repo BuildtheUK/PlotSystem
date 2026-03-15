@@ -14,8 +14,8 @@ public class Point {
 
         for (BlockVector2 bv : points) {
 
-            x += bv.getX() / size;
-            z += bv.getZ() / size;
+            x += bv.x() / size;
+            z += bv.z() / size;
 
         }
 

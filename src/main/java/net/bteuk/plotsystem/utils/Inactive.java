@@ -1,13 +1,11 @@
 package net.bteuk.plotsystem.utils;
 
 import com.sk89q.worldedit.math.BlockVector2;
-import net.bteuk.network.Network;
+import net.bteuk.network.api.NetworkAPI;
+import net.bteuk.network.api.plotsystem.PlotStatus;
 import net.bteuk.network.lib.dto.DirectMessage;
 import net.bteuk.network.lib.dto.DiscordDirectMessage;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.sql.PlotSQL;
-import net.bteuk.network.utils.Time;
-import net.bteuk.network.utils.enums.PlotStatus;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
@@ -20,45 +18,41 @@ import org.bukkit.configuration.file.FileConfiguration;
 import java.util.ArrayList;
 import java.util.List;
 
+import static net.bteuk.plotsystem.PlotSystem.LOGGER;
+
 public class Inactive {
 
-    public static void cancelInactivePlots() {
+    public static void cancelInactivePlots(NetworkAPI networkAPI, PlotHelper plotHelper) {
 
         // Get config.
         FileConfiguration config = PlotSystem.getInstance().getConfig();
 
         // Get all plots claimed by inactive players.
         int plotInactivityDays = config.getInt("plot_inactive_cancel");
-        long time = Time.currentTime();
+        long time = System.currentTimeMillis();
         long timeCap = plotInactivityDays * 24L * 60L * 60L * 1000L;
         long timeDif = time - timeCap;
 
-        // Get plot sql.
-        PlotSQL plotSQL = Network.getInstance().getPlotSQL();
-
         // Get plots that will be deleted for inactive in 1 day.
-        // If the inactivity is less than 3 days don't bother.
+        // If the inactivity is less than 3 days, don't bother.
         if (plotInactivityDays >= 3) {
-            // The bound will be 1 hour, since this timer goes all every hour.
             long timeCapPlus1 = timeDif + (24 * 60 * 60 * 1000);
-            List<Integer> nearlyInactivePlots = plotSQL.getIntList("SELECT pm.id FROM plot_members AS pm INNER JOIN plot_data AS pd ON pd.id=pm.id " +
-                    "WHERE pm.is_owner=1 AND pm.last_enter>=" + timeDif + " AND pm.last_enter<" + timeCapPlus1 + " AND pd.status='claimed' AND pm.inactivity_notice=0 AND pd" +
-                    ".location IN (" +
-                    "SELECT ld.name FROM location_data AS ld WHERE ld.server='" + PlotSystem.SERVER_NAME + "');");
+            List<Integer> nearlyInactivePlots = networkAPI.getPlotAPI()
+                    .getClaimedPlotsLastEnteredBetweenWithoutInactivityNoticeForServer(timeDif, timeCapPlus1, PlotSystem.SERVER_NAME);
             // Send DM to users that their plot will be deleted in 24 hours.
             if (nearlyInactivePlots != null) {
                 nearlyInactivePlots.forEach(plotId -> {
                     // Get the uuid of the plot owner.
-                    String uuid = plotSQL.getString("SELECT uuid FROM plot_members WHERE id=" + plotId + " AND is_owner=1;");
+                    String uuid = networkAPI.getPlotAPI().getPlotOwner(plotId);
 
                     if (uuid != null) {
                         // Set the inactivity notice to 1 and send a dm.
-                        plotSQL.update("UPDATE plot_members SET inactivity_notice=1 WHERE id=" + plotId + " AND uuid='" + uuid + "';");
+                        networkAPI.getPlotAPI().setPlotInactivityNotice(plotId, uuid);
 
                         DiscordDirectMessage discordDirectMessage = new DiscordDirectMessage(uuid,
                                 String.format("Plot %d has been inactive for %d days. The plot will be deleted in 24 hours, to prevent this please enter the plot.", plotId,
                                         plotInactivityDays - 1));
-                        Network.getInstance().getChat().sendSocketMesage(discordDirectMessage);
+                        networkAPI.getChat().sendDiscordDirectMessage(discordDirectMessage);
                     }
                 });
             }
@@ -66,35 +60,33 @@ public class Inactive {
 
         // Get inactive plots.
         // Check if they are claimed (not submitted), the last enter time is greater than the inactivity time and the location is on this server.
-        List<Integer> inactivePlots = plotSQL.getIntList("SELECT pm.id FROM plot_members AS pm INNER JOIN plot_data AS pd ON pd.id=pm.id " +
-                "WHERE pm.is_owner=1 AND pm.last_enter<" + timeDif + " AND pd.status='claimed' AND pd.location IN (" +
-                "SELECT ld.name FROM location_data AS ld WHERE ld.server='" + PlotSystem.SERVER_NAME + "');");
+        List<Integer> inactivePlots = networkAPI.getPlotAPI().getInactivePlotsForServer(timeDif, PlotSystem.SERVER_NAME);
 
         // If there are no inactive plots, end the method.
         if (inactivePlots == null || inactivePlots.isEmpty()) {
             return;
         }
 
-        PlotSystem.LOGGER.info("Found " + inactivePlots.size() + " inactive plots, clearing them.");
+        LOGGER.info("Found " + inactivePlots.size() + " inactive plots, clearing them.");
 
         // Iterate through all inactive plots and cancel them.
         for (int plot : inactivePlots) {
 
             // Get plot location.
-            String location = plotSQL.getString("SELECT location FROM plot_data WHERE id=" + plot + ";");
+            String location = networkAPI.getPlotAPI().getPlotLocation(plot);
 
             // Get worlds of plot and save location.
             String save_world = config.getString("save_world");
             if (save_world == null) {
-                PlotSystem.LOGGER.warning("Save World is not defined in config, plot delete event has therefore failed!");
+                LOGGER.warning("Save World is not defined in config, plot delete event has therefore failed!");
                 continue;
             }
 
             World copyWorld = Bukkit.getWorld(save_world);
             World pasteWorld = Bukkit.getWorld(location);
 
-            int minusXTransform = -plotSQL.getInt("SELECT xTransform FROM location_data WHERE name='" + location + "';");
-            int minusZTransform = -plotSQL.getInt("SELECT zTransform FROM location_data WHERE name='" + location + "';");
+            int minusXTransform = -networkAPI.getPlotAPI().getXTransform(location);
+            int minusZTransform = -networkAPI.getPlotAPI().getZTransform(location);
 
             // Get the plot bounds.
             List<BlockVector2> pasteVector;
@@ -109,7 +101,7 @@ public class Inactive {
             // The negative transform is used because the coordinates by default are transformed from the save to the paste world, which in this case it reversed.
             List<BlockVector2> copyVector = new ArrayList<>();
             for (BlockVector2 bv : pasteVector) {
-                copyVector.add(BlockVector2.at(bv.getX() + minusXTransform, bv.getZ() + minusZTransform));
+                copyVector.add(BlockVector2.at(bv.x() + minusXTransform, bv.z() + minusZTransform));
             }
 
             assert copyWorld != null;
@@ -126,40 +118,37 @@ public class Inactive {
                 }
 
                 // Get the uuid of the plot owner.
-                String uuid = plotSQL.getString("SELECT uuid FROM plot_members WHERE id=" + plot + " AND is_owner=1;");
+                String uuid = networkAPI.getPlotAPI().getPlotOwner(plot);
 
                 // Remove all members of plot in database.
-                plotSQL.update("DELETE FROM plot_members WHERE id=" + plot + ";");
+                networkAPI.getPlotAPI().clearPlotMembers(plot);
 
                 // Set plot status to unclaimed.
-                PlotHelper.updatePlotStatus(plot, PlotStatus.UNCLAIMED);
+                plotHelper.updatePlotStatus(plot, PlotStatus.UNCLAIMED);
 
                 DirectMessage directMessage = new DirectMessage("global", uuid, "server",
                         ChatUtils.error("Plot %s has been removed due to inactivity!", String.valueOf(plot)), true);
                 DiscordDirectMessage discordDirectMessage = new DiscordDirectMessage(uuid, String.format("Plot %d has been removed due to inactivity!", plot));
-                Network.getInstance().getChat().sendSocketMesage(directMessage);
-                Network.getInstance().getChat().sendSocketMesage(discordDirectMessage);
+                networkAPI.getChat().sendDirectMessage(directMessage);
+                networkAPI.getChat().sendDiscordDirectMessage(discordDirectMessage);
 
                 // Log plot removal to console.
-                PlotSystem.LOGGER.info("Plot " + plot + " removed due to inactivity!");
+                LOGGER.info("Plot " + plot + " removed due to inactivity!");
 
             });
         }
     }
 
-    public static void closeExpiredZones() {
+    public static void closeExpiredZones(NetworkAPI networkAPI) {
 
         // Get config.
         FileConfiguration config = PlotSystem.getInstance().getConfig();
 
         // Get current time, this will be compared with the expiration time.
-        long time = Time.currentTime();
-
-        // Get plot sql.
-        PlotSQL plotSQL = Network.getInstance().getPlotSQL();
+        long time = System.currentTimeMillis();
 
         // Get active zones that have expired.
-        List<Integer> expiredZones = plotSQL.getIntList("SELECT id FROM zones WHERE status='open' AND expiration<" + time + ";");
+        List<Integer> expiredZones = networkAPI.getPlotAPI().getExpiredZonesForServer(time, PlotSystem.SERVER_NAME);
 
         // If there are no inactive plots, end the method.
         if (expiredZones == null || expiredZones.isEmpty()) {
@@ -170,72 +159,69 @@ public class Inactive {
         for (int zone : expiredZones) {
 
             // Get zone location.
-            String location = plotSQL.getString("SELECT location FROM zones WHERE id=" + zone + ";");
+            String location = networkAPI.getPlotAPI().getZoneLocation(zone);
 
-            // Check if the zone is on this server.
-            if (plotSQL.hasRow("SELECT name FROM location_data WHERE name='" + location +
-                    "' AND server='" + PlotSystem.SERVER_NAME + "';")) {
-
-                // Get worlds of plot and save location.
-                String save_world = config.getString("save_world");
-                if (save_world == null) {
-                    PlotSystem.LOGGER.warning("Save World is not defined in config, plot delete event has therefore failed!");
-                    continue;
-                }
-
-                World copyWorld = Bukkit.getWorld(location);
-                World pasteWorld = Bukkit.getWorld(save_world);
-
-                int minusXTransform = -plotSQL.getInt("SELECT xTransform FROM location_data WHERE name='" + location + "';");
-                int minusZTransform = -plotSQL.getInt("SELECT zTransform FROM location_data WHERE name='" + location + "';");
-
-                // Get the zone bounds.
-                List<BlockVector2> copyVector;
-                try {
-                    copyVector = WorldGuardFunctions.getPoints("z" + zone, copyWorld);
-                } catch (RegionNotFoundException | RegionManagerNotFoundException e) {
-                    e.printStackTrace();
-                    continue;
-                }
-
-                // Create the copyVector by transforming the points in the paste vector with the negative transform.
-                // The negative transform is used because the coordinates by default are transformed from the save to the paste world, which in this case it reversed.
-                List<BlockVector2> pasteVector = new ArrayList<>();
-                for (BlockVector2 bv : copyVector) {
-                    pasteVector.add(BlockVector2.at(bv.getX() + minusXTransform, bv.getZ() + minusZTransform));
-                }
-
-                assert copyWorld != null;
-
-                // Save the zone by copying from the building world to the save world.
-                Bukkit.getScheduler().runTaskAsynchronously(PlotSystem.getInstance(), () -> {
-                    WorldEditor.updateWorld(copyVector, pasteVector, copyWorld, pasteWorld);
-
-                    // Delete the worldguard region.
-                    try {
-                        WorldGuardFunctions.delete("z" + zone, copyWorld);
-                    } catch (RegionManagerNotFoundException e) {
-                        e.printStackTrace();
-                    }
-
-                    // Get the uuid of the zone owner.
-                    String uuid = plotSQL.getString("SELECT uuid FROM zone_members WHERE id=" + zone + " AND is_owner=1;");
-
-                    // Remove all members of zone in database.
-                    plotSQL.update("DELETE FROM zone_members WHERE id=" + zone + ";");
-
-                    // Set the zone status to closed.
-                    plotSQL.update("UPDATE zones SET status='closed' WHERE id=" + zone + ";");
-
-                    DirectMessage directMessage = new DirectMessage("global", uuid, "server",
-                            ChatUtils.error("Zone %s has expired, its content has been saved.", String.valueOf(zone)), true);
-                    Network.getInstance().getChat().sendSocketMesage(directMessage);
-
-                    // Log plot removal to console.
-                    PlotSystem.LOGGER.info("Zone " + zone + " has expired.");
-
-                });
+            // Get worlds of plot and save location.
+            String save_world = config.getString("save_world");
+            if (save_world == null) {
+                LOGGER.warning("Save World is not defined in config, plot delete event has therefore failed!");
+                continue;
             }
+
+            World copyWorld = Bukkit.getWorld(location);
+            World pasteWorld = Bukkit.getWorld(save_world);
+
+            int minusXTransform = -networkAPI.getPlotAPI().getXTransform(location);
+            int minusZTransform = -networkAPI.getPlotAPI().getZTransform(location);
+
+            // Get the zone bounds.
+            List<BlockVector2> copyVector;
+            try {
+                copyVector = WorldGuardFunctions.getPoints("z" + zone, copyWorld);
+            } catch (RegionNotFoundException | RegionManagerNotFoundException e) {
+                e.printStackTrace();
+                continue;
+            }
+
+            // Create the copyVector by transforming the points in the paste vector with the negative transform.
+            // The negative transform is used because the coordinates by default are transformed from the save to the paste world, which in this case it reversed.
+            List<BlockVector2> pasteVector = new ArrayList<>();
+            for (BlockVector2 bv : copyVector) {
+                pasteVector.add(BlockVector2.at(bv.x() + minusXTransform, bv.z() + minusZTransform));
+            }
+
+            assert copyWorld != null;
+
+            // Save the zone by copying from the building world to the save world.
+            Bukkit.getScheduler().runTaskAsynchronously(PlotSystem.getInstance(), () -> {
+                LOGGER.info("Zone " + zone + " has expired, saving it.");
+                long start = System.currentTimeMillis();
+                WorldEditor.updateWorld(copyVector, pasteVector, copyWorld, pasteWorld);
+                LOGGER.info("Zone " + zone + " has expired, saved in " + (System.currentTimeMillis() - start) + "ms.");
+
+                // Delete the worldguard region.
+                try {
+                    WorldGuardFunctions.delete("z" + zone, copyWorld);
+                } catch (RegionManagerNotFoundException e) {
+                    e.printStackTrace();
+                }
+
+                // Get the uuid of the zone owner.
+                String uuid = networkAPI.getPlotAPI().getZoneOwner(zone);
+
+                // Remove all members of zone in database.
+                networkAPI.getPlotAPI().clearZoneMembers(zone);
+
+                // Set the zone status to closed.
+                networkAPI.getPlotAPI().setZoneStatus(zone, "closed");
+
+                DirectMessage directMessage = new DirectMessage("global", uuid, "server",
+                        ChatUtils.error("Zone %s has expired, its content has been saved.", String.valueOf(zone)), true);
+                networkAPI.getChat().sendDirectMessage(directMessage);
+
+                // Log plot removal to console.
+                LOGGER.info("Zone " + zone + " has expired.");
+            });
         }
     }
 }

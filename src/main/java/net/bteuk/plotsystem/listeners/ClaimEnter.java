@@ -5,10 +5,10 @@ import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.protection.ApplicableRegionSet;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import com.sk89q.worldguard.protection.regions.RegionQuery;
+import net.bteuk.network.api.NetworkAPI;
+import net.bteuk.network.api.PlotAPI;
+import net.bteuk.network.api.SQLAPI;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.sql.GlobalSQL;
-import net.bteuk.network.sql.PlotSQL;
-import net.bteuk.network.utils.Time;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.User;
 import net.kyori.adventure.text.Component;
@@ -23,15 +23,15 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 
 public class ClaimEnter implements Listener {
 
-    final PlotSQL plotSQL;
-    final GlobalSQL globalSQL;
+    final PlotAPI plotAPI;
+    final SQLAPI globalSQL;
+    final NetworkAPI networkAPI;
 
-    public ClaimEnter(PlotSystem plugin, PlotSQL plotSQL, GlobalSQL globalSQl) {
-
+    public ClaimEnter(PlotSystem plugin, PlotAPI plotAPI, SQLAPI globalSQl, NetworkAPI networkAPI) {
         Bukkit.getServer().getPluginManager().registerEvents(this, plugin);
-        this.plotSQL = plotSQL;
+        this.plotAPI = plotAPI;
         this.globalSQL = globalSQl;
-
+        this.networkAPI = networkAPI;
     }
 
     @EventHandler
@@ -104,8 +104,9 @@ public class ClaimEnter implements Listener {
                     }
                 } catch (NumberFormatException e) {
 
-                    PlotSystem.LOGGER.warning("ApplicableRegionSet found a region that is not a plot or zone, the region name is " + regionName);
-
+                    // In standalone mode, we expect to find non-plot regions
+                    if (!networkAPI.isStandalone())
+                        PlotSystem.LOGGER.warning("ApplicableRegionSet found a region that is not a plot or zone, the region name is " + regionName);
                 }
             }
         }
@@ -115,30 +116,21 @@ public class ClaimEnter implements Listener {
 
             // If the plot is claimed, send the relevant message.
             if (u.inPlot != 0) {
-                if (!plotSQL.hasRow("SELECT id FROM plot_members WHERE id=" + u.inPlot + ";")) {
-
+                String plotOwner = plotAPI.getPlotOwner(u.inPlot);
+                if (plotOwner == null) {
                     u.player.sendActionBar(
                             ChatUtils.success("You have left plot ")
                                     .append(Component.text(u.inPlot, NamedTextColor.DARK_AQUA)));
-
                 } else {
-
                     // If you are the owner of the plot send the relevant message.
-                    if (plotSQL.hasRow("SELECT id FROM plot_members WHERE id=" + u.inPlot + " AND uuid='" + u.uuid + "' AND is_owner=1;")) {
-
+                    if (plotOwner.equals(u.uuid)) {
                         u.player.sendActionBar(
                                 ChatUtils.success("You have left your plot."));
-
                     } else {
-
                         // If you are not an owner or member send the relevant message.
-                        u.player.sendActionBar(
-                                ChatUtils.success("You have left ")
-                                        .append(Component.text(globalSQL.getString("SELECT name FROM player_data WHERE uuid = '" +
-                                                        plotSQL.getString("SELECT uuid FROM plot_members WHERE id=" + u.inPlot + " AND is_owner=1;") + "';") + "'s",
-                                                NamedTextColor.DARK_AQUA))
-                                        .append(ChatUtils.success(" plot.")));
-
+                        u.player.sendActionBar(ChatUtils.success("You have left ")
+                                .append(Component.text(globalSQL.getString("SELECT name FROM player_data WHERE uuid = '" + plotOwner + "';") + "'s",
+                                        NamedTextColor.DARK_AQUA)).append(ChatUtils.success(" plot.")));
                     }
                 }
 
@@ -170,7 +162,8 @@ public class ClaimEnter implements Listener {
             u.inPlot = plot;
 
             // If the plot is claimed, send the relevant message.
-            if (!plotSQL.hasRow("SELECT id FROM plot_members WHERE id=" + plot + ";")) {
+            String plotOwner = plotAPI.getPlotOwner(plot);
+            if (plotOwner == null) {
 
                 u.player.sendActionBar(
                         ChatUtils.success("You have entered plot ")
@@ -180,18 +173,18 @@ public class ClaimEnter implements Listener {
             } else {
 
                 // If you are the owner of the plot send the relevant message.
-                if (plotSQL.hasRow("SELECT id FROM plot_members WHERE id=" + plot + " AND uuid='" + u.uuid + "' AND is_owner=1;")) {
+                if (plotOwner.equals(u.uuid)) {
 
-                    plotSQL.update("UPDATE plot_members SET last_enter=" + Time.currentTime() + ",inactivity_notice=0 WHERE id=" + plot + " AND uuid='" + u.uuid + "';");
+                    plotAPI.setPlotLastEnter(plot, u.uuid);
                     u.player.sendActionBar(
                             ChatUtils.success("You have entered plot ")
                                     .append(Component.text(u.inPlot, NamedTextColor.DARK_AQUA))
                                     .append(ChatUtils.success(", you are the owner of this plot.")));
 
                     // If you are a member of the plot send the relevant message.
-                } else if (plotSQL.hasRow("SELECT id FROM plot_members WHERE id=" + plot + " AND uuid='" + u.uuid + "' AND is_owner=0;")) {
+                } else if (plotAPI.isPlotMember(plot, u.uuid)) {
 
-                    plotSQL.update("UPDATE plot_members SET last_enter=" + Time.currentTime() + " WHERE id=" + plot + " AND uuid='" + u.uuid + "';");
+                    plotAPI.setPlotLastEnter(plot, u.uuid);
                     u.player.sendActionBar(
                             ChatUtils.success("You have entered plot ")
                                     .append(Component.text(u.inPlot, NamedTextColor.DARK_AQUA))
@@ -202,20 +195,16 @@ public class ClaimEnter implements Listener {
                     // If you are not an owner or member send the relevant message.
                     u.player.sendActionBar(
                             ChatUtils.success("You have entered ")
-                                    .append(Component.text(globalSQL.getString("SELECT name FROM player_data WHERE uuid = '" +
-                                            plotSQL.getString("SELECT uuid FROM plot_members WHERE id=" + plot + " AND is_owner=1;") + "';") + "'s", NamedTextColor.DARK_AQUA))
+                                    .append(Component.text(globalSQL.getString("SELECT name FROM player_data WHERE uuid = '" + plotOwner + "';") + "'s", NamedTextColor.DARK_AQUA))
                                     .append(ChatUtils.success(" plot.")));
 
                 }
             }
 
         } else {
-
             // If you are the owner or member of this plot update your last enter time.
-            if (plotSQL.hasRow("SELECT id FROM plot_members WHERE id=" + u.inPlot + " AND uuid='" + u.uuid + "';")) {
-
-                plotSQL.update("UPDATE plot_members SET last_enter=" + Time.currentTime() + " WHERE id=" + u.inPlot + " AND uuid='" + u.uuid + "';");
-
+            if (plotAPI.isPlotOwner(u.inPlot, u.uuid) || plotAPI.isPlotMember(u.inPlot, u.uuid)) {
+                plotAPI.setPlotLastEnter(u.inPlot, u.uuid);
             }
         }
     }
@@ -231,7 +220,7 @@ public class ClaimEnter implements Listener {
             u.inZone = zone;
 
             // Check if the zone is public.
-            if (plotSQL.hasRow("SELECT id FROM zones WHERE id=" + zone + " AND is_public=1;")) {
+            if (plotAPI.isZonePublic(zone)) {
 
                 u.player.sendActionBar(
                         ChatUtils.success("You have entered zone ")

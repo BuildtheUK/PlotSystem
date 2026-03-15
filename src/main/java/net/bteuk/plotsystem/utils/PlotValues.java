@@ -15,7 +15,7 @@ public class PlotValues {
             case 1 -> "Easy";
             case 2 -> "Normal";
             case 3 -> "Hard";
-            default -> null;
+            default -> throw new IllegalArgumentException("Difficulty must be 1, 2 or 3!");
         };
     }
 
@@ -26,7 +26,7 @@ public class PlotValues {
             case 1 -> "Small";
             case 2 -> "Medium";
             case 3 -> "Large";
-            default -> null;
+            default -> throw new IllegalArgumentException("Size must be 1, 2 or 3!");
         };
     }
 
@@ -37,7 +37,7 @@ public class PlotValues {
             case 1 -> Material.LIME_CONCRETE;
             case 2 -> Material.YELLOW_CONCRETE;
             case 3 -> Material.RED_CONCRETE;
-            default -> null;
+            default -> throw new IllegalArgumentException("Size must be 1, 2 or 3!");
         };
     }
 
@@ -48,7 +48,7 @@ public class PlotValues {
             case 1 -> Material.LIME_CONCRETE;
             case 2 -> Material.YELLOW_CONCRETE;
             case 3 -> Material.RED_CONCRETE;
-            default -> null;
+            default -> throw new IllegalArgumentException("Difficulty must be 1, 2 or 3!");
         };
     }
 

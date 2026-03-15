@@ -1,24 +1,24 @@
 package net.bteuk.plotsystem.gui;
 
-import net.bteuk.network.gui.Gui;
+import net.bteuk.minecraft.gui.Gui;
+import net.bteuk.minecraft.gui.GuiManager;
+import net.bteuk.network.api.PlotAPI;
+import net.bteuk.network.api.plotsystem.PlotStatus;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.utils.Time;
-import net.bteuk.network.utils.Utils;
-import net.bteuk.network.utils.enums.PlotStatus;
-import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
 import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.PlotValues;
 import net.bteuk.plotsystem.utils.User;
+import net.bteuk.plotsystem.utils.Utils;
 import net.bteuk.plotsystem.utils.plugins.WorldGuardFunctions;
 import net.buildtheearth.terraminusminus.generator.EarthGeneratorSettings;
 import net.buildtheearth.terraminusminus.projection.OutOfProjectionBoundsException;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 
 import static net.bteuk.plotsystem.PlotSystem.LOGGER;
 
@@ -28,38 +28,43 @@ public class ClaimGui extends Gui {
 
     private final int plot;
 
-    public ClaimGui(User user, int plot) {
+    private final PlotAPI plotAPI;
 
-        super(27, Component.text("Claim Plot", NamedTextColor.AQUA, TextDecoration.BOLD));
+    private final PlotHelper plotHelper;
+
+    public ClaimGui(User user, int plot, GuiManager guiManager, PlotAPI plotAPI, PlotHelper plotHelper) {
+        super(guiManager, 27, ChatUtils.title("Claim Plot"));
 
         this.user = user;
         this.plot = plot;
+        this.plotAPI = plotAPI;
+        this.plotHelper = plotHelper;
 
         createGui();
-
     }
 
     private void createGui() {
 
-        setItem(20, Utils.createItem(PlotValues.sizeMaterial(user.plotSQL.getInt("SELECT size FROM plot_data WHERE id=" + plot + ";")), 1,
+        int size = plotAPI.getPlotSize(plot);
+        setItem(20, Utils.createItem(PlotValues.sizeMaterial(size), 1,
                 ChatUtils.title("Plot Size"),
-                ChatUtils.line(PlotValues.sizeName(user.plotSQL.getInt("SELECT size FROM plot_data WHERE id=" + plot + ";")))));
+                ChatUtils.line(PlotValues.sizeName(size))));
 
-        setItem(24, Utils.createItem(PlotValues.difficultyMaterial(user.plotSQL.getInt("SELECT difficulty FROM plot_data WHERE id=" + plot + ";")), 1,
+        int difficulty = plotAPI.getPlotDifficulty(plot);
+        setItem(24, Utils.createItem(PlotValues.difficultyMaterial(difficulty), 1,
                 ChatUtils.title("Plot Difficulty"),
-                ChatUtils.line(PlotValues.difficultyName(user.plotSQL.getInt("SELECT difficulty FROM plot_data WHERE id=" + plot + ";")))));
+                ChatUtils.line(PlotValues.difficultyName(difficulty))));
 
         setItem(22, Utils.createItem(Material.ENDER_EYE, 1,
                         ChatUtils.title("View Plot in Google Maps"),
                         ChatUtils.line("Click to open a link to this plot in google maps.")),
-                u ->
+                clickEvent -> {
+                    Player player = (Player) clickEvent.getWhoClicked();
 
-                {
-
-                    u.player.closeInventory();
+                    player.closeInventory();
 
                     // Get corners of the plot.
-                    int[][] corners = user.plotSQL.getPlotCorners(plot);
+                    int[][] corners = plotAPI.getPlotCorners(plot);
 
                     int sumX = 0;
                     int sumZ = 0;
@@ -75,24 +80,16 @@ public class ClaimGui extends Gui {
                     double x = sumX / (double) corners.length;
                     double z = sumZ / (double) corners.length;
 
-                    // Subtract the coordinate transform to make the coordinates in the real location.
-                    x -= user.plotSQL.getInt("SELECT xTransform FROM location_data WHERE name='" +
-                            user.plotSQL.getString("SELECT location FROM plot_data WHERE id=" + plot + ";") + "';");
-                    z -= user.plotSQL.getInt("SELECT zTransform FROM location_data WHERE name='" +
-                            user.plotSQL.getString("SELECT location FROM plot_data WHERE id=" + plot + ";") + "';");
-
                     // Convert to irl coordinates.
-
                     try {
-
                         final EarthGeneratorSettings bteGeneratorSettings = EarthGeneratorSettings.parse(EarthGeneratorSettings.BTE_DEFAULT_SETTINGS);
                         double[] coords = bteGeneratorSettings.projection().toGeo(x, z);
 
                         // Generate link to google maps.
                         Component message = ChatUtils.success("Click here to open the plot in Google Maps.");
-                        message = message.clickEvent(ClickEvent.clickEvent(ClickEvent.Action.OPEN_URL,
-                                "https://www.google.com/maps/@?api=1&map_action=map&basemap=satellite&zoom=21&center=" + coords[1] + "," + coords[0]));
-                        u.player.sendMessage(message);
+                        message = message.clickEvent(
+                                ClickEvent.openUrl("https://www.google.com/maps/@?api=1&map_action=map&basemap=satellite&zoom=21&center=" + coords[1] + "," + coords[0]));
+                        player.sendMessage(message);
 
                     } catch (OutOfProjectionBoundsException e) {
                         e.printStackTrace();
@@ -103,81 +100,71 @@ public class ClaimGui extends Gui {
         setItem(4, Utils.createItem(Material.EMERALD, 1,
                         ChatUtils.title("Claim Plot"),
                         ChatUtils.line("Click to claim the plot and start building.")),
-                u ->
+                event -> {
+                    if (event.getWhoClicked() instanceof Player player) {
+                        player.closeInventory();
 
-                {
+                        // Check if the plot is not already claimed, since it may happen that the gui is spammed.
+                        PlotStatus plotStatus = plotAPI.getPlotStatus(plot);
+                        if (plotStatus == PlotStatus.UNCLAIMED) {
 
-                    User eUser = PlotSystem.getInstance().getUser(u.player);
-                    u.player.closeInventory();
+                            // If the plot status can be updated, add the player as plot owner.
+                            if (plotHelper.updatePlotStatus(plot, PlotStatus.CLAIMED)) {
 
-                    // Check if the plot is not already claimed, since it may happen that the gui is spammed.
-                    if (eUser.plotSQL.hasRow("SELECT id FROM plot_data WHERE id=" + plot + " AND status='unclaimed';")) {
+                                // If the player can't be given owner, set the plot status back to unclaimed.
+                                if (plotAPI.createPlotOwner(plot, user.uuid)) {
 
-                        // If the plot status can be updated, add the player as plot owner.
-                        if (PlotHelper.updatePlotStatus(plot, PlotStatus.CLAIMED)) {
+                                    // Add player to the worldguard region.
+                                    try {
+                                        if (WorldGuardFunctions.addMember(String.valueOf(plot), player.getUniqueId().toString(), player.getWorld())) {
 
-                            // If the player can't be given owner, set the plot status back to unclaimed.
-                            if (eUser.plotSQL.update(
-                                    "INSERT INTO plot_members(id,uuid,is_owner,last_enter) VALUES(" + plot + ",'" + eUser.uuid + "',1," + Time.currentTime() + ");")) {
+                                            player.sendMessage(ChatUtils.success("Successfully claimed plot ")
+                                                    .append(Component.text(plot, NamedTextColor.DARK_AQUA))
+                                                    .append(ChatUtils.success(", good luck building.")));
+                                            // Send link to plot in Google Maps.
+                                            player.performCommand("ll");
+                                            LOGGER.info("Plot " + plot + " successfully claimed.");
 
-                                // Add player to worldguard region.
-                                try {
-                                    if (WorldGuardFunctions.addMember(String.valueOf(plot), eUser.uuid, eUser.player.getWorld())) {
+                                        } else {
 
-                                        eUser.player.sendMessage(ChatUtils.success("Successfully claimed plot ")
-                                                .append(Component.text(plot, NamedTextColor.DARK_AQUA))
-                                                .append(ChatUtils.success(", good luck building.")));
-                                        // Send link to plot in Google Maps.
-                                        eUser.player.performCommand("ll");
-                                        LOGGER.info("Plot " + plot + " successfully claimed by " + eUser.name);
+                                            player.sendMessage(ChatUtils.error("An error occurred while claiming the plot."));
+                                            LOGGER.warning("Plot " + plot + " was claimed but they were not added to the worldguard region.");
+
+                                        }
+                                    } catch (RegionManagerNotFoundException | RegionNotFoundException e) {
+                                        player.sendMessage(ChatUtils.error("An error occurred while claiming the plot, please notify an admin."));
+                                        e.printStackTrace();
+                                    }
+
+                                } else {
+
+                                    player.sendMessage(ChatUtils.error("An error occurred while claiming the plot."));
+                                    LOGGER.warning("Plot owner insert failed for plot " + plot);
+
+                                    // Attempt to set plot back to unclaimed
+                                    if (plotHelper.updatePlotStatus(plot, PlotStatus.UNCLAIMED)) {
+
+                                        LOGGER.warning("Plot " + plot + " has been set back to unclaimed.");
 
                                     } else {
 
-                                        eUser.player.sendMessage(ChatUtils.error("An error occurred while claiming the plot."));
-                                        LOGGER.warning("Plot " + plot + " was claimed but they were not added to the worldguard region.");
+                                        LOGGER.severe("Plot " + plot + " is set to claimed but has no owner!");
 
                                     }
-                                } catch (RegionManagerNotFoundException | RegionNotFoundException e) {
-                                    eUser.player.sendMessage(ChatUtils.error("An error occurred while claiming the plot, please notify an admin."));
-                                    e.printStackTrace();
                                 }
 
                             } else {
 
-                                eUser.player.sendMessage(ChatUtils.error("An error occurred while claiming the plot."));
-                                LOGGER.warning("Plot owner insert failed for plot " + plot);
+                                player.sendMessage(ChatUtils.error("An error occurred while claiming the plot."));
+                                LOGGER.warning("Status could not be changed to claimed for plot " + plot);
 
-                                // Attempt to set plot back to unclaimed
-                                if (PlotHelper.updatePlotStatus(plot, PlotStatus.UNCLAIMED)) {
-
-                                    LOGGER.warning("Plot " + plot + " has been set back to unclaimed.");
-
-                                } else {
-
-                                    LOGGER.severe("Plot " + plot + " is set to claimed but has no owner!");
-
-                                }
                             }
-
                         } else {
 
-                            eUser.player.sendMessage(ChatUtils.error("An error occurred while claiming the plot."));
-                            LOGGER.warning("Status could not be changed to claimed for plot " + plot);
+                            player.sendMessage(ChatUtils.error("This plot is already claimed, it could be due to clicking the claim button multiple times."));
 
                         }
-                    } else {
-
-                        eUser.player.sendMessage(ChatUtils.error("This plot is already claimed, it could be due to clicking the claim button multiple times."));
-
                     }
-
                 });
-    }
-
-    public void refresh() {
-
-        clearGui();
-        createGui();
-
     }
 }

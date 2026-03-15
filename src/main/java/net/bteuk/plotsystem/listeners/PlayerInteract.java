@@ -1,7 +1,7 @@
 package net.bteuk.plotsystem.listeners;
 
+import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.sql.PlotSQL;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.utils.User;
@@ -20,16 +20,13 @@ import java.util.Objects;
 
 public class PlayerInteract implements Listener {
 
-    final PlotSQL plotSQL;
+    private final PlotAPI plotAPI;
 
-    public PlayerInteract(PlotSystem plugin, PlotSQL plotSQL) {
+    public PlayerInteract(PlotSystem instance, PlotAPI plotAPI) {
+        this.plotAPI = plotAPI;
 
         // Register the listener.
-        Bukkit.getServer().getPluginManager().registerEvents(this, plugin);
-
-        // Set the reference to the plotSQL.
-        this.plotSQL = plotSQL;
-
+        Bukkit.getServer().getPluginManager().registerEvents(this, instance);
     }
 
     @EventHandler
@@ -60,14 +57,12 @@ public class PlayerInteract implements Listener {
                 e.setCancelled(true);
 
                 // Check if they are in a world where plots are allowed to be created.
-                if (!plotSQL.hasRow("SELECT name FROM location_data WHERE name='" + Objects.requireNonNull(e.getClickedBlock()).getWorld().getName() + "';")) {
-
+                if (!plotAPI.hasLocation(Objects.requireNonNull(e.getClickedBlock()).getWorld().getName())) {
                     u.player.sendMessage(ChatUtils.error("You can't create plots in this world!"));
                     return;
-
                 }
 
-                // If the selected point is in an existing plot cancel.
+                // If the selected point is in an existing plot, cancel.
                 try {
                     if (WorldGuardFunctions.inRegion(e.getClickedBlock())) {
 

@@ -22,10 +22,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-import static net.bteuk.network.utils.Constants.LOGGER;
-import static net.bteuk.network.utils.Constants.MAX_Y;
-import static net.bteuk.network.utils.Constants.MIN_Y;
-
 public class WorldEditor {
 
     public static boolean updateWorld(List<BlockVector2> copyVector, List<BlockVector2> pasteVector, World copy, World paste) {
@@ -34,8 +30,8 @@ public class WorldEditor {
         com.sk89q.worldedit.world.World copyWorld = new BukkitWorld(copy);
         com.sk89q.worldedit.world.World pasteWorld = new BukkitWorld(paste);
 
-        Polygonal2DRegion copyRegion = new Polygonal2DRegion(copyWorld, copyVector, MIN_Y, MAX_Y - 1);
-        Polygonal2DRegion pasteRegion = new Polygonal2DRegion(pasteWorld, pasteVector, MIN_Y, MAX_Y - 1);
+        Polygonal2DRegion copyRegion = new Polygonal2DRegion(copyWorld, copyVector, copyWorld.getMinY(), copyWorld.getMaxY() - 1);
+        Polygonal2DRegion pasteRegion = new Polygonal2DRegion(pasteWorld, pasteVector, copyWorld.getMinY(), copyWorld.getMaxY() - 1);
         BlockArrayClipboard clipboard = new BlockArrayClipboard(copyRegion);
 
         try (
@@ -141,6 +137,6 @@ public class WorldEditor {
                 entity.remove();
             }
         });
-        LOGGER.info(String.format("Removed %d entities from world %s", count[0], world.getName()));
+        PlotSystem.LOGGER.info(String.format("Removed %d entities from world %s", count[0], world.getName()));
     }
 }

@@ -2,10 +2,11 @@ package net.bteuk.plotsystem.utils;
 
 import eu.decentsoftware.holograms.api.holograms.Hologram;
 import lombok.Getter;
-import net.bteuk.network.Network;
-import net.bteuk.network.utils.Holograms;
-import net.bteuk.network.utils.enums.PlotStatus;
-import net.bteuk.network.utils.enums.SubmittedStatus;
+import net.bteuk.network.api.CoordinateAPI;
+import net.bteuk.network.api.PlotAPI;
+import net.bteuk.network.api.entity.NetworkLocation;
+import net.bteuk.network.api.plotsystem.PlotStatus;
+import net.bteuk.network.api.plotsystem.SubmittedStatus;
 import net.bteuk.plotsystem.PlotSystem;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -23,13 +24,19 @@ public class PlotHologram {
 
     @Getter
     private final int plot;
+
+    private final PlotAPI plotAPI;
+
+    private final CoordinateAPI coordinateAPI;
     private final HashMap<PlotHologramType, Hologram> holograms = new HashMap<>();
     private PlotStatus plotStatus;
     private SubmittedStatus submittedStatus;
     private Location location;
 
-    public PlotHologram(int plot) {
+    public PlotHologram(int plot, PlotAPI plotAPI, CoordinateAPI coordinateAPI) {
         this.plot = plot;
+        this.plotAPI = plotAPI;
+        this.coordinateAPI = coordinateAPI;
         createHologram();
     }
 
@@ -73,16 +80,15 @@ public class PlotHologram {
         PlotHologramType showType = PlotHologramType.ALL;
         if (plotStatus == PlotStatus.CLAIMED || plotStatus == PlotStatus.SUBMITTED) {
             // Check if the player is the plot owner.
-            if (Network.getInstance().getPlotSQL().hasRow("SELECT id FROM plot_members WHERE id=" + plot + " AND uuid='" + p.getUniqueId() + "' AND is_owner=1;")) {
+            if (plotAPI.isPlotOwner(plot, p.getUniqueId().toString())) {
                 showType = PlotHologramType.OWNER;
-            } else if (Network.getInstance().getPlotSQL().hasRow("SELECT id FROM plot_members WHERE id=" + plot + " AND uuid='" + p.getUniqueId() + "' AND is_owner=0;")) {
+            } else if (plotAPI.isPlotMember(plot, p.getUniqueId().toString())) {
                 showType = PlotHologramType.MEMBER;
             } else {
                 if (plotStatus == PlotStatus.SUBMITTED) {
                     switch (submittedStatus) {
                         case SUBMITTED -> {
-                            if (Network.getInstance().getPlotSQL()
-                                    .canReviewPlot(plot, p.getUniqueId().toString(), p.hasPermission("group.architect"), p.hasPermission("group.reviewer"))) {
+                            if (plotAPI.canReviewPlot(plot, p.getUniqueId().toString(), p.hasPermission("group.architect"), p.hasPermission("group.reviewer"))) {
                                 showType = PlotHologramType.REVIEWER;
                             }
                         }
@@ -95,7 +101,7 @@ public class PlotHologram {
                         }
 
                         case AWAITING_VERIFICATION -> {
-                            if (Network.getInstance().getPlotSQL().canVerifyPlot(plot, p.getUniqueId().toString(), p.hasPermission("group.reviewer"))) {
+                            if (plotAPI.canVerifyPlot(plot, p.getUniqueId().toString(), p.hasPermission("group.reviewer"))) {
                                 showType = PlotHologramType.REVIEWER;
                             }
                         }
@@ -128,20 +134,21 @@ public class PlotHologram {
      */
     private void createHologram() {
         // Get the plot status.
-        plotStatus = PlotStatus.fromDatabaseValue(Network.getInstance().getPlotSQL().getString("SELECT status FROM plot_data WHERE id=" + plot + ";"));
+        plotStatus = plotAPI.getPlotStatus(plot);
 
         // If the status is submitted get the submitted status.
         if (plotStatus == PlotStatus.SUBMITTED) {
-            submittedStatus = SubmittedStatus.fromDatabaseValue(Network.getInstance().getPlotSQL().getString("SELECT status FROM plot_submission WHERE plot_id=" + plot + ";"));
+            submittedStatus = plotAPI.getPlotSubmissionStatus(plot);
         }
 
         // Get the location of the hologram.
-        int coordinate = Network.getInstance().getPlotSQL().getInt("SELECT coordinate_id FROM plot_data WHERE id=" + plot);
+        int coordinate = plotAPI.getPlotCoordinate(plot);
         if (coordinate != 0) {
-            location = Network.getInstance().getGlobalSQL().getLocation(coordinate);
+            NetworkLocation networkLocation = coordinateAPI.getLocation(coordinate);
+            location = new Location(Bukkit.getWorld(networkLocation.world()), networkLocation.x(), networkLocation.y(), networkLocation.z(), networkLocation.yaw(), networkLocation.pitch());
         }
 
-        // Create the holograms, depending on the status, multiple holograms may be necessary for specific players.
+        // Create the holograms; depending on the status, multiple holograms may be necessary for specific players.
         createHolograms();
 
         // Set the hologram visibility.

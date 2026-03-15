@@ -2,20 +2,21 @@ package net.bteuk.plotsystem.reviewing;
 
 import com.sk89q.worldedit.math.BlockVector2;
 import lombok.Getter;
-import net.bteuk.network.Network;
-import net.bteuk.network.gui.Gui;
+import net.bteuk.minecraft.gui.Gui;
+import net.bteuk.minecraft.gui.GuiManager;
+import net.bteuk.network.api.ChatAPI;
+import net.bteuk.network.api.NetworkAPI;
+import net.bteuk.network.api.PlotAPI;
+import net.bteuk.network.api.RoleAPI;
+import net.bteuk.network.api.SQLAPI;
+import net.bteuk.network.api.entity.Role;
+import net.bteuk.network.api.plotsystem.PlotStatus;
+import net.bteuk.network.api.plotsystem.ReviewCategory;
+import net.bteuk.network.api.plotsystem.ReviewSelection;
 import net.bteuk.network.lib.dto.DirectMessage;
 import net.bteuk.network.lib.dto.DiscordDirectMessage;
 import net.bteuk.network.lib.enums.PlotDifficulties;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.sql.PlotSQL;
-import net.bteuk.network.utils.NetworkUser;
-import net.bteuk.network.utils.Role;
-import net.bteuk.network.utils.Roles;
-import net.bteuk.network.utils.Time;
-import net.bteuk.network.utils.enums.PlotStatus;
-import net.bteuk.network.utils.plotsystem.ReviewCategory;
-import net.bteuk.network.utils.plotsystem.ReviewSelection;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
@@ -40,14 +41,22 @@ import static net.bteuk.plotsystem.utils.PlotValues.difficultyMaterial;
 
 public abstract class ReviewAction {
 
-    protected final PlotSQL plotSQL;
-
-    // User instance.
     protected final User user;
 
-    // Plot id.
     @Getter
     protected final int plotID;
+
+    protected final PlotAPI plotAPI;
+
+    protected final PlotHelper plotHelper;
+
+    private final SQLAPI globalSQL;
+
+    private final GuiManager guiManager;
+
+    protected final ChatAPI chatAPI;
+
+    private final RoleAPI roleAPI;
 
     @Getter
     protected final String plotOwner;
@@ -57,34 +66,38 @@ public abstract class ReviewAction {
     private final ReviewHotbar hotbarListener;
     @Getter
     private final ReviewBook reviewBook;
-    // Previous feedback Gui.
     protected PreviousFeedbackGui previousFeedbackGui;
     protected PlotDifficulties plotDifficulty = PlotDifficulties.EASY;
 
-    public ReviewAction(PlotSystem instance, int plotID, User user) {
+    public ReviewAction(PlotSystem instance, int plotID, User user, NetworkAPI networkAPI, PlotHelper plotHelper, GuiManager guiManager) {
 
         this.user = user;
         this.plotID = plotID;
-        this.plotSQL = instance.plotSQL;
+        this.plotAPI = networkAPI.getPlotAPI();
+        this.plotHelper = plotHelper;
+        this.globalSQL = networkAPI.getGlobalSQL();
+        this.guiManager = guiManager;
+        this.chatAPI = networkAPI.getChat();
+        this.roleAPI = networkAPI.getRoleAPI();
 
         // Get the plot world.
-        this.plotWorld = Bukkit.getWorld(plotSQL.getString("SELECT location FROM plot_data WHERE id=" + plotID + ";"));
+        this.plotWorld = Bukkit.getWorld(plotAPI.getPlotLocation(plotID));
 
-        // Get plot owner.
-        this.plotOwner = plotSQL.getString("SELECT uuid FROM plot_members WHERE id=" + plotID + " AND is_owner=1;");
+        // Get the plot owner.
+        this.plotOwner = plotAPI.getPlotOwner(plotID);
 
         // Save the users hotbar to revert to after reviewing.
         // Then clear their inventory and set it up for reviewing.
         initialInventory = user.player.getInventory().getContents();
         user.player.getInventory().clear();
 
-        // Setup the hotbar for the reviewer.
+        // Set up the hotbar for the reviewer.
         hotbarListener = new ReviewHotbar(PlotSystem.getInstance(), user);
 
         // Create the review book.
-        reviewBook = new ReviewBook(instance, user.player, hotbarListener);
+        reviewBook = new ReviewBook(instance, user.player, hotbarListener, plotAPI);
 
-        int plotDifficulty = plotSQL.getInt("SELECT difficulty FROM plot_data WHERE id=" + plotID + ";");
+        int plotDifficulty = plotAPI.getPlotDifficulty(plotID);
         for (PlotDifficulties difficulty : PlotDifficulties.values()) {
             if (difficulty.getValue() == plotDifficulty) {
                 this.plotDifficulty = difficulty;
@@ -148,11 +161,8 @@ public abstract class ReviewAction {
      * Opens the review action gui.
      */
     public void openReviewActionGui() {
-        NetworkUser networkUser = Network.getInstance().getUser(user.player);
-        if (networkUser != null) {
-            networkUser.player.closeInventory();
-            getReviewActionGui().open(networkUser);
-        }
+        user.player.closeInventory();
+        getReviewActionGui().open(user.player);
     }
 
     /**
@@ -169,11 +179,11 @@ public abstract class ReviewAction {
     }
 
     public void toBeforeView() {
-        // Teleport to plot in original state.
+        // Teleport to plot in its original state.
         user.player.closeInventory();
 
         try {
-            Location l = WorldGuardFunctions.getBeforeLocation(String.valueOf(plotID), plotWorld);
+            Location l = WorldGuardFunctions.getBeforeLocation(String.valueOf(plotID), plotWorld, plotAPI);
             user.player.teleport(l);
         } catch (RegionManagerNotFoundException | RegionNotFoundException | WorldNotFoundException e) {
             user.player.sendMessage(ChatUtils.error("Unable to teleport you to the before view of this plot, please contact an admin."));
@@ -183,10 +193,10 @@ public abstract class ReviewAction {
         // Try to create the outline of the before view.
         try {
             // Get outlines of the plot.
-            List<BlockVector2> vector = WorldGuardFunctions.getPointsTransformedToSaveWorld(String.valueOf(plotID), plotWorld);
+            List<BlockVector2> vector = WorldGuardFunctions.getPointsTransformedToSaveWorld(String.valueOf(plotID), plotWorld, plotAPI);
 
             // Get the plot difficulty.
-            int difficulty = plotSQL.getInt("SELECT difficulty FROM plot_data WHERE id=" + plotID + ";");
+            int difficulty = plotAPI.getPlotDifficulty(plotID);
 
             // Draw the outline.
             PlotSystem.getInstance().getOutlines().addOutline(user.player, vector, difficultyMaterial(difficulty).createBlockData());
@@ -210,14 +220,11 @@ public abstract class ReviewAction {
 
     public void openPreviousFeedbackGui() {
         if (previousFeedbackGui == null) {
-            previousFeedbackGui = new PreviousFeedbackGui(plotID, user);
+            previousFeedbackGui = new PreviousFeedbackGui(guiManager, plotID, user, plotAPI, globalSQL);
         }
 
-        NetworkUser networkUser = Network.getInstance().getUser(user.player);
-        if (networkUser != null) {
-            networkUser.player.closeInventory();
-            previousFeedbackGui.open(Network.getInstance().getUser(user.player));
-        }
+        user.player.closeInventory();
+        previousFeedbackGui.open(user.player);
     }
 
     public void saveIfPossible(boolean accept) {
@@ -247,12 +254,12 @@ public abstract class ReviewAction {
                     user.player.sendMessage(ChatUtils.error("Category %s must have a selection.", category.getDisplayName()));
                     canSave = false;
                 } else {
-                    boolean thresholdReached = PlotHelper.reviewCategoryThresholdReached(plotDifficulty, category, selection);
+                    boolean thresholdReached = plotHelper.reviewCategoryThresholdReached(plotDifficulty, category, selection);
                     thresholdsReached = thresholdsReached && thresholdReached;
 
                     if (accept && !thresholdReached) {
                         // Notify the reviewer that the plot can not be accepted with this category selection.
-                        ReviewSelection requiredThreshold = PlotHelper.getReviewCategoryThreshold(plotDifficulty, category);
+                        ReviewSelection requiredThreshold = plotHelper.getReviewCategoryThreshold(plotDifficulty, category);
                         if (requiredThreshold == null) {
                             user.player.sendMessage(
                                     ChatUtils.error("Category %s does not have a configured threshold, please notify an administrator!", category.getDisplayName()));
@@ -281,14 +288,14 @@ public abstract class ReviewAction {
     protected void completeReview(boolean accept) {
 
         // Get world of plot.
-        World world = Bukkit.getWorld(plotSQL.getString("SELECT location FROM plot_data WHERE id=" + plotID + ";"));
+        World world = Bukkit.getWorld(plotAPI.getPlotLocation(plotID));
         if (world == null) {
             LOGGER.warning("World of the plot is null!");
             return;
         }
 
-        // Remove submitted plot entry.
-        plotSQL.update("DELETE FROM plot_submission WHERE plot_id=" + plotID + ";");
+        // Remove the submitted plot entry.
+        plotAPI.removePlotSubmission(plotID);
 
         if (accept) {
             // Accept the plot.
@@ -313,10 +320,10 @@ public abstract class ReviewAction {
     private void completePlot(World plotWorld) {
 
         // Remove plot members.
-        plotSQL.update("DELETE FROM plot_members WHERE id=" + plotID + ";");
+        plotAPI.clearPlotMembers(plotID);
 
         // Set plot to 'completed'.
-        PlotHelper.updatePlotStatus(plotID, PlotStatus.COMPLETED);
+        plotHelper.updatePlotStatus(plotID, PlotStatus.COMPLETED);
 
         // Copy the plot to the save world.
         savePlot(plotWorld);
@@ -336,11 +343,11 @@ public abstract class ReviewAction {
 
     private void denyPlot(World plotWorld) {
 
-        // Update last visit time, to prevent inactivity removal of plot.
-        plotSQL.update("UPDATE plot_members SET last_enter=" + Time.currentTime() + " WHERE id=" + plotID + ";");
+        // Update last visit time for the owner to prevent inactivity removal of the plot.
+        plotAPI.setPlotLastEnter(plotID, plotOwner);
 
         // Set status of the plot back to 'claimed'.
-        PlotHelper.updatePlotStatus(plotID, PlotStatus.CLAIMED);
+        plotHelper.updatePlotStatus(plotID, PlotStatus.CLAIMED);
 
         // Remove the reviewer from the plot.
         try {
@@ -355,7 +362,7 @@ public abstract class ReviewAction {
 
     private void savePlot(World plotWorld) {
 
-        // Get the save world.
+        // Get the save-world.
         String save_world = PlotSystem.getInstance().getConfig().getString("save_world");
         if (save_world == null) {
             LOGGER.warning("Save world is not set in config!");
@@ -369,23 +376,23 @@ public abstract class ReviewAction {
         }
 
         // Get the negative coordinate transform.
-        int xTransform = -plotSQL.getInt("SELECT xTransform FROM location_data WHERE name='" + plotWorld.getName() + "';");
-        int zTransform = -plotSQL.getInt("SELECT zTransform FROM location_data WHERE name='" + plotWorld.getName() + "';");
+        int xTransform = -plotAPI.getXTransform(plotWorld.getName());
+        int zTransform = -plotAPI.getZTransform(plotWorld.getName());
 
         List<BlockVector2> copyVector;
 
         try {
             copyVector = WorldGuardFunctions.getPoints(String.valueOf(plotID), plotWorld);
         } catch (RegionManagerNotFoundException | RegionNotFoundException e) {
-            //u.player.sendMessage(ChatUtils.error("An error occurred in the plot accepting process, please contact an admin."));
-            e.printStackTrace();
+            user.player.sendMessage(ChatUtils.error("An error occurred in the plot accepting process, please contact an admin."));
+            LOGGER.severe("An error occurred in the plot accepting process, please contact an admin: " + e.getMessage());
             return;
         }
 
-        // Create paste vector by taking the copy vector coordinate and adding the coordinate transform.
+        // Create the paste vector by taking the copy vector coordinate and adding the coordinate transform.
         List<BlockVector2> pasteVector = new ArrayList<>();
         for (BlockVector2 bv : copyVector) {
-            pasteVector.add(BlockVector2.at(bv.getX() + xTransform, bv.getZ() + zTransform));
+            pasteVector.add(BlockVector2.at(bv.x() + xTransform, bv.z() + zTransform));
         }
 
         Bukkit.getScheduler().runTaskAsynchronously(PlotSystem.getInstance(), () -> {
@@ -396,25 +403,25 @@ public abstract class ReviewAction {
 
     private void updateRole() {
         // Get the plot difficulty and player role.
-        int difficulty = plotSQL.getInt("SELECT difficulty FROM plot_data WHERE id=" + plotID + ";");
-        String builderRole = Roles.builderRole(plotOwner).join();
+        int difficulty = plotAPI.getPlotDifficulty(plotID);
+        String builderRole = roleAPI.getBuilderRole(plotOwner).join();
         LOGGER.info(String.format("Plot owner %s has builder role %s", plotOwner, builderRole));
 
-        //Calculate the role the player will be promoted to, if any.
+        // Calculate the role the player will be promoted to, if any.
         String newRole = getNewRole(difficulty, builderRole);
 
         if (newRole != null) {
-            Role role = Roles.getRoles().stream().filter(r -> r.getId().equals(newRole)).findFirst().orElse(null);
+            Role role = roleAPI.getRoles().stream().filter(r -> r.getId().equals(newRole)).findFirst().orElse(null);
             if (role != null) {
                 DiscordDirectMessage discordDirectMessage = new DiscordDirectMessage(plotOwner, "You have been promoted to **" + role.getName() + "**");
-                Network.getInstance().getChat().sendSocketMesage(discordDirectMessage);
+                chatAPI.sendDiscordDirectMessage(discordDirectMessage);
             } else {
                 LOGGER.warning(String.format("Role %s could not be found, check the Network roles.yml", newRole));
             }
             // Add the new role and remove the old one.
-            String name = Network.getInstance().getGlobalSQL().getString("SELECT name FROM player_data WHERE uuid='" + plotOwner + "';");
-            Roles.alterRole(plotOwner, name, newRole, false, true).join();
-            Roles.alterRole(plotOwner, name, builderRole, true, false).join();
+            String name = globalSQL.getString("SELECT name FROM player_data WHERE uuid='" + plotOwner + "';");
+            roleAPI.alterRole(plotOwner, name, newRole, false, true).join();
+            roleAPI.alterRole(plotOwner, name, builderRole, true, false).join();
         } else {
             LOGGER.info("Plot was accepted but no new role was given.");
         }
@@ -433,10 +440,10 @@ public abstract class ReviewAction {
     }
 
     private void notifyPlotOwnerAccepted() {
-        // Send message to plot owner.
+        // Send a message to the plot owner.
         DirectMessage directMessage = new DirectMessage("global", plotOwner, "server",
                 ChatUtils.success("Plot %s has been accepted.", String.valueOf(plotID)), true);
-        Network.getInstance().getChat().sendSocketMesage(directMessage);
+        chatAPI.sendDirectMessage(directMessage);
 
         StringBuilder discordMessage = new StringBuilder("Plot " + plotID + " has been accepted");
         addFeedbackToDiscordMessage(discordMessage);
@@ -447,8 +454,8 @@ public abstract class ReviewAction {
         DirectMessage directMessage = new DirectMessage("global", plotOwner, "server",
                 ChatUtils.error("Plot %s has been denied, feedback has been provided in the plot menu.", String.valueOf(plotID))
                         .append(ChatUtils.error("\nClick here to view the feedback!")
-                                .clickEvent(ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, String.format("/plot feedback %d", plotID)))), true);
-        Network.getInstance().getChat().sendSocketMesage(directMessage);
+                                .clickEvent(ClickEvent.runCommand(String.format("/plot feedback %d", plotID)))), true);
+        chatAPI.sendDirectMessage(directMessage);
 
         StringBuilder discordMessage = new StringBuilder("Plot " + plotID + " has been denied.");
         addFeedbackToDiscordMessage(discordMessage);
@@ -468,7 +475,7 @@ public abstract class ReviewAction {
         // Split the feedback per 2000 characters if necessary.
         for (int i = 0; i < builder.length(); i += 2000) {
             DiscordDirectMessage discordDirectMessage = new DiscordDirectMessage(plotOwner, builder.substring(i, Math.min(i + 2000, builder.length())));
-            Network.getInstance().getChat().sendSocketMesage(discordDirectMessage);
+            chatAPI.sendDiscordDirectMessage(discordDirectMessage);
         }
     }
 }

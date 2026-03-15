@@ -9,18 +9,16 @@ import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.regions.ProtectedCuboidRegion;
 import com.sk89q.worldguard.protection.regions.ProtectedPolygonalRegion;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
-import net.bteuk.plotsystem.PlotSystem;
+import net.bteuk.network.api.PlotAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
-import static net.bteuk.network.utils.Constants.MAX_Y;
-import static net.bteuk.network.utils.Constants.MIN_Y;
 
 /**
  * This class deals with plot and zone outlines.
@@ -34,11 +32,15 @@ public class Outlines {
 
     final WorldGuard wg;
 
-    public Outlines() {
+    final boolean singleServer;
+
+    public Outlines(boolean singleServer) {
 
         outlineBlockLocations = new HashMap<>();
 
         wg = WorldGuard.getInstance();
+
+        this.singleServer = singleServer;
 
     }
 
@@ -57,7 +59,7 @@ public class Outlines {
         outlineBlockLocations.remove(player);
     }
 
-    public void addPlotOutlineForPlayer(String plotID, Player player) {
+    public void addPlotOutlineForPlayer(String plotID, Player player, PlotAPI plotAPI) {
         BlockLocations blockLocations = outlineBlockLocations.get(player);
         if (blockLocations != null) {
             RegionManager regions = wg.getPlatform().getRegionContainer().get(BukkitAdapter.adapt(player.getWorld()));
@@ -71,7 +73,7 @@ public class Outlines {
             // Get plot difficulty.
             int intPlotID = ParseUtils.toInt(plotID);
             if (intPlotID != 0) {
-                int difficulty = PlotSystem.getInstance().plotSQL.getInt("SELECT difficulty FROM plot_data WHERE id=" + intPlotID + ";");
+                int difficulty = plotAPI.getPlotDifficulty(intPlotID);
                 blockLocations.addOutline(region, difficultyMaterial(difficulty));
             }
         }
@@ -116,8 +118,12 @@ public class Outlines {
      *
      * @param user the user to add outlines for.
      */
-    public void addNearbyOutlines(User user) {
+    public void addNearbyOutlines(User user, PlotAPI plotAPI) {
         Player player = user.player;
+
+        // On single server setup, we do not want to show the WG outlines if not on a plot world.
+        if (singleServer && !plotAPI.hasLocation(player.getWorld().getName()))
+            return;
 
         // If the player does not have a key, add it.
         BlockLocations locations;
@@ -164,7 +170,7 @@ public class Outlines {
             } else {
 
                 // Get plot difficulty.
-                int difficulty = PlotSystem.getInstance().plotSQL.getInt("SELECT difficulty FROM plot_data WHERE id=" + plotID + ";");
+                int difficulty = plotAPI.getPlotDifficulty(plotID);
 
                 locations.addOutline(protectedRegion, difficultyMaterial(difficulty));
 
@@ -183,13 +189,13 @@ public class Outlines {
 
             if (p.getWorld().equals(world)) {
 
-                ProtectedRegion region = new ProtectedPolygonalRegion("test", vector, MIN_Y, (MAX_Y - 1));
+                ProtectedRegion region = new ProtectedPolygonalRegion("test", vector, world.getMinHeight(), (world.getMaxHeight() - 1));
 
                 // Check if they are within 100 blocks of the region min and max point.
-                if (p.getLocation().getX() > (region.getMinimumPoint().getX() - 100) &&
-                        p.getLocation().getZ() > (region.getMinimumPoint().getZ() - 100) &&
-                        p.getLocation().getX() < (region.getMaximumPoint().getX() + 100) &&
-                        p.getLocation().getZ() < (region.getMaximumPoint().getZ() + 100)) {
+                if (p.getLocation().getX() > (region.getMinimumPoint().x() - 100) &&
+                        p.getLocation().getZ() > (region.getMinimumPoint().z() - 100) &&
+                        p.getLocation().getX() < (region.getMaximumPoint().x() + 100) &&
+                        p.getLocation().getZ() < (region.getMaximumPoint().z() + 100)) {
 
                     // If the player does not have a key, add it.
                     BlockLocations locations;
@@ -220,10 +226,10 @@ public class Outlines {
             if (p.getWorld().equals(world)) {
 
                 // Check if they are within 100 blocks of the region min and max point.
-                if (p.getLocation().getX() > (region.getMinimumPoint().getX() - 100) &&
-                        p.getLocation().getZ() > (region.getMinimumPoint().getZ() - 100) &&
-                        p.getLocation().getX() < (region.getMaximumPoint().getX() + 100) &&
-                        p.getLocation().getZ() < (region.getMaximumPoint().getZ() + 100)) {
+                if (p.getLocation().getX() > (region.getMinimumPoint().x() - 100) &&
+                        p.getLocation().getZ() > (region.getMinimumPoint().z() - 100) &&
+                        p.getLocation().getX() < (region.getMaximumPoint().x() + 100) &&
+                        p.getLocation().getZ() < (region.getMaximumPoint().z() + 100)) {
 
                     // Remove the outline.
                     if (outlineBlockLocations.containsKey(p)) {
@@ -260,7 +266,7 @@ public class Outlines {
             locations = addPlayer(player);
         }
 
-        ProtectedRegion region = new ProtectedPolygonalRegion("test", vector, MIN_Y, (MAX_Y - 1));
+        ProtectedRegion region = new ProtectedPolygonalRegion("test", vector, player.getWorld().getMinHeight(), (player.getWorld().getMaxHeight() - 1));
 
         // Add points and draw it.
         locations.addTempOutline(region, block);
@@ -271,7 +277,7 @@ public class Outlines {
     // This is for players drawing outlines with the selectiontool.
     public void removeOutline(Player player, List<BlockVector2> vector) {
 
-        ProtectedRegion region = new ProtectedPolygonalRegion("test", vector, MIN_Y, (MAX_Y - 1));
+        ProtectedRegion region = new ProtectedPolygonalRegion("test", vector, player.getWorld().getMinHeight(), (player.getWorld().getMaxHeight() - 1));
 
         // Remove the outline.
         if (outlineBlockLocations.containsKey(player)) {

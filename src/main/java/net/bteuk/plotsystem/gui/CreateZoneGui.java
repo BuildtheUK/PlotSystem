@@ -1,23 +1,24 @@
 package net.bteuk.plotsystem.gui;
 
-import net.bteuk.network.gui.Gui;
+import net.bteuk.minecraft.gui.Gui;
+import net.bteuk.minecraft.gui.GuiManager;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.utils.Utils;
-import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.User;
+import net.bteuk.plotsystem.utils.Utils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 
 public class CreateZoneGui extends Gui {
 
     private final User user;
 
-    // This gui handles the plot creation process, and will allow the user to set the parameters of the plot.
-    public CreateZoneGui(User user) {
+    // This gui handles the plot creation process and will allow the user to set the parameters of the plot.
+    public CreateZoneGui(GuiManager manager, User user) {
 
-        super(27, Component.text("Create Plot Menu", NamedTextColor.AQUA, TextDecoration.BOLD));
+        super(manager, 27, Component.text("Create Zone Menu", NamedTextColor.AQUA, TextDecoration.BOLD));
 
         this.user = user;
 
@@ -31,39 +32,32 @@ public class CreateZoneGui extends Gui {
         setItem(13, Utils.createItem(Material.DIAMOND, 1,
                         ChatUtils.title("Create Zone"),
                         ChatUtils.line("Click create a new zone with the settings selected.")),
-                u ->
-
-                {
-
-                    User eUser = PlotSystem.getInstance().getUser(u.player);
+                event -> {
+                    Player player = (Player) event.getWhoClicked();
 
                     // Close the inventory.
-                    u.player.closeInventory();
+                    player.closeInventory();
 
-                    // Create plot with the selection created by the user.
-                    eUser.selectionTool.createZone();
+                    // Create a zone with the selection created by the user.
+                    user.selectionTool.createZone();
 
                 });
 
         // Set public/private.
-        if (user.selectionTool.is_public) {
+        if (user.selectionTool.isPublic) {
 
             setItem(11, Utils.createItem(Material.OAK_DOOR, 1,
                             ChatUtils.title("Set the zone to private."),
                             ChatUtils.line("Click to make the zone private."),
                             ChatUtils.line("A private zone means the owner has"),
                             ChatUtils.line("to invite members for them to build.")),
-                    u ->
-
-                    {
-
+                    event -> {
                         // Set private.
-                        user.selectionTool.is_public = false;
+                        user.selectionTool.isPublic = false;
 
                         // Refresh the gui.
                         refresh();
-                        user.player.getOpenInventory().getTopInventory().setContents(getInventory().getContents());
-
+                        this.updatePlayerInventory(user.player);
                     });
 
         } else {
@@ -73,19 +67,14 @@ public class CreateZoneGui extends Gui {
                             ChatUtils.line("Click to make the zone public."),
                             ChatUtils.line("A public zone allows JrBuilder+"),
                             ChatUtils.line("to join without having to request.")),
-                    u ->
-
-                    {
-
+                    event -> {
                         // Set private.
-                        user.selectionTool.is_public = true;
+                        user.selectionTool.isPublic = true;
 
                         // Refresh the gui.
                         refresh();
-                        user.player.getOpenInventory().getTopInventory().setContents(getInventory().getContents());
-
+                        this.updatePlayerInventory(user.player);
                     });
-
         }
 
         // Set expiration time.
@@ -108,7 +97,7 @@ public class CreateZoneGui extends Gui {
 
                     // Refresh the gui.
                     refresh();
-                    user.player.getOpenInventory().getTopInventory().setContents(getInventory().getContents());
+                    this.updatePlayerInventory(user.player);
 
                 });
 
@@ -124,9 +113,7 @@ public class CreateZoneGui extends Gui {
     }
 
     public void refresh() {
-
-        clearGui();
+        this.clear();
         createGui();
-
     }
 }

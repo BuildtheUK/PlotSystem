@@ -1,14 +1,12 @@
 package net.bteuk.plotsystem.commands;
 
+import net.bteuk.network.api.PlotAPI;
+import net.bteuk.network.api.plotsystem.PlotStatus;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.sql.GlobalSQL;
-import net.bteuk.network.sql.PlotSQL;
-import net.bteuk.network.utils.enums.PlotStatus;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.User;
-import net.bteuk.plotsystem.utils.plugins.Multiverse;
 import net.bteuk.plotsystem.utils.plugins.WorldGuardFunctions;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -17,20 +15,20 @@ import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
-
 import static net.bteuk.plotsystem.PlotSystem.LOGGER;
 
 public class DeleteCommand {
 
-    private final GlobalSQL globalSQL;
-    private final PlotSQL plotSQL;
+    private final PlotAPI plotAPI;
 
-    public DeleteCommand(GlobalSQL globalSQL, PlotSQL plotSQL) {
+    private final PlotHelper plotHelper;
 
-        this.globalSQL = globalSQL;
-        this.plotSQL = plotSQL;
+    private final LocationCommand locationCommand;
 
+    public DeleteCommand(PlotAPI plotAPI, PlotHelper plotHelper, LocationCommand locationCommand) {
+        this.plotAPI = plotAPI;
+        this.plotHelper = plotHelper;
+        this.locationCommand = locationCommand;
     }
 
     public void delete(CommandSender sender, String[] args) {
@@ -51,7 +49,7 @@ public class DeleteCommand {
 
             case "location":
 
-                deleteLocation(sender, args);
+                locationCommand.deleteLocation(sender, args);
                 break;
 
             case "zone":
@@ -63,7 +61,6 @@ public class DeleteCommand {
                 sender.sendMessage(ChatUtils.error("/plotsystem delete [plot, location, zone]"));
 
         }
-
     }
 
     private void deletePlot(CommandSender sender, String[] args) {
@@ -122,18 +119,18 @@ public class DeleteCommand {
         }
 
         // Check if plot exists.
-        if (!plotSQL.hasRow("SELECT id FROM plot_data WHERE id=" + plotID + ";")) {
+        if (!plotAPI.plotExists(plotID)) {
             sender.sendMessage(ChatUtils.error("This plot does not exist."));
         }
 
-        // Check if plot is unclaimed
-        if (!(plotSQL.hasRow("SELECT id FROM plot_data WHERE id=" + plotID + " AND status='unclaimed'"))) {
+        // Check if the plot is unclaimed
+        if (!(plotAPI.isPlotUnclaimed(plotID))) {
             sender.sendMessage(ChatUtils.error("This plot is claimed, you can only delete unclaimed plots."));
             return;
         }
 
         // Get world of plot.
-        World world = Bukkit.getWorld(plotSQL.getString("SELECT location FROM plot_data WHERE id=" + plotID + ";"));
+        World world = Bukkit.getWorld(plotAPI.getPlotLocation(plotID));
 
         // If world is null then the plot is not on this server.
         if (world == null) {
@@ -146,7 +143,7 @@ public class DeleteCommand {
             if (WorldGuardFunctions.delete(String.valueOf(plotID), world)) {
 
                 // Set plot to deleted.
-                PlotHelper.updatePlotStatus(plotID, PlotStatus.DELETED);
+                plotHelper.updatePlotStatus(plotID, PlotStatus.DELETED);
                 sender.sendMessage(ChatUtils.success("Plot ")
                         .append(Component.text(plotID, NamedTextColor.DARK_AQUA))
                         .append(ChatUtils.success(" deleted.")));
@@ -160,82 +157,6 @@ public class DeleteCommand {
         } catch (RegionManagerNotFoundException e) {
             sender.sendMessage(ChatUtils.error("An error occurred while deleting the plot, please contact an admin."));
             e.printStackTrace();
-        }
-    }
-
-    private void deleteLocation(CommandSender sender, String[] args) {
-
-        // If sender is a player, check for permission.
-        if (sender instanceof Player p) {
-
-            if (!(p.hasPermission("uknet.plots.delete.location"))) {
-                p.sendMessage(ChatUtils.error("You do not have permission to use this command."));
-                return;
-            }
-
-        }
-
-        // Check arg count.
-        if (args.length < 3) {
-
-            sender.sendMessage(ChatUtils.error("/plotsystem delete location [name]"));
-            return;
-
-        }
-
-        // Check if location exists.
-        if (!(plotSQL.hasRow("SELECT name FROM location_data WHERE name='" + args[2] + "';"))) {
-
-            sender.sendMessage(ChatUtils.error("The location ")
-                    .append(Component.text(args[2], NamedTextColor.DARK_RED))
-                    .append(ChatUtils.error(" does not exist.")));
-            return;
-
-        }
-
-        // Check if the location is on this server.
-        if (!(plotSQL.getString("SELECT server FROM location_data WHERE name='" + args[2] + "';").equals(PlotSystem.SERVER_NAME))) {
-
-            sender.sendMessage(ChatUtils.error("This location is not on this server."));
-            return;
-
-        }
-
-        // If location has plots, cancel.
-        if (plotSQL.hasRow("SELECT id FROM plot_data WHERE location='" + args[2] + "' AND status<>'completed' AND status<>'deleted';")) {
-
-            sender.sendMessage(ChatUtils.error("This location active has plots, all plots must be deleted or completed to remove the location."));
-            return;
-
-        }
-
-        // Delete location.
-        if (Multiverse.deleteWorld(args[2])) {
-
-            // Delete location from database.
-            plotSQL.update("DELETE FROM location_data WHERE name='" + args[2] + "';");
-            sender.sendMessage(ChatUtils.success("Deleted location ")
-                    .append(Component.text(args[2], NamedTextColor.DARK_AQUA)));
-            LOGGER.info("Deleted location " + args[2] + ".");
-
-            // Get regions from database.
-            ArrayList<String> regions = plotSQL.getStringList("SELECT region FROM regions WHERE location='" + args[2] + "';");
-
-            // Delete regions from database.
-            plotSQL.update("DELETE FROM regions WHERE location='" + args[2] + "';");
-
-            // Iterate through regions to unlock them on Earth.
-            for (String region : regions) {
-                globalSQL.update("INSERT INTO server_events(uuid,type,server,event) VALUES(NULL,'network','"
-                        + globalSQL.getString("SELECT name FROM server_data WHERE type='earth';") + "'," +
-                        "'region set default " + region + "');");
-            }
-
-        } else {
-
-            sender.sendMessage(ChatUtils.error("An error occurred while deleting the world."));
-            LOGGER.warning("An error occurred while deleting world " + args[2] + ".");
-
         }
     }
 }

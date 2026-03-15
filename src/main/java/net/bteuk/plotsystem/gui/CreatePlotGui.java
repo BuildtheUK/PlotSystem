@@ -1,71 +1,67 @@
 package net.bteuk.plotsystem.gui;
 
-import net.bteuk.network.gui.Gui;
+import net.bteuk.minecraft.gui.Gui;
+import net.bteuk.minecraft.gui.GuiManager;
 import net.bteuk.network.lib.utils.ChatUtils;
-import net.bteuk.network.utils.Utils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.PlotValues;
 import net.bteuk.plotsystem.utils.User;
+import net.bteuk.plotsystem.utils.Utils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
+
+import java.util.Objects;
 
 public class CreatePlotGui extends Gui {
 
     private final User user;
 
     // This gui handles the plot creation process, and will allow the user to set the parameters of the plot.
-    public CreatePlotGui(User user) {
+    public CreatePlotGui(GuiManager manager, User user) {
 
-        super(27, Component.text("Create Plot Menu", NamedTextColor.AQUA, TextDecoration.BOLD));
+        super(manager, 27, Component.text("Create Plot Menu", NamedTextColor.AQUA, TextDecoration.BOLD));
 
         this.user = user;
 
         createGui();
-
     }
 
     private void createGui() {
 
         // Choose plot size.
-        setItem(11, Utils.createItem(PlotValues.sizeMaterial(user.selectionTool.size), 1,
-                        ChatUtils.title(PlotValues.sizeName(user.selectionTool.size)),
+        setItem(11, Utils.createItem(Objects.requireNonNull(PlotValues.sizeMaterial(user.selectionTool.size)), 1,
+                        ChatUtils.title(Objects.requireNonNull(PlotValues.sizeName(user.selectionTool.size))),
                         ChatUtils.line("Click to cycle through sizes.")),
-                u ->
-
-                {
+                event -> {
+                    Player player = (Player) event.getWhoClicked();
 
                     // Get an instance of the plotsystem user.
-                    User eUser = PlotSystem.getInstance().getUser(u.player);
+                    User eUser = PlotSystem.getInstance().getUser(player);
 
                     // Change the size by 1.
                     // If less than 3 (large) increase by 1, else return to 1.
                     if (eUser.selectionTool.size == 3) {
-
                         eUser.selectionTool.size = 1;
-
                     } else {
-
                         eUser.selectionTool.size++;
-
                     }
 
                     // Update the gui.
                     refresh();
-                    u.player.getOpenInventory().getTopInventory().setContents(getInventory().getContents());
-
+                    updatePlayerInventory(player);
                 });
 
         // Choose plot difficulty.
-        setItem(15, Utils.createItem(PlotValues.difficultyMaterial(user.selectionTool.difficulty), 1,
-                        ChatUtils.title(PlotValues.difficultyName(user.selectionTool.difficulty)),
+        setItem(15, Utils.createItem(Objects.requireNonNull(PlotValues.difficultyMaterial(user.selectionTool.difficulty)), 1,
+                        ChatUtils.title(Objects.requireNonNull(PlotValues.difficultyName(user.selectionTool.difficulty))),
                         ChatUtils.line("Click to cycle through different difficulties.")),
-                u ->
+                event -> {
+                    Player player = (Player) event.getWhoClicked();
 
-                {
-
-                    User eUser = PlotSystem.getInstance().getUser(u.player);
+                    User eUser = PlotSystem.getInstance().getUser(player);
 
                     // Change the difficulty by 1.
                     // If less than 3 (hard) increase by 1, else return to 1.
@@ -81,22 +77,20 @@ public class CreatePlotGui extends Gui {
 
                     // Update the gui.
                     refresh();
-                    u.player.getOpenInventory().getTopInventory().setContents(getInventory().getContents());
-
+                    updatePlayerInventory(player);
                 });
 
         // Create plot.
         setItem(13, Utils.createItem(Material.DIAMOND, 1,
                         ChatUtils.title("Create Plot"),
                         ChatUtils.line("Click create a new plot with the settings selected.")),
-                u ->
+                event -> {
+                    Player player = (Player) event.getWhoClicked();
 
-                {
-
-                    User eUser = PlotSystem.getInstance().getUser(u.player);
+                    User eUser = PlotSystem.getInstance().getUser(player);
 
                     // Close the inventory.
-                    u.player.closeInventory();
+                    player.closeInventory();
 
                     // Create plot with the selection created by the user.
                     eUser.selectionTool.createPlot();
@@ -116,9 +110,7 @@ public class CreatePlotGui extends Gui {
     }
 
     public void refresh() {
-
-        clearGui();
+        this.clear();
         createGui();
-
     }
 }
