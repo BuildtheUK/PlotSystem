@@ -61,7 +61,7 @@ public class ResetCommand {
         }
 
         if (args.length < 2) {
-            sender.sendMessage(ChatUtils.error("/plotsystem reset plot <plotID>"));
+            sender.sendMessage(ChatUtils.error("/plotsystem reset plot"));
             return;
         }
 
