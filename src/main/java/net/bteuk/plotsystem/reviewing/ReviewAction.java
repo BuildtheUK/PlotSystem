@@ -2,8 +2,8 @@ package net.bteuk.plotsystem.reviewing;
 
 import com.sk89q.worldedit.math.BlockVector2;
 import lombok.Getter;
-import net.bteuk.minecraft.gui.Gui;
-import net.bteuk.minecraft.gui.GuiManager;
+import org.btuk.minecraft.gui.Gui;
+import org.btuk.minecraft.gui.GuiManager;
 import net.bteuk.network.api.ChatAPI;
 import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.api.PlotAPI;

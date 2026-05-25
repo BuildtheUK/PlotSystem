@@ -1,34 +1,23 @@
 package net.bteuk.plotsystem.utils;
 
-import com.sk89q.worldedit.math.BlockVector2;
 import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.plugins.WGCreatePlot;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.block.Block;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.inventory.PlayerInventory;
+import org.btuk.minecraft.selection.EditableSelection;
+import org.btuk.outlines.geometry.IntPoint2d;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class SelectionTool extends WGCreatePlot {
 
-    public final BlockData outlineBlock = Material.LIGHT_BLUE_CONCRETE.createBlockData();
-    public final BlockData limeConc = Material.LIME_CONCRETE.createBlockData();
-    public final BlockData yellowConc = Material.YELLOW_CONCRETE.createBlockData();
-    public final BlockData redConc = Material.RED_CONCRETE.createBlockData();
+    private final EditableSelection editableSelection;
+
     // Stores a reference to the user for simplicity.
     private final User u;
-    // This vector of BlockVector2 (2d points (x,z)) represent the selected points.
-    private final ArrayList<BlockVector2> vector;
-    // Outlines
-    private final Outlines outlines;
 
     // Size and difficulty of the plot.
     // Represented by integer values of 1-3.
@@ -40,17 +29,15 @@ public class SelectionTool extends WGCreatePlot {
     // Zones settings.
     public int hours;
     public boolean isPublic;
-    // The world where the selection is being made.
-    private World world;
-    // The location (plot system location) where the plot is.
-    private String location;
     // Area of the plot (m^2).
     private int area;
 
-    public SelectionTool(User u, NetworkAPI networkAPI, PlotHelper plotHelper) {
+    public SelectionTool(User u, NetworkAPI networkAPI, PlotHelper plotHelper, EditableSelection editableSelection) {
         super(networkAPI, plotHelper);
+
+        this.editableSelection = editableSelection;
+
         this.u = u;
-        vector = new ArrayList<>();
 
         // Set default size and difficulty
         size = 1;
@@ -58,143 +45,19 @@ public class SelectionTool extends WGCreatePlot {
 
         hours = 2;
         isPublic = false;
-
-        outlines = PlotSystem.getInstance().getOutlines();
-    }
-
-    // Clear the selection.
-    // This is executed when the player starts a new selection (by left-clicking with the selection tool), or when the player creates a plot.
-    public void clear() {
-
-        world = null;
-        location = null;
-
-        size = 1;
-        difficulty = 1;
-
-        hours = 2;
-        isPublic = false;
-
-        // Remove outline blocks based on the previous selection.
-        clearOutlines();
-
-        vector.clear();
-
-    }
-
-    // Remove old outlines based on the vector.
-    private void clearOutlines() {
-
-        // Remove outline blocks based on the previous selection.
-        if (vector.size() == 1) {
-
-            // Remove the single point.
-            outlines.removePoint(u.player, vector.getFirst());
-
-        } else if (vector.size() == 2) {
-
-            // Remove the line.
-            outlines.removeLine(u.player, vector.get(0), vector.get(1));
-
-        } else if (vector.size() > 2) {
-
-            // Remove the outline.
-            outlines.removeOutline(u.player, vector);
-
-        }
-    }
-
-    // Starts a new selection with the selection tool, represents left-clicking.
-    public void startSelection(Block block, String location) {
-
-        // Since this is the start of a selection make sure the vector is empty.
-        clear();
-
-        // Set the world.
-        world = block.getWorld();
-
-        // Get the x,z of the block clicked and store it in the vector.
-        BlockVector2 bv2 = BlockVector2.at(block.getX(), block.getZ());
-        vector.add(bv2);
-
-        Bukkit.getScheduler().scheduleSyncDelayedTask(PlotSystem.getInstance(),
-                () -> outlines.addPoint(u.player, bv2, outlineBlock), 1L);
-
-        // Set the location.
-        this.location = location;
-
-    }
-
-    // Add a point to the selection, represents right-clicking.
-    public boolean addPoint(Block block) {
-
-        // Create the blockvector2.
-        BlockVector2 bv2 = BlockVector2.at(block.getX(), block.getZ());
-
-        // If the distance in a plot exceeds 500 blocks it's too large.
-        // Send an error message to the player.
-        if (bv2.distance(vector.get(0)) > 500) {
-
-            u.player.sendMessage(ChatUtils.error("This point is over 500 blocks from the first point, please make the selection smaller."));
-            return false;
-
-        } else {
-
-            // Clear previous selection outline.
-            clearOutlines();
-
-            vector.add(bv2);
-
-            // Create new outline.
-            // Adding a point already means at least 2 points, so we can ignore the 1 point case.
-            if (vector.size() == 2) {
-                Bukkit.getScheduler().scheduleSyncDelayedTask(PlotSystem.getInstance(),
-                        () -> outlines.addLine(u.player, vector.getFirst(), vector.get(1), outlineBlock), 1L);
-            } else {
-                Bukkit.getScheduler().scheduleSyncDelayedTask(PlotSystem.getInstance(),
-                        () -> outlines.addOutline(u.player, vector, outlineBlock), 1L);
-            }
-
-            return true;
-
-        }
     }
 
     public void giveSelectionTool() {
-
-        // Get the player inventory and check whether they already have the selection tool.
-        PlayerInventory i = u.player.getInventory();
-
-        // Check if the player already has the selection tool in their inventory.
-        if (i.contains(PlotSystem.selectionTool)) {
-
-            // Get the selection tool from their inventory and swap it with the item in their hand.
-            i.setItem(i.first(PlotSystem.selectionTool), i.getItemInMainHand());
-            i.setItemInMainHand(PlotSystem.selectionTool);
-
-            u.player.sendMessage(ChatUtils.success("Switched to selection tool from inventory."));
-
-        } else {
-
-            // If they don't have the selection tool already set it in their main hand.
-            i.setItemInMainHand(PlotSystem.selectionTool);
-
-            u.player.sendMessage(ChatUtils.success("Set selection tool to main hand."));
-
-        }
+        editableSelection.giveSelectionTool(u.player);
     }
 
     // Return number of elements in vector.
     public int size() {
-
-        return vector.size();
-
-    }
-
-    public World world() {
-
-        return world;
-
+        List<IntPoint2d> selection = editableSelection.getPlayerSelection(u.player.getUniqueId());
+        if (selection == null) {
+            return 0;
+        }
+        return selection.size();
     }
 
     // Sets the area of the selection.
@@ -207,15 +70,16 @@ public class SelectionTool extends WGCreatePlot {
 
         int sum = 0;
 
-        for (int i = 0; i < size(); i++) {
+        List<IntPoint2d> selection = editableSelection.getPlayerSelection(u.player.getUniqueId());
+        for (int i = 0; i < selection.size(); i++) {
 
             if (i == (size() - 1)) {
 
-                sum += (((vector.get(i).z() + vector.getFirst().z()) / 2) * (vector.getFirst().x() - vector.get(i).x()));
+                sum += (((selection.get(i).z() + selection.getFirst().z()) / 2) * (selection.getFirst().x() - selection.get(i).x()));
 
             } else {
 
-                sum += (((vector.get(i).z() + vector.get(i + 1).z()) / 2) * (vector.get(i + 1).x() - vector.get(i).x()));
+                sum += (((selection.get(i).z() + selection.get(i + 1).z()) / 2) * (selection.get(i + 1).x() - selection.get(i).x()));
 
             }
         }
@@ -246,15 +110,20 @@ public class SelectionTool extends WGCreatePlot {
     // This will make sure the difficulty and size are set.
     public void createPlot() {
 
-        // Create the plot.
-        if (createPlot(u.player, world, location, vector, size, difficulty)) {
+        List<IntPoint2d> selection = editableSelection.getPlayerSelection(u.player.getUniqueId());
+        if (selection == null) {
+            return;
+        }
 
-            int xTransform = plotAPI.getXTransform(location);
-            int zTransform = plotAPI.getZTransform(location);
+        // Create the plot.
+        if (createPlot(u.player, u.player.getWorld(), u.player.getWorld().getName(), selection, size, difficulty)) {
+
+            int xTransform = plotAPI.getXTransform(u.player.getWorld().getName());
+            int zTransform = plotAPI.getZTransform(u.player.getWorld().getName());
 
             // Store the plot corners with coordinate transform.
             int i = 1;
-            for (BlockVector2 point : vector) {
+            for (IntPoint2d point : selection) {
                 plotAPI.createPlotCorner(plotID, i, (point.x() - xTransform), (point.z() - zTransform));
                 i++;
             }
@@ -269,13 +138,6 @@ public class SelectionTool extends WGCreatePlot {
             PlotSystem.LOGGER.info("Plot created with ID " + plotID +
                     ", difficulty " + PlotValues.difficultyName(difficulty) +
                     " and size " + PlotValues.sizeName(size));
-
-            // Clear previous blocks.
-            clearOutlines();
-
-            // Change plot outline to blockType of plot, rather than of selection.
-            outlines.addOutline(vector, world, difficultyMaterial(difficulty));
-
         }
     }
 
@@ -283,17 +145,22 @@ public class SelectionTool extends WGCreatePlot {
     // This will make sure public/private and expiration time has been set.
     public void createZone() {
 
+        List<IntPoint2d> selection = editableSelection.getPlayerSelection(u.player.getUniqueId());
+        if (selection == null) {
+            return;
+        }
+
         long expiration = System.currentTimeMillis() + (hours * 1000L * 60L * 60L);
 
         // Create the zone.
-        if (createZone(u.player, world, location, vector, expiration, isPublic)) {
+        if (createZone(u.player, u.player.getWorld(), u.player.getWorld().getName(), selection, expiration, isPublic)) {
 
             // Add owner.
             plotAPI.createZoneOwner(plotID, u.player.getUniqueId().toString());
 
             // Store zone bounds.
             int i = 1;
-            for (BlockVector2 point : vector) {
+            for (IntPoint2d point : selection) {
                 plotAPI.createZoneCorner(plotID, i, point.x(), point.z());
                 i++;
             }
@@ -306,24 +173,6 @@ public class SelectionTool extends WGCreatePlot {
                     .append(ChatUtils.success(", this can be extended in the Zone Menu.")));
             PlotSystem.LOGGER.info("Zone created with ID " + plotID +
                     ", it will expire at " + Utils.getDateTime(expiration));
-
-            // Clear previous blocks.
-            clearOutlines();
-
-            // Change plot outline to blockType of plot, rather than of selection.
-            outlines.addOutline(vector, world, Material.PURPLE_CONCRETE.createBlockData());
-
         }
-    }
-
-    // Returns the plot difficulty material.
-    public BlockData difficultyMaterial(int difficulty) {
-
-        return switch (difficulty) {
-            case 1 -> limeConc;
-            case 2 -> yellowConc;
-            case 3 -> redConc;
-            default -> null;
-        };
     }
 }

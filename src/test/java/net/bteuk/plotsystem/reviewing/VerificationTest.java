@@ -1,6 +1,6 @@
 package net.bteuk.plotsystem.reviewing;
 
-import net.bteuk.minecraft.gui.GuiManager;
+import org.btuk.minecraft.gui.GuiManager;
 import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.plotsystem.ReviewCategory;

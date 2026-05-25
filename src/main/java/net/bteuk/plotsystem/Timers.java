@@ -5,6 +5,7 @@ import net.bteuk.plotsystem.utils.Inactive;
 import net.bteuk.plotsystem.utils.Outlines;
 import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.User;
+import org.btuk.outlines.particles.DrawParticles;
 
 import java.util.List;
 
@@ -16,12 +17,20 @@ public final class Timers {
         // Private constructor
     }
 
-    public static void registerTimers(NetworkAPI networkAPI, PlotHelper plotHelper, Outlines outlines, List<User> users) {
+    public static void registerTimers(NetworkAPI networkAPI, PlotHelper plotHelper, Outlines outlines, List<User> users, org.btuk.outlines.Outlines outlineManager) {
 
         if (registered) {
             PlotSystem.LOGGER.warning("Timers already registered!");
             return;
         }
+
+        networkAPI.getTimerAPI().registerTimer(() -> {
+            for (User u : users) {
+                for (org.btuk.outlines.geometry.Outline outline : outlineManager.getPlayerOutlines(u.player.getUniqueId())) {
+                    DrawParticles.drawOutline(u.player, outline);
+                }
+            }
+        }, 250L);
 
         // 1-second timer.
         // Update plot and zone outlines.
@@ -52,7 +61,6 @@ public final class Timers {
                     }
 
                 }
-
             }
         }, 1000L);
 

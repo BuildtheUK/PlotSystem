@@ -1,6 +1,6 @@
 package net.bteuk.plotsystem.commands;
 
-import net.bteuk.minecraft.gui.GuiManager;
+import org.btuk.minecraft.gui.GuiManager;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.plotsystem.PlotSystem;

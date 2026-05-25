@@ -18,8 +18,8 @@
 
         <paper.api.version>1.21.10-R0.1-SNAPSHOT</paper.api.version>
 
-        <bteuk.network.version>develop-d213a081ad-1</bteuk.network.version>
-        <bteuk.lib.version>5958727df9</bteuk.lib.version>
+        <btuk.network.version>develop-d213a081ad-1</btuk.network.version>
+        <btuk.lib.version>620cf0c138</btuk.lib.version>
 
         <kyori.version>4.26.1</kyori.version>
         <multiverse.version>5.3.3</multiverse.version>
@@ -135,19 +135,30 @@
         <dependency>
             <groupId>com.github.BTEUK.Network</groupId>
             <artifactId>api</artifactId>
-            <version>${bteuk.network.version}</version>
+            <version>${btuk.network.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.github.BTEUK.Network</groupId>
             <artifactId>papercore</artifactId>
-            <version>${bteuk.network.version}</version>
+            <version>${btuk.network.version}</version>
             <scope>provided</scope>
         </dependency>
+
         <dependency>
-            <groupId>com.github.BTEUK.BTEUKLib</groupId>
+            <groupId>com.github.BuildtheUK.BTUKLib</groupId>
             <artifactId>Minecraft</artifactId>
-            <version>${bteuk.lib.version}</version>
+            <version>${btuk.lib.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.BuildtheUK.BTUKLib</groupId>
+            <artifactId>Outlines</artifactId>
+            <version>${btuk.lib.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.BuildtheUK.BTUKLib</groupId>
+            <artifactId>Holograms</artifactId>
+            <version>${btuk.lib.version}</version>
         </dependency>
 
         <dependency>

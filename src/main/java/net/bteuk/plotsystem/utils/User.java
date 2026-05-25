@@ -8,6 +8,7 @@ import net.bteuk.plotsystem.gui.ClaimGui;
 import net.bteuk.plotsystem.gui.CreatePlotGui;
 import net.bteuk.plotsystem.gui.CreateZoneGui;
 import net.bteuk.plotsystem.reviewing.ReviewAction;
+import org.btuk.minecraft.selection.EditableSelection;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
@@ -43,7 +44,7 @@ public class User {
     @Setter
     private boolean disableOutlines;
 
-    public User(Player player, NetworkAPI networkAPI, PlotHelper plotHelper) {
+    public User(Player player, NetworkAPI networkAPI, PlotHelper plotHelper, EditableSelection editableSelection) {
 
         // Set player, uuid and name variable.
         this.player = player;
@@ -51,7 +52,7 @@ public class User {
         name = player.getName();
 
         // Set selection tool, only players with the valid roles can use it.
-        selectionTool = new SelectionTool(this, networkAPI, plotHelper);
+        selectionTool = new SelectionTool(this, networkAPI, plotHelper, editableSelection);
 
         // Set last location to current location.
         lastLocation = player.getLocation();

@@ -1,7 +1,7 @@
 package net.bteuk.plotsystem.reviewing;
 
 import lombok.Getter;
-import net.bteuk.minecraft.gui.GuiManager;
+import org.btuk.minecraft.gui.GuiManager;
 import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.api.plotsystem.SubmittedStatus;
 import net.bteuk.network.lib.dto.PlotMessage;

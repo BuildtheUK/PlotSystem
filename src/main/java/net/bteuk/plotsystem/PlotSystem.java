@@ -4,8 +4,6 @@ import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import lombok.Getter;
-import net.bteuk.minecraft.gui.GuiListener;
-import net.bteuk.minecraft.gui.GuiManager;
 import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.plotsystem.commands.ClaimCommand;
@@ -29,7 +27,6 @@ import net.bteuk.plotsystem.listeners.ClaimEnter;
 import net.bteuk.plotsystem.listeners.CloseInventory;
 import net.bteuk.plotsystem.listeners.HologramClickEvent;
 import net.bteuk.plotsystem.listeners.JoinServer;
-import net.bteuk.plotsystem.listeners.PlayerInteract;
 import net.bteuk.plotsystem.listeners.QuitServer;
 import net.bteuk.plotsystem.utils.Config;
 import net.bteuk.plotsystem.utils.Outlines;
@@ -37,6 +34,10 @@ import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.PlotHologram;
 import net.bteuk.plotsystem.utils.User;
 import net.bteuk.plotsystem.utils.plugins.Multiverse;
+import org.btuk.holograms.HologramManager;
+import org.btuk.minecraft.gui.GuiListener;
+import org.btuk.minecraft.gui.GuiManager;
+import org.btuk.minecraft.selection.EditableSelection;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
@@ -82,6 +83,8 @@ public class PlotSystem extends JavaPlugin {
     private GuiManager guiManager;
 
     private PlotHelper plotHelper;;
+
+    private EditableSelection editableSelection;
 
     @Override
     public void onEnable() {
@@ -170,10 +173,14 @@ public class PlotSystem extends JavaPlugin {
         meta.displayName(ChatUtils.success("Selection Tool"));
         selectionTool.setItemMeta(meta);
 
+        org.btuk.outlines.Outlines outlineManager = new org.btuk.outlines.Outlines();
+        HologramManager hologramManager = new HologramManager(this);
+
+        editableSelection = new EditableSelection(this, selectionTool, outlineManager, hologramManager);
+
         // Listeners
-        new JoinServer(this, networkAPI, plotHelper);
+        new JoinServer(this, networkAPI, plotHelper, editableSelection);
         new QuitServer(this);
-        new PlayerInteract(instance, networkAPI.getPlotAPI());
         new CloseInventory(this);
 
         // Events
@@ -210,7 +217,7 @@ public class PlotSystem extends JavaPlugin {
         active_plots.forEach(plot -> plotHelper.addPlotHologram(new PlotHologram(plot, networkAPI.getPlotAPI(), networkAPI.getCoordinateAPI())));
 
         // Setup Timers
-        Timers.registerTimers(networkAPI, plotHelper, outlines, users);
+        Timers.registerTimers(networkAPI, plotHelper, outlines, users, outlineManager);
     }
 
     public void onDisable() {

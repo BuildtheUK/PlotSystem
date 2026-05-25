@@ -14,6 +14,7 @@ import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.papercore.LocationAdapter;
 import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.PlotHologram;
+import org.btuk.outlines.geometry.IntPoint2d;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -44,7 +45,7 @@ public class WGCreatePlot {
     }
 
     // Create a plot with the current selection.
-    public boolean createPlot(Player p, World world, String location, List<BlockVector2> vector, int size, int difficulty) {
+    public boolean createPlot(Player p, World world, String location, List<IntPoint2d> vector, int size, int difficulty) {
 
         // Get an instance of WorldGuard.
         WorldGuard wg = WorldGuard.getInstance();
@@ -56,7 +57,7 @@ public class WGCreatePlot {
         }
 
         // Create a region to test.
-        ProtectedPolygonalRegion region = new ProtectedPolygonalRegion("test", vector, networkAPI.getMinY(), (networkAPI.getMaxY() - 1));
+        ProtectedPolygonalRegion region = new ProtectedPolygonalRegion("test", vector.stream().map(point -> BlockVector2.at(point.x(), point.z())).toList(), networkAPI.getMinY(), (networkAPI.getMaxY() - 1));
 
         // Check whether the region overlaps an existing plot, if true stop the process.
         ApplicableRegionSet set = regions.getApplicableRegions(region);
@@ -85,7 +86,7 @@ public class WGCreatePlot {
         plotHelper.addPlotHologram(new PlotHologram(plotID, plotAPI, coordinateAPI));
 
         // Create the region with valid name.
-        region = new ProtectedPolygonalRegion(String.valueOf(plotID), vector, networkAPI.getMinY(), (networkAPI.getMaxY() - 1));
+        region = new ProtectedPolygonalRegion(String.valueOf(plotID), vector.stream().map(point -> BlockVector2.at(point.x(), point.z())).toList(), networkAPI.getMinY(), (networkAPI.getMaxY() - 1));
 
         // Add the regions to the world
         regions.addRegion(region);
@@ -102,7 +103,7 @@ public class WGCreatePlot {
     }
 
     // Create a zone with the current selection.
-    public boolean createZone(Player p, World world, String location, List<BlockVector2> vector, long expiration, boolean isPublic) {
+    public boolean createZone(Player p, World world, String location, List<IntPoint2d> vector, long expiration, boolean isPublic) {
 
         // Get an instance of WorldGuard.
         WorldGuard wg = WorldGuard.getInstance();
@@ -114,7 +115,7 @@ public class WGCreatePlot {
         }
 
         // Create a region to test.
-        ProtectedPolygonalRegion region = new ProtectedPolygonalRegion("test", vector, networkAPI.getMinY(), (networkAPI.getMaxY() - 1));
+        ProtectedPolygonalRegion region = new ProtectedPolygonalRegion("test", vector.stream().map(point -> BlockVector2.at(point.x(), point.z())).toList(), networkAPI.getMinY(), (networkAPI.getMaxY() - 1));
 
         // Check whether the region overlaps an existing plot, if true stop the process.
         ApplicableRegionSet set = regions.getApplicableRegions(region);
@@ -129,7 +130,7 @@ public class WGCreatePlot {
         plotID = plotAPI.createZone(location, expiration, isPublic);
 
         // Create the region with valid name.
-        region = new ProtectedPolygonalRegion("z" + plotID, vector, networkAPI.getMinY(), (networkAPI.getMaxY() - 1));
+        region = new ProtectedPolygonalRegion("z" + plotID, vector.stream().map(point -> BlockVector2.at(point.x(), point.z())).toList(), networkAPI.getMinY(), (networkAPI.getMaxY() - 1));
 
         // Add the owner to the region.
         region.getMembers().addPlayer(p.getUniqueId());
