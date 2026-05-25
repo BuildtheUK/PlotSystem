@@ -408,6 +408,7 @@ public class WorldGuardFunctions {
         flags.put(Flags.MOB_SPAWNING, StateFlag.State.DENY);
         flags.put(Flags.RESPAWN_ANCHORS, StateFlag.State.DENY);
         flags.put(Flags.FIREWORK_DAMAGE, StateFlag.State.DENY);
+        flags.put(Flags.ITEM_DROP, StateFlag.State.DENY);
 
         globalRegion.setFlags(flags);
 
