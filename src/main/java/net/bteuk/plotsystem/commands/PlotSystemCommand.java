@@ -33,7 +33,7 @@ import static net.bteuk.plotsystem.PlotSystem.LOGGER;
 
 public class PlotSystemCommand implements BasicCommand {
 
-    private static final List<String> options = List.of("create", "selectiontool", "delete", "help", "setalias", "movemarker", "update", "updateflags");
+    private static final List<String> options = List.of("create", "selectiontool", "delete", "help", "setalias", "movemarker", "update", "updateflags", "reset");
 
     private final PlotAPI plotAPI;
 

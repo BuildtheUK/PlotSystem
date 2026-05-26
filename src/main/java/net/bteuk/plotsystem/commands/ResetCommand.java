@@ -6,6 +6,7 @@ import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.User;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
@@ -18,6 +19,8 @@ import java.util.UUID;
 import static net.bteuk.plotsystem.PlotSystem.SERVER_NAME;
 
 public class ResetCommand {
+
+    private static final Component USAGE = ComponentUtils.error("/plotsystem reset plot");
 
     private final Map<UUID, Integer> plotsToReset = new HashMap<>();
 
@@ -38,14 +41,14 @@ public class ResetCommand {
     public void reset(CommandSender sender, String[] args) {
 
         if (args.length < 2) {
-            sender.sendMessage("Usage: /plotsystem reset plot");
+            sender.sendMessage(USAGE);
             return;
         }
 
         switch (args[1].toLowerCase()) {
             case "plot" -> resetPlot(sender, args);
             case "confirm" -> confirmReset(sender);
-            default -> sender.sendMessage("Usage: /plotsystem reset plot");
+            default -> sender.sendMessage(USAGE);
         }
     }
 
@@ -61,7 +64,7 @@ public class ResetCommand {
         }
 
         if (args.length < 2) {
-            sender.sendMessage(ChatUtils.error("/plotsystem reset plot"));
+            sender.sendMessage(USAGE);
             return;
         }
 
@@ -108,7 +111,8 @@ public class ResetCommand {
             return;
         }
 
-        plotsToReset.put(player.getUniqueId(), plotID);
+        Integer previousTimeout = plotsToReset.put(player.getUniqueId(), plotID);
+        cancelTimeoutTask(previousTimeout);
         sender.sendMessage(ComponentUtils.success("To confirm the reset, type %s within 30 seconds.", "/plotsystem reset confirm"));
         addTimeout(player.getUniqueId());
     }
@@ -141,10 +145,14 @@ public class ResetCommand {
         int taskId = plotSystem.getServer().getScheduler().scheduleSyncDelayedTask(plotSystem, () -> {
             plotsToReset.remove(playerUuid);
             resetTimeouts.remove(playerUuid);
-        });
+        }, 600L /* 30 seconds */);
         Integer timeoutTask = resetTimeouts.put(playerUuid, taskId);
-        if (timeoutTask != null) {
-            plotSystem.getServer().getScheduler().cancelTask(timeoutTask);
+        cancelTimeoutTask(timeoutTask);
+    }
+
+    private void cancelTimeoutTask(Integer taskId) {
+        if (taskId != null) {
+            plotSystem.getServer().getScheduler().cancelTask(taskId);
         }
     }
 }
