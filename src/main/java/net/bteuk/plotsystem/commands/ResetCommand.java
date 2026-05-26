@@ -111,8 +111,7 @@ public class ResetCommand {
             return;
         }
 
-        Integer previousTimeout = plotsToReset.put(player.getUniqueId(), plotID);
-        cancelTimeoutTask(previousTimeout);
+        plotsToReset.put(player.getUniqueId(), plotID);
         sender.sendMessage(ComponentUtils.success("To confirm the reset, type %s within 30 seconds.", "/plotsystem reset confirm"));
         addTimeout(player.getUniqueId());
     }
@@ -128,11 +127,13 @@ public class ResetCommand {
             return;
         }
 
-        Integer plotID = plotsToReset.get(player.getUniqueId());
+        Integer plotID = plotsToReset.remove(player.getUniqueId());
         if (plotID == null) {
             player.sendMessage(ChatUtils.error("You have not requested a plot to be reset."));
             return;
         }
+        Integer timeoutTask = resetTimeouts.remove(player.getUniqueId());
+        cancelTimeout(timeoutTask);
 
         resetPlot(player, plotID);
     }
@@ -147,12 +148,12 @@ public class ResetCommand {
             resetTimeouts.remove(playerUuid);
         }, 600L /* 30 seconds */);
         Integer timeoutTask = resetTimeouts.put(playerUuid, taskId);
-        cancelTimeoutTask(timeoutTask);
+        cancelTimeout(timeoutTask);
     }
 
-    private void cancelTimeoutTask(Integer taskId) {
-        if (taskId != null) {
-            plotSystem.getServer().getScheduler().cancelTask(taskId);
+    private void cancelTimeout(Integer timeoutTask) {
+        if (timeoutTask != null) {
+            plotSystem.getServer().getScheduler().cancelTask(timeoutTask);
         }
     }
 }
