@@ -401,7 +401,6 @@ public class WorldGuardFunctions {
         flags.put(Flags.MOISTURE_CHANGE, StateFlag.State.DENY);
 
         // Access
-        flags.put(Flags.CHEST_ACCESS, StateFlag.State.DENY);
         flags.put(Flags.PLACE_VEHICLE, StateFlag.State.DENY);
         flags.put(Flags.POTION_SPLASH, StateFlag.State.DENY);
         flags.put(Flags.RIDE, StateFlag.State.DENY);
