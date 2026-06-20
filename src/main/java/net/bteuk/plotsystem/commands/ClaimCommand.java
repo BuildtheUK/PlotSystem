@@ -134,12 +134,12 @@ public class ClaimCommand implements BasicCommand {
         // If they are the owner or a member tell them.
         if (plotAPI.isPlotOwner(u.inPlot, u.uuid)) {
 
-            u.player.sendMessage(ChatUtils.error("You are already the owner of this plot!"));
+            u.player.performCommand("plot info " + u.inPlot);
             return false;
 
         } else if (plotAPI.isPlotMember(u.inPlot, u.uuid)) {
 
-            u.player.sendMessage(ChatUtils.error("You are already a member of this plot!"));
+            u.player.performCommand("plot info " + u.inPlot);
             return false;
 
         } else if (plotAPI.isPlotClaimed(u.inPlot)) {
