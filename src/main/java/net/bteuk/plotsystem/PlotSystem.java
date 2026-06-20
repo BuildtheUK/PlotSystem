@@ -198,7 +198,7 @@ public class PlotSystem extends JavaPlugin {
         manager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             final Commands commands = event.registrar();
 
-            commands.register("plotsystem", "Deals will all plotsystem related commands.", List.of("ps"), new PlotSystemCommand(networkAPI.getPlotAPI(), plotHelper, networkAPI.getCoordinateAPI(), guiManager, new LocationCommand(networkAPI)));
+            commands.register("plotsystem", "Deals will all plotsystem related commands.", List.of("ps"), new PlotSystemCommand(this, networkAPI.getPlotAPI(), plotHelper, networkAPI.getCoordinateAPI(), guiManager, new LocationCommand(networkAPI), networkAPI.getEventAPI()));
             commands.register("claim", "Used to claim the plot you're standing in.", List.of("claim"), new ClaimCommand(networkAPI, guiManager, plotHelper));
             commands.register("toggleoutlines", "Toggles the visibility of outlines.", new ToggleOutlines(this, networkAPI.getPlotAPI()));
             commands.register("review", "Command for editing selections to reviewing categories during the reviewing process.", new ReviewCommand(this));

@@ -4,6 +4,7 @@ import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import net.bteuk.minecraft.gui.GuiManager;
 import net.bteuk.network.api.CoordinateAPI;
+import net.bteuk.network.api.EventAPI;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.papercore.LocationAdapter;
@@ -32,7 +33,7 @@ import static net.bteuk.plotsystem.PlotSystem.LOGGER;
 
 public class PlotSystemCommand implements BasicCommand {
 
-    private static final List<String> options = List.of("create", "selectiontool", "delete", "help", "setalias", "movemarker", "update", "updateflags");
+    private static final List<String> options = List.of("create", "selectiontool", "delete", "help", "setalias", "movemarker", "update", "updateflags", "reset");
 
     private final PlotAPI plotAPI;
 
@@ -46,7 +47,9 @@ public class PlotSystemCommand implements BasicCommand {
 
     private final UpdateCommand updateCommand;
 
-    public PlotSystemCommand(PlotAPI plotAPI, PlotHelper plotHelper, CoordinateAPI coordinateAPI, GuiManager guiManager, LocationCommand locationCommand) {
+    private final ResetCommand resetCommand;
+
+    public PlotSystemCommand(PlotSystem plotSystem, PlotAPI plotAPI, PlotHelper plotHelper, CoordinateAPI coordinateAPI, GuiManager guiManager, LocationCommand locationCommand, EventAPI eventAPI) {
         this.plotAPI = plotAPI;
         this.plotHelper = plotHelper;
         this.coordinateAPI = coordinateAPI;
@@ -54,6 +57,7 @@ public class PlotSystemCommand implements BasicCommand {
         this.createCommand = new CreateCommand(guiManager, plotAPI, locationCommand);
         this.deleteCommand = new DeleteCommand(plotAPI, plotHelper, locationCommand);
         this.updateCommand = new UpdateCommand(plotAPI, locationCommand);
+        this.resetCommand = new ResetCommand(plotSystem, plotAPI, eventAPI);
     }
 
     @Override
@@ -73,6 +77,7 @@ public class PlotSystemCommand implements BasicCommand {
             case "create" -> createCommand.create(sender, args);
             case "delete" -> deleteCommand.delete(sender, args);
             case "update" -> updateCommand.update(sender, args);
+            case "reset" -> resetCommand.reset(sender, args);
             case "help" -> help(sender);
             case "setalias" -> {
 
