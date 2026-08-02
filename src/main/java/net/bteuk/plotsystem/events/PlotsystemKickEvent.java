@@ -4,12 +4,12 @@ import net.bteuk.network.api.ChatAPI;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.SQLAPI;
 import net.bteuk.network.api.entity.Event;
-import net.bteuk.network.lib.dto.DirectMessage;
-import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
 import net.bteuk.plotsystem.utils.plugins.WorldGuardFunctions;
 import net.kyori.adventure.text.Component;
+import org.btuk.network.lib.dto.DirectMessage;
+import org.btuk.network.lib.utils.ChatUtils;
 import org.bukkit.Bukkit;
 
 public class PlotsystemKickEvent implements Event {

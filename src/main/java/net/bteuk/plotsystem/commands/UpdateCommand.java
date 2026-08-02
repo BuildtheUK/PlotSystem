@@ -1,10 +1,10 @@
 package net.bteuk.plotsystem.commands;
 
 import net.bteuk.network.api.PlotAPI;
-import net.bteuk.network.lib.enums.PlotDifficulties;
-import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.kyori.adventure.text.Component;
+import org.btuk.network.lib.enums.PlotDifficulties;
+import org.btuk.network.lib.utils.ChatUtils;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 

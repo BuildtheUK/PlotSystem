@@ -1,6 +1,5 @@
 package net.bteuk.plotsystem.reviewing;
 
-import net.bteuk.minecraft.gui.GuiManager;
 import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.plotsystem.ReviewCategory;
@@ -9,6 +8,7 @@ import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.User;
 import net.kyori.adventure.inventory.Book;
 import net.kyori.adventure.text.Component;
+import org.btuk.minecraft.gui.GuiManager;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;

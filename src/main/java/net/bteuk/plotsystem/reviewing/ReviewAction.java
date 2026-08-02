@@ -2,8 +2,6 @@ package net.bteuk.plotsystem.reviewing;
 
 import com.sk89q.worldedit.math.BlockVector2;
 import lombok.Getter;
-import net.bteuk.minecraft.gui.Gui;
-import net.bteuk.minecraft.gui.GuiManager;
 import net.bteuk.network.api.ChatAPI;
 import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.api.PlotAPI;
@@ -11,12 +9,9 @@ import net.bteuk.network.api.RoleAPI;
 import net.bteuk.network.api.SQLAPI;
 import net.bteuk.network.api.entity.Role;
 import net.bteuk.network.api.plotsystem.PlotStatus;
+import net.bteuk.network.api.plotsystem.PromotionRoles;
 import net.bteuk.network.api.plotsystem.ReviewCategory;
 import net.bteuk.network.api.plotsystem.ReviewSelection;
-import net.bteuk.network.lib.dto.DirectMessage;
-import net.bteuk.network.lib.dto.DiscordDirectMessage;
-import net.bteuk.network.lib.enums.PlotDifficulties;
-import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
@@ -28,6 +23,12 @@ import net.bteuk.plotsystem.utils.plugins.WorldGuardFunctions;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.btuk.minecraft.gui.Gui;
+import org.btuk.minecraft.gui.GuiManager;
+import org.btuk.network.lib.dto.DirectMessage;
+import org.btuk.network.lib.dto.DiscordDirectMessage;
+import org.btuk.network.lib.enums.PlotDifficulties;
+import org.btuk.network.lib.utils.ChatUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -104,28 +105,6 @@ public abstract class ReviewAction {
                 break;
             }
         }
-    }
-
-    private static String getNewRole(int difficulty, String role) {
-        String newRole = null;
-        switch (difficulty) {
-            case 1 -> {
-                if (role.equals("applicant")) {
-                    newRole = "apprentice";
-                }
-            }
-            case 2 -> {
-                if (role.equals("applicant") || role.equals("apprentice")) {
-                    newRole = "jrbuilder";
-                }
-            }
-            case 3 -> {
-                if (role.equals("applicant") || role.equals("apprentice") || role.equals("jrbuilder")) {
-                    newRole = "builder";
-                }
-            }
-        }
-        return newRole;
     }
 
     public abstract Gui getReviewActionGui();
@@ -408,7 +387,7 @@ public abstract class ReviewAction {
         LOGGER.info(String.format("Plot owner %s has builder role %s", plotOwner, builderRole));
 
         // Calculate the role the player will be promoted to, if any.
-        String newRole = getNewRole(difficulty, builderRole);
+        String newRole = PromotionRoles.getNewRole(difficulty, builderRole);
 
         if (newRole != null) {
             Role role = roleAPI.getRoles().stream().filter(r -> r.getId().equals(newRole)).findFirst().orElse(null);

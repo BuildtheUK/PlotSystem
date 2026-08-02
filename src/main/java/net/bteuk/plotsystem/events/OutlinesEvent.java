@@ -2,9 +2,9 @@ package net.bteuk.plotsystem.events;
 
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.entity.Event;
-import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.User;
+import org.btuk.network.lib.utils.ChatUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 

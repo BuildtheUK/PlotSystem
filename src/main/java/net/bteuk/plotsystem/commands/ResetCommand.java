@@ -1,12 +1,12 @@
 package net.bteuk.plotsystem.commands;
 
-import net.bteuk.minecraft.component.ComponentUtils;
 import net.bteuk.network.api.EventAPI;
 import net.bteuk.network.api.PlotAPI;
-import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.User;
 import net.kyori.adventure.text.Component;
+import org.btuk.minecraft.component.ComponentUtils;
+import org.btuk.network.lib.utils.ChatUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;

@@ -2,11 +2,11 @@ package net.bteuk.plotsystem.utils;
 
 import com.sk89q.worldedit.math.BlockVector2;
 import net.bteuk.network.api.NetworkAPI;
-import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.plugins.WGCreatePlot;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.btuk.network.lib.utils.ChatUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
