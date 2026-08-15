@@ -93,7 +93,7 @@ public abstract class ReviewAction {
         user.player.getInventory().clear();
 
         // Set up the hotbar for the reviewer.
-        hotbarListener = new ReviewHotbar(PlotSystem.getInstance(), user);
+        hotbarListener = new ReviewHotbar(PlotSystem.getInstance(), user, networkAPI.getTimerAPI());
 
         // Create the review book.
         reviewBook = new ReviewBook(instance, user.player, hotbarListener, plotAPI);
