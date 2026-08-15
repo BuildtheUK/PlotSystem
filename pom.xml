@@ -19,11 +19,11 @@
 
         <paper.api.version>[26.2.build,)</paper.api.version>
 
-        <btuk.network.version>afab44a3db</btuk.network.version>
+        <btuk.network.version>ef3f80c1d6</btuk.network.version>
         <btuk.lib.version>main-36b0421e66-1</btuk.lib.version>
 
         <kyori.version>5.2.0</kyori.version>
-        <multiverse.version>5.7.3</multiverse.version>
+        <multiverse.version>5.8.0</multiverse.version>
         <worldguard.version>7.0.18</worldguard.version>
         <decentholograms.version>2.10.1</decentholograms.version>
 
