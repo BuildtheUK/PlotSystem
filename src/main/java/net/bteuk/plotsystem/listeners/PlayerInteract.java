@@ -57,7 +57,7 @@ public class PlayerInteract implements Listener {
                 e.setCancelled(true);
 
                 // Check if they are in a world where plots are allowed to be created.
-                if (!plotAPI.hasLocation(Objects.requireNonNull(e.getClickedBlock()).getWorld().getName())) {
+                if (!plotAPI.hasLocation(Objects.requireNonNull(e.getClickedBlock()).getWorld().key().asMinimalString())) {
                     u.player.sendMessage(ChatUtils.error("You can't create plots in this world!"));
                     return;
                 }
@@ -77,7 +77,7 @@ public class PlayerInteract implements Listener {
                 }
 
                 // Passed the checks, start a new selection at the clicked block.
-                u.selectionTool.startSelection(e.getClickedBlock(), e.getClickedBlock().getWorld().getName());
+                u.selectionTool.startSelection(e.getClickedBlock(), e.getClickedBlock().getWorld().key().asMinimalString());
                 u.player.sendMessage(ChatUtils.success("Started a new selection at ")
                         .append(Component.text(e.getClickedBlock().getX(), NamedTextColor.DARK_AQUA))
                         .append(ChatUtils.success(", "))

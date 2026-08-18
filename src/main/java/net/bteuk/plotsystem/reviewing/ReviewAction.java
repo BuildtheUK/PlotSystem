@@ -355,8 +355,8 @@ public abstract class ReviewAction {
         }
 
         // Get the negative coordinate transform.
-        int xTransform = -plotAPI.getXTransform(plotWorld.getName());
-        int zTransform = -plotAPI.getZTransform(plotWorld.getName());
+        int xTransform = -plotAPI.getXTransform(plotWorld.key().asMinimalString());
+        int zTransform = -plotAPI.getZTransform(plotWorld.key().asMinimalString());
 
         List<BlockVector2> copyVector;
 

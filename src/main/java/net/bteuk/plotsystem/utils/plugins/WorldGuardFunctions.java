@@ -44,7 +44,7 @@ public class WorldGuardFunctions {
         RegionManager regionManager = container.get(BukkitAdapter.adapt(world));
 
         if (regionManager == null) {
-            throw new RegionManagerNotFoundException("RegionManager for world " + world.getName() + " is null!");
+            throw new RegionManagerNotFoundException("RegionManager for world " + world.key().asMinimalString() + " is null!");
         }
 
         return regionManager;
@@ -94,7 +94,7 @@ public class WorldGuardFunctions {
 
         if (buildRegions == null) {
 
-            throw new RegionManagerNotFoundException("RegionManager for world " + buildWorld.getName() + " is null!");
+            throw new RegionManagerNotFoundException("RegionManager for world " + buildWorld.key().asMinimalString() + " is null!");
 
         }
 
@@ -109,8 +109,8 @@ public class WorldGuardFunctions {
         BlockVector2 bv = Point.getAveragePoint(region.getPoints());
 
         // To get the actual location we need to take the negative coordinate transform of the plot.
-        int xTransform = -plotAPI.getXTransform(buildWorld.getName());
-        int zTransform = -plotAPI.getZTransform(buildWorld.getName());
+        int xTransform = -plotAPI.getXTransform(buildWorld.key().asMinimalString());
+        int zTransform = -plotAPI.getZTransform(buildWorld.key().asMinimalString());
 
         BlockVector2 bv2 = BlockVector2.at(bv.x() + xTransform, bv.z() + zTransform);
 
@@ -129,7 +129,7 @@ public class WorldGuardFunctions {
 
         if (buildRegions == null) {
 
-            throw new RegionManagerNotFoundException("RegionManager for world " + world.getName() + " is null!");
+            throw new RegionManagerNotFoundException("RegionManager for world " + world.key().asMinimalString() + " is null!");
 
         }
 
@@ -155,7 +155,7 @@ public class WorldGuardFunctions {
 
         if (regions == null) {
 
-            throw new RegionManagerNotFoundException("RegionManager for world " + block.getWorld().getName() + " is null!");
+            throw new RegionManagerNotFoundException("RegionManager for world " + block.getWorld().key().asMinimalString() + " is null!");
 
         }
 
@@ -179,7 +179,7 @@ public class WorldGuardFunctions {
 
         if (buildRegions == null) {
 
-            throw new RegionManagerNotFoundException("RegionManager for world " + world.getName() + " is null!");
+            throw new RegionManagerNotFoundException("RegionManager for world " + world.key().asMinimalString() + " is null!");
 
         }
 
@@ -215,7 +215,7 @@ public class WorldGuardFunctions {
 
         if (buildRegions == null) {
 
-            throw new RegionManagerNotFoundException("RegionManager for world " + world.getName() + " is null!");
+            throw new RegionManagerNotFoundException("RegionManager for world " + world.key().asMinimalString() + " is null!");
 
         }
 
@@ -254,7 +254,7 @@ public class WorldGuardFunctions {
 
         if (buildRegions == null) {
 
-            throw new RegionManagerNotFoundException("RegionManager for world " + world.getName() + " is null!");
+            throw new RegionManagerNotFoundException("RegionManager for world " + world.key().asMinimalString() + " is null!");
 
         }
 
@@ -288,7 +288,7 @@ public class WorldGuardFunctions {
 
         if (buildRegions == null) {
 
-            throw new RegionManagerNotFoundException("RegionManager for world " + world.getName() + " is null!");
+            throw new RegionManagerNotFoundException("RegionManager for world " + world.key().asMinimalString() + " is null!");
 
         }
 
@@ -325,8 +325,8 @@ public class WorldGuardFunctions {
         List<BlockVector2> newVector = new ArrayList<>();
 
         // Get the negative coordinate transform.
-        int xTransform = -plotAPI.getXTransform(world.getName());
-        int zTransform = -plotAPI.getZTransform(world.getName());
+        int xTransform = -plotAPI.getXTransform(world.key().asMinimalString());
+        int zTransform = -plotAPI.getZTransform(world.key().asMinimalString());
 
         // Apply to transform to each coordinate.
         vector.forEach(bv -> newVector.add(BlockVector2.at(bv.x() + xTransform, bv.z() + zTransform)));
