@@ -7,6 +7,7 @@ import net.bteuk.network.api.ServerAPI;
 import net.bteuk.network.api.entity.Event;
 import net.bteuk.network.api.plotsystem.PlotStatus;
 import net.bteuk.network.papercore.PlayerAdapter;
+import net.bteuk.network.papercore.WorldUtils;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
 import net.bteuk.plotsystem.utils.Utils;
@@ -64,7 +65,7 @@ public class PlotsystemTeleportEvent implements Event {
             if (StringUtils.equals(server, SERVER_NAME)) {
 
                 // Get world of plot.
-                World world = Bukkit.getWorld(location);
+                World world = WorldUtils.getWorld(location);
 
                 if (world == null) {
                     player.sendMessage(ChatUtils.error("An error occurred while teleporting to plot %s", String.valueOf(id)));
@@ -141,7 +142,7 @@ public class PlotsystemTeleportEvent implements Event {
             if (server.equals(SERVER_NAME)) {
 
                 // Get world of zone.
-                World world = Bukkit.getWorld(location);
+                World world = WorldUtils.getWorld(location);
 
                 // Get location of zone and teleport the player there.
                 try {

@@ -7,6 +7,7 @@ import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.entity.NetworkLocation;
 import net.bteuk.network.api.plotsystem.PlotStatus;
 import net.bteuk.network.api.plotsystem.SubmittedStatus;
+import net.bteuk.network.papercore.WorldUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -145,7 +146,7 @@ public class PlotHologram {
         int coordinate = plotAPI.getPlotCoordinate(plot);
         if (coordinate != 0) {
             NetworkLocation networkLocation = coordinateAPI.getLocation(coordinate);
-            location = new Location(Bukkit.getWorld(networkLocation.world()), networkLocation.x(), networkLocation.y(), networkLocation.z(), networkLocation.yaw(), networkLocation.pitch());
+            location = new Location(WorldUtils.getWorld(networkLocation.world()), networkLocation.x(), networkLocation.y(), networkLocation.z(), networkLocation.yaw(), networkLocation.pitch());
         }
 
         // Create the holograms; depending on the status, multiple holograms may be necessary for specific players.

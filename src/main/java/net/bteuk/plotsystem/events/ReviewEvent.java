@@ -5,6 +5,7 @@ import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.entity.Event;
 import net.bteuk.network.api.plotsystem.SubmittedStatus;
+import net.bteuk.network.papercore.WorldUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
@@ -71,7 +72,7 @@ public class ReviewEvent implements Event {
 
             // Get world of plot.
             String location = plotAPI.getPlotLocation(id);
-            World world = Bukkit.getWorld(location);
+            World world = WorldUtils.getWorld(location);
 
             // Check if the plot is still submitted.
             if (plotAPI.getPlotSubmissionStatus(id) == SubmittedStatus.SUBMITTED) {

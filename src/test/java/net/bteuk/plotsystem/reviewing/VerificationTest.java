@@ -3,13 +3,13 @@ package net.bteuk.plotsystem.reviewing;
 import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.plotsystem.ReviewCategory;
+import net.bteuk.network.papercore.WorldUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.User;
 import net.kyori.adventure.inventory.Book;
 import net.kyori.adventure.text.Component;
 import org.btuk.minecraft.gui.GuiManager;
-import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -94,12 +94,12 @@ public class VerificationTest {
     void setUp() throws Exception {
         PlotSystem.LOGGER = logger;
         try (
-                MockedStatic<Bukkit> bukkitMockedStatic = mockStatic(Bukkit.class);
+                MockedStatic<WorldUtils> worldUtilsMockedStatic = mockStatic(WorldUtils.class);
                 MockedStatic<ItemStack> itemStackMockedStatic = mockStatic(ItemStack.class);
                 MockedStatic<Book> bookMockedStatic = mockStatic(Book.class);
         ) {
 
-            bukkitMockedStatic.when(() -> Bukkit.getWorld(anyString())).thenReturn(world);
+            worldUtilsMockedStatic.when(() -> WorldUtils.getWorld(anyString())).thenReturn(world);
             itemStackMockedStatic.when(() -> ItemStack.of(any(), anyInt())).thenReturn(reviewBookItem);
             bookMockedStatic.when(() -> Book.book(any(), any(), any(Component.class))).thenReturn(book);
 
@@ -135,9 +135,9 @@ public class VerificationTest {
     @Test
     void testSaveWithNoChanges() {
         try (
-                MockedStatic<Bukkit> bukkitMockedStatic = mockStatic(Bukkit.class);
+                MockedStatic<WorldUtils> worldUtilsMockedStatic = mockStatic(WorldUtils.class);
         ) {
-            bukkitMockedStatic.when(() -> Bukkit.getWorld(anyString())).thenReturn(world);
+            worldUtilsMockedStatic.when(() -> WorldUtils.getWorld(anyString())).thenReturn(world);
 
             when(plotAPI.getReviewOutcome(reviewId)).thenReturn(true);
 

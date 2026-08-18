@@ -6,6 +6,7 @@ import net.bteuk.network.api.CoordinateAPI;
 import net.bteuk.network.api.EventAPI;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.papercore.LocationAdapter;
+import net.bteuk.network.papercore.WorldUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.utils.ParseUtils;
@@ -17,7 +18,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.btuk.minecraft.gui.GuiManager;
 import org.btuk.network.lib.utils.ChatUtils;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
@@ -226,7 +226,7 @@ public class PlotSystemCommand implements BasicCommand {
             return;
         }
 
-        World world = Bukkit.getWorld(args[1]);
+        World world = WorldUtils.getWorld(args[1]);
 
         if (world == null) {
             sender.sendMessage(ChatUtils.error("Location " + args[1] + " does not exist on this server."));

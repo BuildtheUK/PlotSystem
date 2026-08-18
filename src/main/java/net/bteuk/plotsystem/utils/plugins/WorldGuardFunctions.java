@@ -76,7 +76,7 @@ public class WorldGuardFunctions {
         FileConfiguration config = instance.getConfig();
 
         // Get worlds from config
-        String saveWorldName = config.getString("save_world");
+        String saveWorldName = config.getString("save_world_dimension");
         if (saveWorldName == null) {
 
             throw new WorldNotFoundException("Save World is not defined in config, plot delete event has therefore failed!");

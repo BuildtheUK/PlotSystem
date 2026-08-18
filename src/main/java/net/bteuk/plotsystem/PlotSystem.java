@@ -115,12 +115,11 @@ public class PlotSystem extends JavaPlugin {
         // Add save world if it does not yet exist.
         // Save world name is in config.
         // This implies first launch with plugin.
-        if (!Multiverse.hasWorld(CONFIG.getString("save_world"))) {
+        String saveWorld = CONFIG.getString("save_world");
+        if (!Multiverse.hasWorld(saveWorld)) {
             // Create save world.
-            if (!Multiverse.createVoidWorld(CONFIG.getString("save_world"))) {
-
+            if (!Multiverse.createVoidWorld(saveWorld, CONFIG.getString("save_world_dimension"))) {
                 LOGGER.warning("Failed to create save world!");
-
             }
         }
 

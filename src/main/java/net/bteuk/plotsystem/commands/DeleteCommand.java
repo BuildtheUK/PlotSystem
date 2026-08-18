@@ -2,6 +2,7 @@ package net.bteuk.plotsystem.commands;
 
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.plotsystem.PlotStatus;
+import net.bteuk.network.papercore.WorldUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.utils.PlotHelper;
@@ -10,7 +11,6 @@ import net.bteuk.plotsystem.utils.plugins.WorldGuardFunctions;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.btuk.network.lib.utils.ChatUtils;
-import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -130,7 +130,7 @@ public class DeleteCommand {
         }
 
         // Get world of plot.
-        World world = Bukkit.getWorld(plotAPI.getPlotLocation(plotID));
+        World world = WorldUtils.getWorld(plotAPI.getPlotLocation(plotID));
 
         // If world is null then the plot is not on this server.
         if (world == null) {

@@ -5,6 +5,7 @@ import net.bteuk.network.api.ChatAPI;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.entity.Event;
 import net.bteuk.network.api.plotsystem.PlotStatus;
+import net.bteuk.network.papercore.WorldUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
@@ -53,15 +54,15 @@ public class DeleteEvent implements Event {
             String location = plotAPI.getPlotLocation(id);
 
             // Get worlds of plot and save location.
-            String save_world = PlotSystem.getInstance().getConfig().getString("save_world");
+            String save_world = PlotSystem.getInstance().getConfig().getString("save_world_dimension");
             if (save_world == null) {
                 LOGGER.warning("Save World is not defined in config, plot delete event has therefore failed!");
                 return;
             }
 
-            World copyWorld = Bukkit.getWorld(save_world);
+            World copyWorld = WorldUtils.getWorld(save_world);
             // Location name is the same as the world name.
-            World pasteWorld = Bukkit.getWorld(location);
+            World pasteWorld = WorldUtils.getWorld(location);
 
             if (copyWorld == null || pasteWorld == null) {
 
@@ -150,15 +151,15 @@ public class DeleteEvent implements Event {
             String location = plotAPI.getZoneLocation(id);
 
             // Get worlds of plot and save location.
-            String save_world = PlotSystem.getInstance().getConfig().getString("save_world");
+            String save_world = PlotSystem.getInstance().getConfig().getString("save_world_dimension");
             if (save_world == null) {
                 LOGGER.warning("Save World is not defined in config, plot delete event has therefore failed!");
                 return;
             }
 
-            World copyWorld = Bukkit.getWorld(save_world);
+            World copyWorld = WorldUtils.getWorld(save_world);
             // Location name is the same as the world name.
-            World pasteWorld = Bukkit.getWorld(location);
+            World pasteWorld = WorldUtils.getWorld(location);
 
             if (copyWorld == null || pasteWorld == null) {
 

@@ -1,7 +1,7 @@
 package net.bteuk.plotsystem.utils.plugins;
 
+import net.bteuk.network.papercore.WorldUtils;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
-import org.bukkit.Bukkit;
 import org.bukkit.Difficulty;
 import org.bukkit.GameMode;
 import org.bukkit.GameRule;
@@ -18,7 +18,7 @@ import static net.bteuk.plotsystem.PlotSystem.LOGGER;
 
 public class Multiverse {
 
-    public static boolean createVoidWorld(String name) {
+    public static boolean createVoidWorld(String worldName, String dimension) {
 
         MultiverseCoreApi core = MultiverseCoreApi.get();
 
@@ -30,7 +30,7 @@ public class Multiverse {
         WorldManager worldManager = core.getWorldManager();
 
         worldManager.createWorld(
-                        CreateWorldOptions.worldName(name).environment(World.Environment.NORMAL).worldType(WorldType.FLAT).generateStructures(false).generator("VoidGen:{biome" +
+                        CreateWorldOptions.worldName(worldName).environment(World.Environment.NORMAL).worldType(WorldType.FLAT).generateStructures(false).generator("VoidGen:{biome" +
                                 ":PLAINS}"))
                 .onSuccess(world -> {
                     world.setGameMode(GameMode.CREATIVE);
@@ -42,7 +42,7 @@ public class Multiverse {
 
 
         // Get world from bukkit.
-        World world = Bukkit.getWorld(name);
+        World world = WorldUtils.getWorld(dimension);
 
         if (world == null) {
             LOGGER.warning("World is null!");
@@ -71,7 +71,7 @@ public class Multiverse {
             LOGGER.severe("Failed to set world flags: " + e.getMessage());
         }
 
-        LOGGER.info("Created new world with name " + name);
+        LOGGER.info("Created new world with name " + worldName);
 
         return true;
     }

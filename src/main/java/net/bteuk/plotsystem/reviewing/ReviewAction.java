@@ -12,6 +12,7 @@ import net.bteuk.network.api.plotsystem.PlotStatus;
 import net.bteuk.network.api.plotsystem.PromotionRoles;
 import net.bteuk.network.api.plotsystem.ReviewCategory;
 import net.bteuk.network.api.plotsystem.ReviewSelection;
+import net.bteuk.network.papercore.WorldUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
@@ -82,7 +83,7 @@ public abstract class ReviewAction {
         this.roleAPI = networkAPI.getRoleAPI();
 
         // Get the plot world.
-        this.plotWorld = Bukkit.getWorld(plotAPI.getPlotLocation(plotID));
+        this.plotWorld = WorldUtils.getWorld(plotAPI.getPlotLocation(plotID));
 
         // Get the plot owner.
         this.plotOwner = plotAPI.getPlotOwner(plotID);
@@ -267,7 +268,7 @@ public abstract class ReviewAction {
     protected void completeReview(boolean accept) {
 
         // Get world of plot.
-        World world = Bukkit.getWorld(plotAPI.getPlotLocation(plotID));
+        World world = WorldUtils.getWorld(plotAPI.getPlotLocation(plotID));
         if (world == null) {
             LOGGER.warning("World of the plot is null!");
             return;
@@ -342,13 +343,13 @@ public abstract class ReviewAction {
     private void savePlot(World plotWorld) {
 
         // Get the save-world.
-        String save_world = PlotSystem.getInstance().getConfig().getString("save_world");
+        String save_world = PlotSystem.getInstance().getConfig().getString("save_world_dimension");
         if (save_world == null) {
             LOGGER.warning("Save world is not set in config!");
             return;
         }
 
-        World saveWorld = Bukkit.getWorld(save_world);
+        World saveWorld = WorldUtils.getWorld(save_world);
         if (saveWorld == null) {
             LOGGER.warning("Save world is null!");
             return;

@@ -3,6 +3,7 @@ package net.bteuk.plotsystem.events;
 import net.bteuk.network.api.ChatAPI;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.entity.Event;
+import net.bteuk.network.papercore.WorldUtils;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
 import net.bteuk.plotsystem.utils.PlotHelper;
@@ -41,7 +42,7 @@ public class LeaveEvent implements Event {
             int id = Integer.parseInt(event[2]);
 
             // Get worlds of plot.
-            World world = Bukkit.getWorld(plotAPI.getPlotLocation(id));
+            World world = WorldUtils.getWorld(plotAPI.getPlotLocation(id));
 
             if (world == null) {
 
@@ -83,7 +84,7 @@ public class LeaveEvent implements Event {
             int id = Integer.parseInt(event[2]);
 
             // Get worlds of plot.
-            World world = Bukkit.getWorld(plotAPI.getZoneLocation(id));
+            World world = WorldUtils.getWorld(plotAPI.getZoneLocation(id));
 
             if (world == null) {
 
