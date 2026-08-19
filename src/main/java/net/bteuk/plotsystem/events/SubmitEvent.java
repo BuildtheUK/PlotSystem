@@ -5,12 +5,12 @@ import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.SQLAPI;
 import net.bteuk.network.api.entity.Event;
 import net.bteuk.network.api.plotsystem.PlotStatus;
-import net.bteuk.network.lib.dto.DirectMessage;
-import net.bteuk.network.lib.dto.PlotMessage;
-import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.PlotHelper;
 import net.kyori.adventure.text.Component;
+import org.btuk.network.lib.dto.DirectMessage;
+import org.btuk.network.lib.dto.PlotMessage;
+import org.btuk.network.lib.utils.ChatUtils;
 
 public class SubmitEvent implements Event {
 

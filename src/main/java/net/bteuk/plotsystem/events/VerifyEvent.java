@@ -1,12 +1,11 @@
 package net.bteuk.plotsystem.events;
 
 import io.papermc.lib.PaperLib;
-import net.bteuk.minecraft.gui.GuiManager;
 import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.entity.Event;
 import net.bteuk.network.api.plotsystem.SubmittedStatus;
-import net.bteuk.network.lib.utils.ChatUtils;
+import net.bteuk.network.papercore.WorldUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
@@ -15,6 +14,8 @@ import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.User;
 import net.bteuk.plotsystem.utils.plugins.WorldGuardFunctions;
 import net.kyori.adventure.text.Component;
+import org.btuk.minecraft.gui.GuiManager;
+import org.btuk.network.lib.utils.ChatUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -70,7 +71,7 @@ public class VerifyEvent implements Event {
             int id = Integer.parseInt(event[2]);
 
             // Get world of plot.
-            World world = Bukkit.getWorld(plotAPI.getPlotLocation(id));
+            World world = WorldUtils.getWorld(plotAPI.getPlotLocation(id));
 
             // Check if the plot is still awaiting verification.
             if (plotAPI.getPlotSubmissionStatus(id) == SubmittedStatus.AWAITING_VERIFICATION) {

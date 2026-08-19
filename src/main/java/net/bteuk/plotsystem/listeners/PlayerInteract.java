@@ -1,13 +1,13 @@
 package net.bteuk.plotsystem.listeners;
 
 import net.bteuk.network.api.PlotAPI;
-import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.utils.User;
 import net.bteuk.plotsystem.utils.plugins.WorldGuardFunctions;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.btuk.network.lib.utils.ChatUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -57,7 +57,7 @@ public class PlayerInteract implements Listener {
                 e.setCancelled(true);
 
                 // Check if they are in a world where plots are allowed to be created.
-                if (!plotAPI.hasLocation(Objects.requireNonNull(e.getClickedBlock()).getWorld().getName())) {
+                if (!plotAPI.hasLocation(Objects.requireNonNull(e.getClickedBlock()).getWorld().key().asMinimalString())) {
                     u.player.sendMessage(ChatUtils.error("You can't create plots in this world!"));
                     return;
                 }
@@ -77,7 +77,7 @@ public class PlayerInteract implements Listener {
                 }
 
                 // Passed the checks, start a new selection at the clicked block.
-                u.selectionTool.startSelection(e.getClickedBlock(), e.getClickedBlock().getWorld().getName());
+                u.selectionTool.startSelection(e.getClickedBlock(), e.getClickedBlock().getWorld().key().asMinimalString());
                 u.player.sendMessage(ChatUtils.success("Started a new selection at ")
                         .append(Component.text(e.getClickedBlock().getX(), NamedTextColor.DARK_AQUA))
                         .append(ChatUtils.success(", "))

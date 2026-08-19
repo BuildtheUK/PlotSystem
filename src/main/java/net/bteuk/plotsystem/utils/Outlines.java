@@ -16,7 +16,6 @@ import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -122,7 +121,7 @@ public class Outlines {
         Player player = user.player;
 
         // On single server setup, we do not want to show the WG outlines if not on a plot world.
-        if (singleServer && !plotAPI.hasLocation(player.getWorld().getName()))
+        if (singleServer && !plotAPI.hasLocation(player.getWorld().key().asMinimalString()))
             return;
 
         // If the player does not have a key, add it.

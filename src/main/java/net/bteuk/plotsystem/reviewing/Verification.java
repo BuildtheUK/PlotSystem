@@ -2,19 +2,19 @@ package net.bteuk.plotsystem.reviewing;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.bteuk.minecraft.gui.GuiManager;
 import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.api.plotsystem.ReviewCategory;
 import net.bteuk.network.api.plotsystem.ReviewCategoryFeedback;
 import net.bteuk.network.api.plotsystem.ReviewSelection;
 import net.bteuk.network.api.plotsystem.SubmittedStatus;
-import net.bteuk.network.lib.dto.PlotMessage;
-import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.User;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.btuk.minecraft.gui.GuiManager;
+import org.btuk.network.lib.dto.PlotMessage;
+import org.btuk.network.lib.utils.ChatUtils;
 
 import java.util.HashMap;
 import java.util.List;

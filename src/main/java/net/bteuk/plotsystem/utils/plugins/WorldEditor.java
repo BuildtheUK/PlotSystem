@@ -137,6 +137,6 @@ public class WorldEditor {
                 entity.remove();
             }
         });
-        PlotSystem.LOGGER.info(String.format("Removed %d entities from world %s", count[0], world.getName()));
+        PlotSystem.LOGGER.info(String.format("Removed %d entities from world %s", count[0], world.key().asMinimalString()));
     }
 }

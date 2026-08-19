@@ -7,8 +7,8 @@ import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.SQLAPI;
 import net.bteuk.network.api.entity.NetworkLocation;
-import net.bteuk.network.lib.utils.ChatUtils;
 import net.bteuk.network.papercore.LocationAdapter;
+import net.bteuk.network.papercore.WorldUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.CopyRegionFormat;
 import net.bteuk.plotsystem.utils.Utils;
@@ -16,6 +16,7 @@ import net.bteuk.plotsystem.utils.plugins.Multiverse;
 import net.bteuk.plotsystem.utils.plugins.WorldEditor;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.btuk.network.lib.utils.ChatUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -88,9 +89,9 @@ public final class LocationCommand {
         int zTransform = -(regionZMin * 512);
 
         // Create the world and add the regions.
-        Multiverse.createVoidWorld(commandArguments.location());
+        Multiverse.createVoidWorld(commandArguments.location(), commandArguments.location());
 
-        String saveWorld = PlotSystem.getInstance().getConfig().getString("save_world");
+        String saveWorld = PlotSystem.getInstance().getConfig().getString("save_world_dimension");
 
         if (saveWorld == null) {
             sender.sendMessage(ChatUtils.error("The save world is not set in config."));
@@ -98,8 +99,8 @@ public final class LocationCommand {
         }
 
         // Get worlds.
-        World copy = Bukkit.getWorld(saveWorld);
-        World paste = Bukkit.getWorld(commandArguments.location());
+        World copy = WorldUtils.getWorld(saveWorld);
+        World paste = WorldUtils.getWorld(commandArguments.location());
 
         // Check that the worlds are not null, else delete the Multiverse world.
         if (copy == null || paste == null) {
@@ -129,10 +130,10 @@ public final class LocationCommand {
             copyRegions(sender, regions);
 
             int coordMin = coordinateAPI.addCoordinate(
-                    LocationAdapter.adapt(new Location(Bukkit.getWorld(commandArguments.location()), (regionXMin * 512), networkAPI.getMinY(), (regionZMin * 512), 0, 0)));
+                    LocationAdapter.adapt(new Location(WorldUtils.getWorld(commandArguments.location()), (regionXMin * 512), networkAPI.getMinY(), (regionZMin * 512), 0, 0)));
 
             int coordMax = coordinateAPI.addCoordinate(LocationAdapter.adapt(
-                    new Location(Bukkit.getWorld(commandArguments.location()), ((regionXMax * 512) + 511), networkAPI.getMaxY() - 1, ((regionZMax * 512) + 511), 0, 0)));
+                    new Location(WorldUtils.getWorld(commandArguments.location()), ((regionXMax * 512) + 511), networkAPI.getMaxY() - 1, ((regionZMax * 512) + 511), 0, 0)));
 
             // Add the location to the database.
             if (plotAPI.createLocation(commandArguments.location, commandArguments.location, PlotSystem.SERVER_NAME, coordMin, coordMax, xTransform, zTransform)) {
@@ -211,15 +212,15 @@ public final class LocationCommand {
         int zTransform = plotAPI.getZTransform(commandArguments.location());
 
         // Get the worlds.
-        String saveWorld = PlotSystem.getInstance().getConfig().getString("save_world");
+        String saveWorld = PlotSystem.getInstance().getConfig().getString("save_world_dimension");
         if (saveWorld == null) {
             sender.sendMessage(ChatUtils.error("The save world is not set in config."));
             return;
         }
 
         // Get worlds.
-        World copy = Bukkit.getWorld(saveWorld);
-        World paste = Bukkit.getWorld(commandArguments.location());
+        World copy = WorldUtils.getWorld(saveWorld);
+        World paste = WorldUtils.getWorld(commandArguments.location());
 
         // Check that the worlds are not null, else delete the Multiverse world.
         if (copy == null || paste == null) {
@@ -250,7 +251,7 @@ public final class LocationCommand {
 
             copyRegions(sender, regions);
 
-            World world = Bukkit.getWorld(commandArguments.location());
+            World world = WorldUtils.getWorld(commandArguments.location());
             coordinateAPI.updateCoordinate(minCoordinateId, LocationAdapter.adapt(new Location(world, (regionXMin * 512), world.getMinHeight(), (regionZMin * 512), 0, 0)));
             coordinateAPI.updateCoordinate(maxCoordinateId,
                     LocationAdapter.adapt(new Location(world, ((regionXMax * 512) + 511), world.getMaxHeight() - 1, ((regionZMax * 512) + 511), 0, 0)));
@@ -307,14 +308,14 @@ public final class LocationCommand {
 
         // Teleport all players out of the world, so it can be deleted.
         // Get the worlds.
-        String saveWorldName = PlotSystem.getInstance().getConfig().getString("save_world");
+        String saveWorldName = PlotSystem.getInstance().getConfig().getString("save_world_dimension");
         if (saveWorldName == null) {
             sender.sendMessage(ChatUtils.error("The save world is not set in config."));
             return;
         }
 
         // Get save world.
-        World saveWorld = Bukkit.getWorld(saveWorldName);
+        World saveWorld = WorldUtils.getWorld(saveWorldName);
 
         teleportPlayersFromLocation(args[2], saveWorld);
 
@@ -370,6 +371,9 @@ public final class LocationCommand {
             sender.sendMessage(error);
             return null;
         }
+
+        // Ensure the location name is lowercase.
+        args[2] = args[2].toLowerCase();
 
         return new CommandArguments(args[2], xmin, ymin, zmin, xmax, ymax, zmax);
     }
@@ -449,7 +453,7 @@ public final class LocationCommand {
             double z = ((coordinateAPI.getZ(coordMax) + coordinateAPI.getZ(coordMin)) / 2) + plotAPI.getZTransform(location);
 
             // Teleport to the location.
-            World world = Bukkit.getWorld(location);
+            World world = WorldUtils.getWorld(location);
 
             double y = 64;
             if (world != null) {
@@ -474,7 +478,7 @@ public final class LocationCommand {
         // Teleport all players away from the location.
         Location teleportLocation = new Location(saveWorld, x, Utils.getHighestYAt(saveWorld, (int) x, (int) z), z);
         PlotSystem.getInstance().getServer().getOnlinePlayers().forEach(player -> {
-            if (player.getWorld().getName().equals(location)) {
+            if (player.getWorld().key().asMinimalString().equals(location)) {
                 player.teleport(teleportLocation);
                 player.sendMessage(ChatUtils.success("Teleported to save world, location %s is being deleted.", location));
             }

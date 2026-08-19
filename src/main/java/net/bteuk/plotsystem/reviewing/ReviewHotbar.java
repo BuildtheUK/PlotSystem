@@ -1,9 +1,10 @@
 package net.bteuk.plotsystem.reviewing;
 
-import net.bteuk.network.lib.utils.ChatUtils;
+import net.bteuk.network.api.TimerAPI;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.User;
 import net.bteuk.plotsystem.utils.Utils;
+import org.btuk.network.lib.utils.ChatUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.HumanEntity;
@@ -19,8 +20,8 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import static net.bteuk.plotsystem.PlotSystem.LOGGER;
 
@@ -35,15 +36,21 @@ public class ReviewHotbar implements Listener {
     // Review gui item.
     private final ItemStack reviewGui;
 
-    private final List<ItemStack> requiredItems = new ArrayList<>();
+    private final Map<Integer, ItemStack> requiredItems = new HashMap<>();
 
-    public ReviewHotbar(PlotSystem instance, User user) {
+    private final TimerAPI timerApi;
+    private final int timerId;
+
+    public ReviewHotbar(PlotSystem instance, User user, TimerAPI timerApi) {
 
         // Set plotsystem.
         this.instance = instance;
 
         // Set user.
         this.user = user;
+
+        // Set timer api.
+        this.timerApi = timerApi;
 
         // Create the review gui item.
         reviewGui = Utils.createItem(Material.EMERALD, 1, ChatUtils.title("Review Menu"), ChatUtils.line("Click to open review menu."));
@@ -53,13 +60,19 @@ public class ReviewHotbar implements Listener {
         // Register listeners.
         Bukkit.getServer().getPluginManager().registerEvents(this, instance);
 
+        // Register a timer to check if the required items are still in the inventory.
+        timerId = timerApi.registerTimer(() -> {
+            for (Map.Entry<Integer, ItemStack> entry : requiredItems.entrySet()) {
+                if (!entry.getValue().equals(user.player.getInventory().getItem(entry.getKey()))) {
+                    user.player.getInventory().setItem(entry.getKey(), entry.getValue());
+                }
+            }
+        }, 1000L);
+
     }
 
     public void setReviewBookSlot(ItemStack itemStack) {
-        if (requiredItems.size() > 1) {
-            requiredItems.remove(1);
-        }
-        requiredItems.add(1, itemStack);
+        requiredItems.put(1, itemStack);
         user.player.getInventory().setItem(1, itemStack);
     }
 
@@ -72,6 +85,9 @@ public class ReviewHotbar implements Listener {
         PlayerInteractEvent.getHandlerList().unregister(this);
         PlayerDropItemEvent.getHandlerList().unregister(this);
         PlayerSwapHandItemsEvent.getHandlerList().unregister(this);
+
+        // Unregister timer.
+        timerApi.cancelTimer(timerId);
 
         //Send feedback in the console.
         LOGGER.info("Reset reviewing hotbar and unregistered listeners");
@@ -125,11 +141,11 @@ public class ReviewHotbar implements Listener {
 
     private boolean cancelEvent(HumanEntity humanEntity, ItemStack item) {
         // Check if player is the reviewer and the item is one of the required items.
-        return item != null && (user.player.equals(humanEntity) && requiredItems.stream().anyMatch(item::equals));
+        return item != null && (user.player.equals(humanEntity) && requiredItems.containsValue(item));
     }
 
     private void initReviewItems() {
-        requiredItems.add(reviewGui);
+        requiredItems.put(0, reviewGui);
 
         // Set the hotbar items in the player's inventory.
         user.player.getInventory().setItem(0, reviewGui);

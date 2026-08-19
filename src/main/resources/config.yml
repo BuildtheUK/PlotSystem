@@ -6,6 +6,7 @@ server_name: plotserver
 # Save world name
 # This is where all completed plots are stored.
 save_world: saveWorld
+save_world_dimension: overworld
 
 # Maximum number of plots a user can have, this includes submitted plots
 plot_maximum: 21

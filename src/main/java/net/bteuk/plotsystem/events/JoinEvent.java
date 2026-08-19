@@ -4,14 +4,15 @@ import net.bteuk.network.api.ChatAPI;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.SQLAPI;
 import net.bteuk.network.api.entity.Event;
-import net.bteuk.network.lib.dto.DirectMessage;
-import net.bteuk.network.lib.utils.ChatUtils;
+import net.bteuk.network.papercore.WorldUtils;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
 import net.bteuk.plotsystem.utils.PlotHelper;
 import net.bteuk.plotsystem.utils.plugins.WorldGuardFunctions;
 import net.kyori.adventure.text.Component;
+import org.btuk.network.lib.dto.DirectMessage;
+import org.btuk.network.lib.utils.ChatUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -59,7 +60,7 @@ public class JoinEvent implements Event {
 
                 // Add the player to the worldguard region.
                 try {
-                    WorldGuardFunctions.addMember(String.valueOf(id), uuid, Bukkit.getWorld(plotAPI.getPlotLocation(id)));
+                    WorldGuardFunctions.addMember(String.valueOf(id), uuid, WorldUtils.getWorld(plotAPI.getPlotLocation(id)));
                 } catch (RegionManagerNotFoundException | RegionNotFoundException e) {
 
                     DirectMessage directMessage = new DirectMessage("global", uuid, "server",
@@ -98,7 +99,7 @@ public class JoinEvent implements Event {
 
             // Add the player to the worldguard region.
             try {
-                WorldGuardFunctions.addMember("z" + id, uuid, Bukkit.getWorld(plotAPI.getZoneLocation(id)));
+                WorldGuardFunctions.addMember("z" + id, uuid, WorldUtils.getWorld(plotAPI.getZoneLocation(id)));
             } catch (RegionManagerNotFoundException | RegionNotFoundException e) {
                 DirectMessage directMessage = new DirectMessage("global", uuid, "server",
                         ChatUtils.error("An error occurred while adding you to the zone, please contact an administrator."), false);

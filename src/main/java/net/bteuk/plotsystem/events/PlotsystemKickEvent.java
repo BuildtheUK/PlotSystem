@@ -4,13 +4,13 @@ import net.bteuk.network.api.ChatAPI;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.SQLAPI;
 import net.bteuk.network.api.entity.Event;
-import net.bteuk.network.lib.dto.DirectMessage;
-import net.bteuk.network.lib.utils.ChatUtils;
+import net.bteuk.network.papercore.WorldUtils;
 import net.bteuk.plotsystem.exceptions.RegionManagerNotFoundException;
 import net.bteuk.plotsystem.exceptions.RegionNotFoundException;
 import net.bteuk.plotsystem.utils.plugins.WorldGuardFunctions;
 import net.kyori.adventure.text.Component;
-import org.bukkit.Bukkit;
+import org.btuk.network.lib.dto.DirectMessage;
+import org.btuk.network.lib.utils.ChatUtils;
 
 public class PlotsystemKickEvent implements Event {
 
@@ -45,7 +45,7 @@ public class PlotsystemKickEvent implements Event {
 
             // Remove the player to the worldguard region.
             try {
-                WorldGuardFunctions.removeMember(String.valueOf(id), uuid, Bukkit.getWorld(plotAPI.getPlotLocation(id)));
+                WorldGuardFunctions.removeMember(String.valueOf(id), uuid, WorldUtils.getWorld(plotAPI.getPlotLocation(id)));
             } catch (RegionManagerNotFoundException | RegionNotFoundException e) {
                 DirectMessage directMessage = new DirectMessage("global", ownerId, "server",
                         ChatUtils.error("An error occurred while trying to kick the user from the plot, please contact an administrator."), false);
@@ -79,7 +79,7 @@ public class PlotsystemKickEvent implements Event {
 
             // Remove the player to the worldguard region.
             try {
-                WorldGuardFunctions.removeMember("z" + event[2], uuid, Bukkit.getWorld(plotAPI.getZoneLocation(id)));
+                WorldGuardFunctions.removeMember("z" + event[2], uuid, WorldUtils.getWorld(plotAPI.getZoneLocation(id)));
             } catch (RegionManagerNotFoundException | RegionNotFoundException e) {
                 DirectMessage directMessage = new DirectMessage("global", ownerId, "server",
                         ChatUtils.error("An error occurred while trying to kick the user from the zone, please contact an administrator."), false);
