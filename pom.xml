@@ -19,7 +19,7 @@
 
         <paper.api.version>[26.2.build,)</paper.api.version>
 
-        <btuk.network.version>e17ff0817d</btuk.network.version>
+        <btuk.network.version>develop-cd2ced40b0-1</btuk.network.version>
         <btuk.lib.version>main-36b0421e66-1</btuk.lib.version>
 
         <kyori.version>5.2.0</kyori.version>
