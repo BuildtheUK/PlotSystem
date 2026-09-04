@@ -5,6 +5,7 @@ import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.protection.ApplicableRegionSet;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import com.sk89q.worldguard.protection.regions.RegionQuery;
+import lombok.extern.java.Log;
 import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.SQLAPI;
@@ -16,11 +17,13 @@ import org.btuk.network.lib.utils.ChatUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
+@Log
 public class ClaimEnter implements Listener {
 
     final PlotAPI plotAPI;
@@ -34,14 +37,11 @@ public class ClaimEnter implements Listener {
         this.networkAPI = networkAPI;
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGH)
     public void joinEvent(PlayerJoinEvent e) {
-
-        Bukkit.getScheduler().scheduleSyncDelayedTask(PlotSystem.getInstance(), () -> {
-
-            User u = PlotSystem.getInstance().getUser(e.getPlayer());
-            checkRegion(u);
-        }, 20L);
+        log.info("Handling claim enter player join event for " + e.getPlayer().getName());
+        User u = PlotSystem.getInstance().getUser(e.getPlayer());
+        checkRegion(u, e.getPlayer().getLocation());
     }
 
     @EventHandler
@@ -49,8 +49,7 @@ public class ClaimEnter implements Listener {
 
         User u = PlotSystem.getInstance().getUser(e.getPlayer());
 
-        // Delay this so the movement has taken place.
-        Bukkit.getScheduler().runTask(PlotSystem.getInstance(), () -> checkRegion(u));
+        checkRegion(u, e.getTo());
     }
 
     @EventHandler
@@ -58,19 +57,15 @@ public class ClaimEnter implements Listener {
 
         User u = PlotSystem.getInstance().getUser(e.getPlayer());
 
-        // Delay this so the teleport has taken place.
-        Bukkit.getScheduler().runTask(PlotSystem.getInstance(), () -> checkRegion(u));
+        checkRegion(u, e.getTo());
     }
 
-    public void checkRegion(User u) {
-
-        // Get the location of the user.
-        Location l = u.player.getLocation();
+    public void checkRegion(User u, Location location) {
 
         // Create a query for all regions that the player is standing in, this should always contain 1 or less regions.
         // If more than 1 region is queried then something has gone wrong with creating regions.
         RegionQuery query = WorldGuard.getInstance().getPlatform().getRegionContainer().createQuery();
-        ApplicableRegionSet applicableRegionSet = query.getApplicableRegions(BukkitAdapter.adapt(l));
+        ApplicableRegionSet applicableRegionSet = query.getApplicableRegions(BukkitAdapter.adapt(location));
 
         // Iterate through the regions, which should be at most 1.
         // If there is more than 1 region, throw an error.

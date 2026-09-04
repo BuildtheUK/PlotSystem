@@ -1,6 +1,5 @@
 package net.bteuk.plotsystem.events;
 
-import io.papermc.lib.PaperLib;
 import net.bteuk.network.api.EventAPI;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.ServerAPI;
@@ -95,12 +94,12 @@ public class PlotsystemTeleportEvent implements Event {
                     z += plotAPI.getZTransform(location);
 
                     Location l = new Location(world, x, Utils.getHighestYAt(world, (int) x, (int) z), z);
-                    PaperLib.teleportAsync(player, l);
+                    player.teleportAsync(l);
                 } else {
                     // Get location of plot and teleport the player there.
                     try {
                         Location l = WorldGuardFunctions.getCurrentLocation(event[2], world);
-                        PaperLib.teleportAsync(player, l);
+                        player.teleportAsync(l);
                     } catch (RegionNotFoundException | RegionManagerNotFoundException e) {
                         player.sendMessage(ChatUtils.error("You could not be teleported to the plot, please notify an admin."));
                         e.printStackTrace();

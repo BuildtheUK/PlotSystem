@@ -1,5 +1,6 @@
 package net.bteuk.plotsystem.listeners;
 
+import lombok.extern.java.Log;
 import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.plotsystem.PlotSystem;
 import net.bteuk.plotsystem.utils.PlotHelper;
@@ -16,6 +17,7 @@ Additionally, the tutorial data will be loaded to check whether the player needs
 If this server does not have a tutorial, but it has not been completed, then the player will be sent to
 an alternative server which does have a tutorial.
  */
+@Log
 public class JoinServer implements Listener {
     private final PlotSystem instance;
     private final NetworkAPI networkAPI;
@@ -30,6 +32,7 @@ public class JoinServer implements Listener {
 
     @EventHandler
     public void joinEvent(PlayerJoinEvent e) {
+        log.info("Handling player join event for " + e.getPlayer().getName());
         // Create instance of User and add it to list.
         User u = new User(e.getPlayer(), networkAPI, plotHelper);
         instance.addUser(u);
