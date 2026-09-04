@@ -119,24 +119,30 @@ public class ReviewHotbar implements Listener {
 
     @EventHandler
     public void swapHands(PlayerSwapHandItemsEvent e) {
-        e.setCancelled(cancelEvent(e.getPlayer(), e.getOffHandItem()) || cancelEvent(e.getPlayer(), e.getMainHandItem()));
+        if (cancelEvent(e.getPlayer(), e.getOffHandItem()) || cancelEvent(e.getPlayer(), e.getMainHandItem())) {
+            e.setCancelled(true);
+        }
     }
 
     @EventHandler
     public void dropItem(PlayerDropItemEvent e) {
-        e.setCancelled(cancelEvent(e.getPlayer(), e.getItemDrop().getItemStack()));
+        if (cancelEvent(e.getPlayer(), e.getItemDrop().getItemStack())) {
+            e.setCancelled(true);
+        }
     }
 
     @EventHandler
     public void moveItem(InventoryMoveItemEvent e) {
-        if (e.getInitiator().getHolder() instanceof Player player) {
-            e.setCancelled(cancelEvent(player, e.getItem()));
+        if (e.getInitiator().getHolder() instanceof Player player && cancelEvent(player, e.getItem())) {
+            e.setCancelled(true);
         }
     }
 
     @EventHandler
     public void dragItem(InventoryDragEvent e) {
-        e.setCancelled(cancelEvent(e.getWhoClicked(), e.getOldCursor()) || cancelEvent(e.getWhoClicked(), e.getCursor()));
+        if (cancelEvent(e.getWhoClicked(), e.getOldCursor()) || cancelEvent(e.getWhoClicked(), e.getCursor())) {
+            e.setCancelled(true);
+        }
     }
 
     private boolean cancelEvent(HumanEntity humanEntity, ItemStack item) {

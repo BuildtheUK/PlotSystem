@@ -4,6 +4,7 @@ import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import lombok.Getter;
+import lombok.extern.java.Log;
 import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.plotsystem.commands.ClaimCommand;
 import net.bteuk.plotsystem.commands.LocationCommand;
@@ -55,6 +56,7 @@ import java.util.logging.Logger;
 
 import static net.bteuk.plotsystem.utils.Config.CONFIG;
 
+@Log
 public class PlotSystem extends JavaPlugin {
 
     // Logger
@@ -244,6 +246,7 @@ public class PlotSystem extends JavaPlugin {
     // Add user to list.
     public void addUser(User u) {
         users.add(u);
+        log.info("Added user " + u.player.getName());
     }
 
     // Get user from player.

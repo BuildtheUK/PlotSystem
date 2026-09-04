@@ -1,6 +1,5 @@
 package net.bteuk.plotsystem.events;
 
-import io.papermc.lib.PaperLib;
 import net.bteuk.network.api.NetworkAPI;
 import net.bteuk.network.api.PlotAPI;
 import net.bteuk.network.api.entity.Event;
@@ -94,7 +93,7 @@ public class ReviewEvent implements Event {
                 // Teleport the reviewer to the plot.
                 try {
                     Location l = WorldGuardFunctions.getCurrentLocation(event[2], world);
-                    CompletableFuture<Boolean> teleport = PaperLib.teleportAsync(player, l);
+                    CompletableFuture<Boolean> teleport = player.teleportAsync(l);
                     teleport.whenComplete((bool, throwable) -> {
                         // Send link to plot in Google Maps once teleport is complete.
                         player.performCommand("ll");
